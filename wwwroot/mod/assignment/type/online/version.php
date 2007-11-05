@@ -1,0 +1,11 @@
+<?PHP // $Id: version.php,v 1.2 2007/08/29 14:38:34 stronk7 Exp $
+
+////////////////////////////////////////////////////////////////////////////////
+//  Code fragment to define the module version etc.
+//  This fragment is called by /admin/index.php
+////////////////////////////////////////////////////////////////////////////////
+
+$plugin->version   = 2005042900;
+$plugin->requires  = 2005041800;
+
+?>
