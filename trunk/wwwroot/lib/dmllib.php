@@ -1622,10 +1622,6 @@ function update_record($table, $dataobject) {
         return false;
     }
     $data = (array)$dataobject;
-    // kowy - temp
-//    print ("<pre>");
-//    print_r($data);
-//    print("</pre>");
 
     if (defined('MDL_PERFDB')) { global $PERF ; $PERF->dbqueries++; };
 
@@ -1633,8 +1629,6 @@ function update_record($table, $dataobject) {
     $ddd = array();
     foreach ($columns as $column) {
         if ($column->name <> 'id' and array_key_exists($column->name, $data)) {
-            // kowy - temp
-//            print ("column: $column->name:".$data[$column->name]."<br>");
             $ddd[$column->name] = $data[$column->name];
         }
     }
@@ -1659,9 +1653,6 @@ function update_record($table, $dataobject) {
             }
         }
         
-        // kowy - temp
-//        error ($update."<br>");
-
         if (!$rs = $db->Execute('UPDATE '. $CFG->prefix . $table .' SET '. $update .' WHERE id = \''. $dataobject->id .'\'')) {
             debugging($db->ErrorMsg() .'<br /><br />UPDATE '. $CFG->prefix . $table .' SET '. $update .' WHERE id = \''. $dataobject->id .'\'');
             if (!empty($CFG->dblogerror)) {

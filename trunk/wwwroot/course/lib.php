@@ -1519,7 +1519,7 @@ function print_section_add_menus($course, $section, $modnames, $vertical=false, 
                 // ...by type if exist
                 $types = $gettypesfunc();
                 foreach($types as $type) {
-                    // kowy - temp
+                    // kowy - put type to proper dropdown box   
                     if (in_array($type->type, $samouk_res)) {
                         $resources[$type->type] = $type->typestr;
                     } else if (in_array($type->type, $samouk_act)) {

@@ -121,6 +121,9 @@
 
         /// update forum track preference
         useredit_update_trackforums($user, $usernew);
+        
+        /// change boxlayout for all user's courses by su_isadvanced value
+        useredit_update_boxlayout($user, $usernew);
 
         // save custom profile fields data
         profile_save_data($usernew);

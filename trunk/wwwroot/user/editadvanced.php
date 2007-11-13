@@ -26,10 +26,10 @@
         $user->confirmed = 1;
     } else {
         // editing existing user
-        require_capability('moodle/user:update', get_context_instance(CONTEXT_SYSTEM));
+        
         if (!$user = get_record('user', 'id', $id)) {
             error('User ID was incorrect');
-        }
+        }        
     }
 
     // remote users cannot be edited
@@ -60,12 +60,7 @@
 
     //create form
     $userform = new user_editadvanced_form();
-    $userform->set_data($user);
-    // kowy - temp
-    print("isAdvanced<br>");
-    print_r($user);
-    print("aa $user->su_isadvanced bb");
-    
+    $userform->set_data($user);    
 
     if ($usernew = $userform->get_data()) {        
         add_to_log($course->id, 'user', 'update', "view.php?id=$user->id&course=$course->id", '');

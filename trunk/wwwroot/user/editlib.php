@@ -274,4 +274,30 @@ function useredit_shared_definition(&$mform) {
     
 }
 
+/**
+ * Change boxlayout for all user's courses by su_isadvanced value 
+ *
+ * @param stdClass $olduser user class before update
+ * @param stdClass $newuser user class after update
+ * @author Kowy - Samouk
+ */
+function useredit_update_boxlayout($olduser, $newuser) {
+    global $USER;
+            
+    if ($USER->id == $newuser->id) {
+        // only logged user can run this code, because it is repopulated for logged user     	
+	    if ($olduser->su_isadvanced != $newuser->su_isadvanced) {
+	        // IsAdvanced user property changed
+	               
+	        // if user change it's account to advanced, repopulate block arranegement
+	        $USER->su_isadvanced = $newuser->su_isadvanced;
+	              
+	        $courses  = get_my_courses($newuser->id, '', 'id');
+	        foreach ($courses as $course) {
+	            $page = page_create_object(PAGE_COURSE_VIEW, $course['id']);
+	            blocks_repopulate_page($page); // change blocks arrangement
+	        }
+	    }
+    }    
+}
 ?>
