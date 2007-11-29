@@ -226,7 +226,7 @@
 	        
 	        $buttons[0] =& HTML_QuickForm::createElement('submit', $this->getButtonName('back'), get_string('button.prev','samouk'));
 	        $buttons[1] =& HTML_QuickForm::createElement('button', 'cancel', get_string('cancel'), array('onclick'=>"javascript:location.href='index.php';"));
-	        $buttons[2] =& HTML_QuickForm::createElement('submit', $this->getButtonName('next'), get_string('button.next','samouk'));
+	        $buttons[2] =& HTML_QuickForm::createElement('submit', $this->getButtonName('next'), get_string('button.done','samouk'));
 	        $this->addGroup($buttons, 'buttons', '', '&nbsp', false);
 	        
 	        $this->setDefaultAction('next');

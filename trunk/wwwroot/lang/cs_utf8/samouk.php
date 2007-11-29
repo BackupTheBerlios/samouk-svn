@@ -9,6 +9,7 @@
 
 $string['button.next'] = 'Dále >>';
 $string['button.prev'] = '<< Předchozí';
+$string['button.done'] = 'Dokončit >>';
 
 $string['blok.samouk_data.name'] = 'Obsah kurzu';
 
@@ -36,6 +37,16 @@ $string['newcourse.error.badcategory'] = 'Category ID was incorrect';
 $string['newcourse.error.usedfullname'] = 'Full name is already used for another course';
 $string['newcourse.selecttech'] = 'Zvol technologii';
 $string['newcourse.maxstudents'] = 'Kapacita kurzu';
+
+$string['newuser.accountingform'] = 'Účetní údaje';
+$string['newuser.button.finish'] = 'Chci pouze studovat >>';
+$string['newuser.button.teacher'] = 'Chci učit >>';
+$string['newuser.contactform'] = 'Kontaktní údaje';
+$string['newuser.extendedcontactform'] = 'Rozšířené kontaktní údaje';
+$string['newuser.photo'] = 'Vizuální záznamy';
+$string['newuser.step'] = 'Krok $a->current ze $a->total';
+$string['newuser.teachers'] = 'Učitelské atributy';
+$string['newuser.teacherdescform'] = 'Životopisné údaje (vzdělání, zkušenosti, popis osobnosti...)';
 
 $string['Teacher'] = 'Učitel';
 

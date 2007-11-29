@@ -5072,9 +5072,10 @@ function get_list_of_countries() {
         include($CFG->dirroot .'/lang/'. $lang .'/countries.php');
     }
 
-    if (!empty($string)) {
-        asort($string);
-    }
+    // kowy - leave order as is in lang file (because asort badly sort chars with diacritics)
+//    if (!empty($string)) {
+//        asort($string);
+//    }
 
     return $string;
 }

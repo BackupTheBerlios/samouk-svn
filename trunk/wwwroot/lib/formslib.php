@@ -1234,10 +1234,20 @@ function validate_' . $this->_formName . '_' . $elementName . '(element) {
             //$element =& $this->getElement($elementName);
             //end of fix
             $valFunc = 'validate_' . $this->_formName . '_' . $elementName . '(this)';
-            $onBlur = $element->getAttribute('onBlur');
-            $onChange = $element->getAttribute('onChange');
-            $element->updateAttributes(array('onBlur' => $onBlur . $valFunc,
-                                             'onChange' => $onChange . $valFunc));
+            
+            if (is_array($element)) {
+            	// kowy - if array instead of object is gained, get item from array
+                @$element['onBlur'] = $element['onBlur'].$valFunc;
+                @$element['onChange'] = $element['onChange'].$valFunc;
+            } else {
+            	// direct reading from given QuickForm object
+            	$onBlur = $element->getAttribute('onBlur');
+                $onChange = $element->getAttribute('onChange');
+                
+                $element->updateAttributes(array('onBlur' => $onBlur . $valFunc,
+                                                 'onChange' => $onChange . $valFunc));
+                
+            }
         }
 //  do not rely on frm function parameter, because htmlarea breaks it when overloading the onsubmit method
         $js .= '

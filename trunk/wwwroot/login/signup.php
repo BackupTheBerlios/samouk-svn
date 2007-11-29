@@ -1,7 +1,9 @@
 <?php  // $Id: signup.php,v 1.56 2007/08/17 19:09:21 nicolasconnault Exp $
 
     require_once('../config.php');
-    require_once('signup_form.php');
+    // kowy - use new wizard instead
+    //require_once('signup_form.php');
+    require_once('signup_form_su.php'); 
 
     if (empty($CFG->registerauth)) {
         error("Sorry, you may not use this page.");
@@ -15,22 +17,35 @@
     //HTTPS is potentially required in this page
     httpsrequired();
 
-    $mform_signup = new login_signup_form();
+    $mform_signup = new HTML_QuickForm_Controller('newuserWizard', true);
+    $mform_signup->addPage(new WizardStepOne());
+    $mform_signup->addPage(new WizardStepTwo());
+    $mform_signup->addPage(new WizardStepThree());
+    $mform_signup->addPage(new WizardStepFour());
+    $mform_signup->addPage(new WizardStepFive());
+    $mform_signup->addPage(new WizardStepSix());
+    $mform_signup->addPage(new WizardStepSeven());
+    
+    // read values from the previous step
+    $mform_signup->setDefaults($mform_signup->exportValues());
+    
+    $mform_signup->addAction('display', new ActionDisplay());
+    $mform_signup->addAction('process', new ActionProcess());
 
-    if ($mform_signup->is_cancelled()) {
-        redirect($CFG->httpswwwroot.'/login/index.php');
-
-    } else if ($user = $mform_signup->get_data()) {
-        $user->confirmed   = 0;
-        $user->lang        = current_language();
-        $user->firstaccess = time();
-        $user->mnethostid  = $CFG->mnet_localhost_id;
-        $user->secret      = random_string(15);
-        $user->auth        = $CFG->registerauth;
-
-        $authplugin->user_signup($user, true); // prints notice and link to login/index.php
-        exit; //never reached
-    }
+//    if ($mform_signup->is_cancelled()) {
+//        redirect($CFG->httpswwwroot.'/login/index.php');
+//
+//    } else if ($user = $mform_signup->get_data()) {
+//        $user->confirmed   = 0;
+//        $user->lang        = current_language();
+//        $user->firstaccess = time();
+//        $user->mnethostid  = $CFG->mnet_localhost_id;
+//        $user->secret      = random_string(15);
+//        $user->auth        = $CFG->registerauth;
+//
+//        $authplugin->user_signup($user, true); // prints notice and link to login/index.php
+//        exit; //never reached
+//    }
 
     $newaccount = get_string('newaccount');
     $login      = get_string('login');
@@ -47,9 +62,9 @@
     $navlinks[] = array('name' => $login, 'link' => "index.php", 'type' => 'misc');
     $navlinks[] = array('name' => $newaccount, 'link' => null, 'type' => 'misc');
     $navigation = build_navigation($navlinks);
-    print_header($newaccount, $newaccount, $navigation, $mform_signup->focus(), "", true, "<div class=\"langmenu\">$langmenu</div>");
+    print_header($newaccount, $newaccount, $navigation, "", "", true, "<div class=\"langmenu\">$langmenu</div>");
 
-    $mform_signup->display();
+    $mform_signup->run();
     print_footer();
 
 
