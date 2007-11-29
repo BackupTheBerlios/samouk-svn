@@ -66,23 +66,15 @@
 
 <?php if ($home) {  // This is what gets printed on the home page only
 ?>
-    <div id="header-home" class="clearfix">
+        <div id="header-home" class="clearfix">
       <div id="headerback">
          <div id="header-left">
               <div id="leftimg"></div>
-              <div id="logomenu">
-              <div id="header-logo"></div>    
-                   <div id="menuandback">
-                   <div id="headermenu">
-                   <div id="menutop">
-                        <div id="startmenu"></div>
-                   </div>
-                   </div>
-                   <div id="blueback"></div>
-                   </div> 
-              </div>     
-         </div>  
-         <div id="header-right">
+              <div id="header-logo"></div>   
+         </div>   
+         
+         
+           <div id="header-right">
               <div id="headerrightend"></div>
               <div id="clearlogin">
               <div id="loginup">
@@ -96,10 +88,9 @@
                               <div id=jmeno>Jmeno <input id="text" size="12"></div> 
                               <div id=heslo>Heslo <input id="text" size="12"></div>
                          </div>
-                         <div id=checkbox><input type="checkbox"> Pamatuj si me na tomto pocitaci.</div>
                    </form> 
-                   <a href="#"><span id=prihlasit>Prihlasit</span></a>
-                   <hr width="311" size="2" color="#A8A383" align="center">
+                   <div id=prihlasit><a href="#"><div id="prihlasittext">Prihlasit</div></a><input type="checkbox"> Pamatuj si me na tomto pocitaci.</div>
+                   <hr id="hr" width="311" size="2" color="#A8A383" align="center">
                    <a href="#"><span id=registruj> Zaregistruj se!</span></a>
                       Nemate sve jmeno a heslo?
               </div>
@@ -110,10 +101,47 @@
                    <div id="leftcornerdown"></div>
               </div>
               </div>
+          </div>
+          
+          
+                   <div id="menuandback">
+                   <div id="konvexleft"></div>
+                   <div id="headermenu">
+                   <div id="menutop">
+                        <div id="startmenu"></div>
+                   </div>
+                   </div>
+                   
+                 <div id="blueback">
+                        
+                           
+                             
+                             <div id="navleft">
+                             </div>
+                             <div id="header-navigace">
+                             <div id="IE6hack"></div>
+                           
+                   
+        <div class="breadcrumb"><?php print_navigation($navigation); ?>
+        </div>
+       
+    
+                           
+                             </div>
+                             <div id="navend">
+                             </div>
+                              
+                            
+                       
+                  </div>
+                   </div> 
+                   
+       
+       
               <div id="headerkonvex"></div>
-         </div> 
+          
     </div>         
-</div>  
+</div> 
 
 
 <?php } else {  // This is what gets printed on any other page with a heading
@@ -122,19 +150,11 @@
       <div id="headerback">
          <div id="header-left">
               <div id="leftimg"></div>
-              <div id="logomenu">
-              <div id="header-logo"></div>    
-                   <div id="menuandback">
-                   <div id="headermenu">
-                   <div id="menutop">
-                        <div id="startmenu"></div>
-                   </div>
-                   </div>
-                   <div id="blueback"></div>
-                   </div> 
-              </div>     
-         </div>  
-         <div id="header-right">
+              <div id="header-logo"></div>   
+         </div>   
+         
+         
+           <div id="header-right">
               <div id="headerrightend"></div>
               <div id="clearlogin">
               <div id="loginup">
@@ -148,9 +168,8 @@
                               <div id=jmeno>Jmeno <input id="text" size="12"></div> 
                               <div id=heslo>Heslo <input id="text" size="12"></div>
                          </div>
-                         <div id=checkbox><input type="checkbox"> Pamatuj si me na tomto pocitaci.</div>
                    </form> 
-                   <a href="#"><span id=prihlasit>Prihlasit</span></a>
+                   <div id=prihlasit><span id="prihlasittext">Prihlasit</span><input type="checkbox"> Pamatuj si me na tomto pocitaci.</div>
                    <hr width="311" size="2" color="#A8A383" align="center">
                    <a href="#"><span id=registruj> Zaregistruj se!</span></a>
                       Nemate sve jmeno a heslo?
@@ -162,8 +181,45 @@
                    <div id="leftcornerdown"></div>
               </div>
               </div>
+          </div>
+          
+          
+                   <div id="menuandback">
+                   <div id="konvexleft"></div>
+                   <div id="headermenu">
+                   <div id="menutop">
+                        <div id="startmenu"></div>
+                   </div>
+                   </div>
+                   
+                   <div id="blueback">
+                        
+                           
+                             
+                             <div id="navleft">
+                             </div>
+                             <div id="header-navigace">
+                             <div id="IE6hack"></div>
+                           
+                   
+        <div class="breadcrumb"><?php print_navigation($navigation); ?>
+        </div>
+       
+    
+                           
+                             </div>
+                             <div id="navend">
+                             </div>
+                              
+                            
+                       
+                  </div>
+                   </div> 
+                   
+       
+       
               <div id="headerkonvex"></div>
-         </div> 
+          
     </div>         
 </div>  
 
