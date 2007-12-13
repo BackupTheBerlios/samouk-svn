@@ -32,6 +32,10 @@ $string['layout.showusers.yes'] = 'Kurz <b>je</b> viditelný pro studenty.';
 $string['layout.showusers.no'] = 'Kurz <b>není</b> viditelný pro studenty.';
 $string['layout.synchronous'] = 'Ovládání interaktivního kurzu';
 
+$string['logPortlet.haventpass'] = 'Nemáte sve jméno a heslo?';
+$string['logPortlet.register'] = 'Zaregistruj se!';
+$string['logPortlet.saveuseroncomputer'] = 'Pamatuj si mě na tomto počítači';
+
 $string['newcourse.error.nocategory'] = 'Valid category ID must be specified';
 $string['newcourse.error.badcategory'] = 'Category ID was incorrect';
 $string['newcourse.error.usedfullname'] = 'Full name is already used for another course';
@@ -47,6 +51,9 @@ $string['newuser.photo'] = 'Vizuální záznamy';
 $string['newuser.step'] = 'Krok $a->current ze $a->total';
 $string['newuser.teachers'] = 'Učitelské atributy';
 $string['newuser.teacherdescform'] = 'Životopisné údaje (vzdělání, zkušenosti, popis osobnosti...)';
+
+$string['register'] = 'Registruj';
+$string['saveuseroncomputer'] = 'Zapamatuj si mě';
 
 $string['Teacher'] = 'Učitel';
 

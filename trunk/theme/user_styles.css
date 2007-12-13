@@ -194,11 +194,13 @@ height:35px;
 #prihlasittext{
  background-image:url(./img/prihlasit.jpg);
  background-repeat:no-repeat;
- width:70px;
+ width:107px;
  height:20px;
+ border: 0;
  color:white;
  padding-top: 2px;
  padding-left:30px;
+ padding-right: 20px;
  float:left;
  }
 
@@ -771,18 +773,18 @@ div.sideblock div.header div.i2 {
 
 div.sideblock div.header div.i3 {
   padding: 0 0 5px;
-  /*background-color: #ffffff;*/ /*výmaz by kohy, šedé ohranièení boxíku*/
+  /*background-color: #ffffff;*/ /*vï¿½maz by kohy, ï¿½edï¿½ ohraniï¿½enï¿½ boxï¿½ku*/
   border-top-width: 1px;
   border-right-width: 0;
   border-bottom-width: 1px;
-  border-style: none; /*výmaz solid by kohy, šedé ohranièení boxíku*/
-  /*border-top-color: #ffffff;*/ /*výmaz by kohy, šedé ohranièení boxíku*/
-  /*border-bottom-color: #ffffff;*/ /*výmaz by kohy, šedé ohranièení boxíku*/
+  border-style: none; /*vï¿½maz solid by kohy, ï¿½edï¿½ ohraniï¿½enï¿½ boxï¿½ku*/
+  /*border-top-color: #ffffff;*/ /*vï¿½maz by kohy, ï¿½edï¿½ ohraniï¿½enï¿½ boxï¿½ku*/
+  /*border-bottom-color: #ffffff;*/ /*vï¿½maz by kohy, ï¿½edï¿½ ohraniï¿½enï¿½ boxï¿½ku*/
 }
 
 
 div.sideblock div.i1 {
-  /*background-image: url(pix/beige_borders.png); */ /*výmaz by kohy, šedé ohranièení pravého boxíku*/
+  /*background-image: url(pix/beige_borders.png); */ /*vï¿½maz by kohy, ï¿½edï¿½ ohraniï¿½enï¿½ pravï¿½ho boxï¿½ku*/
   /*background-repeat: repeat-y;*/
   padding: 0 0 0 12px;
 }
@@ -839,9 +841,9 @@ td#middle-column div.bt div {
   background-position: 0 0;
   background-color: transparent;
   height: 12px;
-  left: -13px;
   position: relative;
   width: 13px;
+  z-index: 10;
 }
 td#middle-column div.bt {
   background-image: url(pix/box.jpg);
@@ -879,7 +881,6 @@ td#middle-column div.bb div {
   background-position: 0 100%;
   background-color: transparent;
   height: 12px;
-  left: -13px;
   position: relative;
   width: 13px;
 }
@@ -890,9 +891,6 @@ td#middle-column div.bb {
   margin: 0 0 0 13px;
   height: 12px;
   background-color: transparent;
-}
-td#middle-column div.bt div {
-  z-index: 10;
 }
 div#footer div.bt div {
   background-image: url(pix/beige_box.png);
@@ -1258,14 +1256,10 @@ body#course-user div.tabtree {
 
 }
 
-/* umazán div.sideblock a pridan div.block_calendar_month, kvuli tomu, abych mohli pracovat jen
+/* umazï¿½n div.sideblock a pridan div.block_calendar_month, kvuli tomu, abych mohli pracovat jen
 s boxikami napravo a nemenilo by se mi pri tom menu vlevo*/
-
-
-
+/* blok Kalendar mesicni... */
 div.block_calendar_month div.header {
-  background-image:url(./pix/boxiktop.png);
-  background-repeat:no-repeat;
   padding: 0;
   border-style: none;
   border-color: #DDDDDD #CCCCCC #88DD55 #DDDDDD;
@@ -1273,19 +1267,26 @@ div.block_calendar_month div.header {
   height:34px;
 }
 
+/* misto nad nadpisem boxiku, kam je mozne umistit gr. prvek, zde se nevyuziva */
+div.block_calendar_month div.bt {
+  height: 0px;
+}
+
 div.block_calendar_month div.i1 {
   background-image: url(pix/boxikstrana.png);
   background-repeat: no-repeat;
   background-position: 0 0;
-  background-color: #FFFFFF; /* zmìna pozadí z transparent, aby pozadí boxíku bylo bílé*/ 
+  background-color: #FFFFFF; /* zmï¿½na pozadï¿½ z transparent, aby pozadï¿½ boxï¿½ku bylo bï¿½lï¿½*/ 
   padding: 0 0 0 11px;
   _margin-top:-2px;
 }
 
+/* bublinka s nazvem boxiku v zahlavi */
 div.block_calendar_month div.header div.i1{
- background-image: none; /* zde se jedná o pozadí v hlavièce boxíku, které jsme také 
- vytvoøili v pøedochozím stylu, rušíme tedy boxikstrana.png*/ 
- 
+  background-image:url(./pix/boxiktop.png);
+  background-repeat:no-repeat; 
+  width:236px;
+  height:34px;
 } 
 
 div.block_calendar_month div.i2 {
@@ -1298,8 +1299,8 @@ div.block_calendar_month div.i2 {
 }
 
 div.block_calendar_month div.header div.i2 {
- background-image: none; /* zde se jedná o pozadí v hlavièce boxíku, které jsme také 
- vytvoøili v pøedochozím stylu, rušíme tedy boxikstrana.png*/ 
+ background-image: none; /* zde se jednï¿½ o pozadï¿½ v hlaviï¿½ce boxï¿½ku, kterï¿½ jsme takï¿½ 
+ vytvoï¿½ili v pï¿½edochozï¿½m stylu, ruï¿½ï¿½me tedy boxikstrana.png*/ 
  
 } 
 
@@ -1308,11 +1309,11 @@ div.block_calendar_month div.header div.title {
  _margin-top:-10px;
  &margin-top:-12px;
 }
+/* ...blok Kalendar mesicni */
 
-
-/* umazán div.sideblock a pridan div.block_participants, kvuli tomu, abych mohli pracovat jen
-s boxikami napravo a nemenilo by se mi pri tom menu vpravo - staèí nakopírovat a nahradit, nový 
-boxík pøidán. To same co pøed tím (staèi copirovat) akorat zmenit obrázky na jinou barvu*/
+/* umazï¿½n div.sideblock a pridan div.block_participants, kvuli tomu, abych mohli pracovat jen
+s boxikami napravo a nemenilo by se mi pri tom menu vpravo - staï¿½ï¿½ nakopï¿½rovat a nahradit, novï¿½ 
+boxï¿½k pï¿½idï¿½n. To same co pï¿½ed tï¿½m (staï¿½i copirovat) akorat zmenit obrï¿½zky na jinou barvu*/
 
 
 div.block_participants div.header {
@@ -1329,14 +1330,14 @@ div.block_participants div.i1 {
   background-image: url(pix/boxikstrana2.png);
   background-repeat: no-repeat;
   background-position: 0 0;
-  background-color: #FFFFFF ; /* zmìna pozadí z transparent, aby pozadí boxíku bylo bílé*/ 
+  background-color: #FFFFFF ; /* zmï¿½na pozadï¿½ z transparent, aby pozadï¿½ boxï¿½ku bylo bï¿½lï¿½*/ 
   padding: 0 0 0 11px;
   _margin-top:-2px;
 }
 
 div.block_participants div.header div.i1{
- background-image: none; /* zde se jedná o pozadí v hlavièce boxíku, které jsme také 
- vytvoøili v pøedochozím stylu, rušíme tedy boxikstrana.png*/ 
+ background-image: none; /* zde se jednï¿½ o pozadï¿½ v hlaviï¿½ce boxï¿½ku, kterï¿½ jsme takï¿½ 
+ vytvoï¿½ili v pï¿½edochozï¿½m stylu, ruï¿½ï¿½me tedy boxikstrana.png*/ 
  
 } 
 
@@ -1350,8 +1351,8 @@ div.block_participants div.i2 {
 }
 
 div.block_participants div.header div.i2 {
- background-image: none; /* zde se jedná o pozadí v hlavièce boxíku, které jsme také 
- vytvoøili v pøedochozím stylu, rušíme tedy boxikstrana.png*/ 
+ background-image: none; /* zde se jednï¿½ o pozadï¿½ v hlaviï¿½ce boxï¿½ku, kterï¿½ jsme takï¿½ 
+ vytvoï¿½ili v pï¿½edochozï¿½m stylu, ruï¿½ï¿½me tedy boxikstrana.png*/ 
  
 } 
 
@@ -1361,8 +1362,8 @@ div.block_participants div.header div.title {
  &margin-top:-12px;
 }
 
-/* novy typ boxiku staci psat div.block_participants div.header div.title, div.novy typ ...., akorát
-barva bude setjná*/
+/* novy typ boxiku staci psat div.block_participants div.header div.title, div.novy typ ...., akorï¿½t
+barva bude setjnï¿½*/
 
 
 /* KONEC PRAVYM BOXIKUM*/
@@ -1402,9 +1403,9 @@ margin-bottom:0em;
 }
 
 #left-column .sideblock .header {
-width:180px;  /*jinak utíká tlaèítko na schovávání boxíkù*/
+width:180px;  /*jinak utï¿½kï¿½ tlaï¿½ï¿½tko na schovï¿½vï¿½nï¿½ boxï¿½kï¿½*/
 }
 
-/*konec vseobjímajícího menu*/
+/*konec vseobjï¿½majï¿½cï¿½ho menu*/
 
 /* box.png zmenen na box.jpg kvuli IE6, kohy*/

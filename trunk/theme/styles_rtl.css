@@ -28,19 +28,19 @@ div.sideblock div.bb {
 td#middle-column div.bt  div {
   background-position: 100% 0;
   right: -13px;
+  float: right;
 }
 td#middle-column div.bt {
   background-position: 0 0;
-  left: -13px;
   margin: 0 13px 0 0;
 }
 td#middle-column div.bb  div {
   background-position: 100% 100%;
   right: -13px;
+  float: right;;
 }
 td#middle-column div.bb {
   background-position: 0 100%;
-  left: -13px;
   margin: 0 13px 0 0;
 }
 div#footer div.bt  div {

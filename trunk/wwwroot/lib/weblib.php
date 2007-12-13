@@ -3091,18 +3091,20 @@ function theme_setup($theme = '', $params=NULL) {
  * @param course $course {@link $COURSE} object containing course information
  * @param user $user {@link $USER} object containing user information
  * @return string
+ * 
+ * 2007-11-30 - kowy - rewritten to conform with a new design
  */
 function user_login_string($course=NULL, $user=NULL) {
-    global $USER, $CFG, $SITE;
-
-    if (empty($user) and !empty($USER->id)) {
+	global $USER, $CFG, $SITE;
+	
+	if (empty($user) and !empty($USER->id)) {
         $user = $USER;
     }
 
     if (empty($course)) {
         $course = $SITE;
     }
-
+    
     if (!empty($user->realuser)) {
         if ($realuser = get_record('user', 'id', $user->realuser)) {
             $fullname = fullname($realuser, true);
@@ -3112,17 +3114,22 @@ function user_login_string($course=NULL, $user=NULL) {
     } else {
         $realuserinfo = '';
     }
-
+    
     if (empty($CFG->loginhttps)) {
         $wwwroot = $CFG->wwwroot;
     } else {
         $wwwroot = str_replace('http:','https:',$CFG->wwwroot);
     }
-
+    
+    $fullname = fullname($user, true);
+    
+    // HTML content of information in the login box
+    $logboxcontent = "";
     if (empty($course->id)) {
         // $course->id is not defined during installation
-        return '';
+        $logboxcontent = "";
     } else if (!empty($user->id)) {
+    	// some user is logged in
         $context = get_context_instance(CONTEXT_COURSE, $course->id);
 
         $fullname = fullname($user, true);
@@ -3130,6 +3137,7 @@ function user_login_string($course=NULL, $user=NULL) {
         if (is_mnet_remote_user($user) and $idprovider = get_record('mnet_host', 'id', $user->mnethostid)) {
             $username .= " from <a $CFG->frametarget href=\"{$idprovider->wwwroot}\">{$idprovider->name}</a>";
         }
+        
         if (isset($user->username) && $user->username == 'guest') {
             $loggedinas = $realuserinfo.get_string('loggedinasguest').
                       " (<a $CFG->frametarget href=\"$wwwroot/login/index.php\">".get_string('login').'</a>)';
@@ -3142,15 +3150,103 @@ function user_login_string($course=NULL, $user=NULL) {
                       " (<a $CFG->frametarget
                       href=\"$CFG->wwwroot/course/view.php?id=$course->id&amp;switchrole=0&amp;sesskey=".sesskey()."\">".get_string('switchrolereturn').'</a>)';
         } else {
-            $loggedinas = $realuserinfo.get_string('loggedinas', 'moodle', $username).' '.
-                      " (<a $CFG->frametarget href=\"$CFG->wwwroot/login/logout.php?sesskey=".sesskey()."\">".get_string('logout').'</a>)';
+            $loggedinas = $realuserinfo.get_string('loggedinas', 'moodle', $username);
         }
+		$logboxcontent = 
+			"<form style=\"margin:0; padding:0;\" action=\"\" method=\"get\" >" .
+			"	<div id=\"forIE\">" .
+			"		" . $loggedinas .
+			"	</div>" .
+			"</form>" . 
+			"<div id=\"prihlasit\">" .
+			"	<a  id=\"prihlasittext\" href=\"$CFG->wwwroot/login/logout.php?sesskey=".sesskey()."\" $CFG->frametarget>".get_string('logout')."</a>" .
+			"</div>";
     } else {
-        $loggedinas = get_string('loggedinnot', 'moodle').
-                      " (<a $CFG->frametarget href=\"$wwwroot/login/index.php\">".get_string('login').'</a>)';
+    	// no user logged in
+    	$logboxcontent = 
+    		"<form style=\"margin:0; padding:0;\" action=\"" . $CFG->wwwroot . "/login/index.php\" method=\"post\" >" .
+            "	<div id=\"forIE\">" .
+    		"		<div id=\"jmeno\">" . get_string('name', 'quiz') . 
+            "			<input type=\"text\" id=\"username\" name=\"username\" size=\"12\">" .
+    		"		</div>" .
+			"		<div id=\"heslo\">" . get_string('password') . 
+			"			<input type=\"password\" id=\"password\" name=\"password\" size=\"12\">" .
+			"		</div>" .
+			"	</div>" .
+			"	<div id=\"prihlasit\">" .
+			"		<input id=\"prihlasittext\" type=\"submit\" value=\"" . get_string('login') . "\" />" .
+			"		<input type=\"checkbox\" /> " . get_string('saveuseroncomputer', 'samouk') .
+			"	</div>" .
+			"</form>" . 
+			"<hr id=\"hr\" width=\"311\" size=\"2\" color=\"#A8A383\" align=\"center\">" .
+			"<a href=\"" . $CFG->wwwroot . "/login/signup.php\">" .
+			"	<span id=\"registruj\">" . get_string('register', 'samouk') . "</span>" .
+			"</a> " . 
+			get_string('logPortlet.haventpass', 'samouk');
+//        $loggedinas = get_string('loggedinnot', 'moodle').
+//                      " (<a $CFG->frametarget href=\"$wwwroot/login/index.php\">".get_string('login').'</a>)';
     }
-    return '<div class="logininfo">'.$loggedinas.'</div>';
+    return "<div id=\"logintext\">" . $logboxcontent . "</div>";
 }
+//function user_login_string($course=NULL, $user=NULL) {
+//    global $USER, $CFG, $SITE;
+//
+//    if (empty($user) and !empty($USER->id)) {
+//        $user = $USER;
+//    }
+//
+//    if (empty($course)) {
+//        $course = $SITE;
+//    }
+//
+//    if (!empty($user->realuser)) {
+//        if ($realuser = get_record('user', 'id', $user->realuser)) {
+//            $fullname = fullname($realuser, true);
+//            $realuserinfo = " [<a $CFG->frametarget
+//            href=\"$CFG->wwwroot/course/loginas.php?id=$course->id&amp;return=1&amp;sesskey=".sesskey()."\">$fullname</a>] ";
+//        }
+//    } else {
+//        $realuserinfo = '';
+//    }
+//
+//    if (empty($CFG->loginhttps)) {
+//        $wwwroot = $CFG->wwwroot;
+//    } else {
+//        $wwwroot = str_replace('http:','https:',$CFG->wwwroot);
+//    }
+//
+//    if (empty($course->id)) {
+//        // $course->id is not defined during installation
+//        return '';
+//    } else if (!empty($user->id)) {
+//        $context = get_context_instance(CONTEXT_COURSE, $course->id);
+//
+//        $fullname = fullname($user, true);
+//        $username = "<a $CFG->frametarget href=\"$CFG->wwwroot/user/view.php?id=$user->id&amp;course=$course->id\">$fullname</a>";
+//        if (is_mnet_remote_user($user) and $idprovider = get_record('mnet_host', 'id', $user->mnethostid)) {
+//            $username .= " from <a $CFG->frametarget href=\"{$idprovider->wwwroot}\">{$idprovider->name}</a>";
+//        }
+//        if (isset($user->username) && $user->username == 'guest') {
+//            $loggedinas = $realuserinfo.get_string('loggedinasguest').
+//                      " (<a $CFG->frametarget href=\"$wwwroot/login/index.php\">".get_string('login').'</a>)';
+//        } else if (!empty($user->access['rsw'][$context->path])) {
+//            $rolename = '';
+//            if ($role = get_record('role', 'id', $user->access['rsw'][$context->path])) {
+//                $rolename = ': '.format_string($role->name);
+//            }
+//            $loggedinas = get_string('loggedinas', 'moodle', $username).$rolename.
+//                      " (<a $CFG->frametarget
+//                      href=\"$CFG->wwwroot/course/view.php?id=$course->id&amp;switchrole=0&amp;sesskey=".sesskey()."\">".get_string('switchrolereturn').'</a>)';
+//        } else {
+//            $loggedinas = $realuserinfo.get_string('loggedinas', 'moodle', $username).' '.
+//                      " (<a $CFG->frametarget href=\"$CFG->wwwroot/login/logout.php?sesskey=".sesskey()."\">".get_string('logout').'</a>)';
+//        }
+//    } else {
+//        $loggedinas = get_string('loggedinnot', 'moodle').
+//                      " (<a $CFG->frametarget href=\"$wwwroot/login/index.php\">".get_string('login').'</a>)';
+//    }
+//    return '<div class="logininfo">'.$loggedinas.'</div>';
+//}
 
 /**
  * Tests whether $THEME->rarrow, $THEME->larrow have been set (theme/-/config.php).
