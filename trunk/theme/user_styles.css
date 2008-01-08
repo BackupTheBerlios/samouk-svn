@@ -30,7 +30,7 @@
 
 #menuandback{
   float:left;
-  width:800px;
+  width:98%;
   _margin-top:-6px;
 
 }
@@ -1362,9 +1362,13 @@ div.block_participants div.header div.title {
  &margin-top:-12px;
 }
 
-/* novy typ boxiku staci psat div.block_participants div.header div.title, div.novy typ ...., akor�t
-barva bude setjn�*/
+/* novy typ boxiku staci psat div.block_participants div.header div.title, div.novy typ ...., akorat
+barva bude setjna */
 
+/* odstraneni zapouzdreni cele stranky (neobsahuje zadne prvky a vklada tim padem mezeru 
+body.course div#page div#content div.wrap div.bt {
+	display: none;
+}*/
 
 /* KONEC PRAVYM BOXIKUM*/
 
@@ -1375,7 +1379,6 @@ background-image:url(pix/menuback.png);
 background-repeat:repeat-y;
 _margin-top:-2px;
 }
-
 
 #left-column .wrap .bb {
 background-image:url(pix/menudown.png);
@@ -1406,6 +1409,6 @@ margin-bottom:0em;
 width:180px;  /*jinak ut�k� tla��tko na schov�v�n� box�k�*/
 }
 
-/*konec vseobj�maj�c�ho menu*/
+/*konec vseobjimajiciho menu*/
 
 /* box.png zmenen na box.jpg kvuli IE6, kohy*/

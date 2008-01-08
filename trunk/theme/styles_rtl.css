@@ -102,6 +102,8 @@ div#header-home div.bb {
 body.nocoursepage div#content div.bt  div {
   background-position: 100% 0;
   right: -13px;
+  left:	13px;	/* kowy - chybne zarovnani => odstraneno */
+  float: right;	/* kowy - aby se pravy roh srovnal doprava */
 }
 body.nocoursepage div#content div.bt {
   background-position: 0 0;
@@ -111,6 +113,8 @@ body.nocoursepage div#content div.bt {
 body.nocoursepage div#content div.bb  div {
   background-position: 100% 100%;
   right: -13px;
+  left:	13px;	/* kowy - chybne zarovnani => odstraneno */
+  float: right;	/* kowy - aby se pravy roh srovnal doprava */
 }
 body.nocoursepage div#content div.bb {
   background-position: 0 100%;
