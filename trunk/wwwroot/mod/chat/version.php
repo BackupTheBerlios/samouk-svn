@@ -1,4 +1,4 @@
-<?php // $Id: version.php,v 1.25 2007/02/02 13:02:26 moodler Exp $
+<?php // $Id: version.php,v 1.26 2007/10/10 16:09:45 skodak Exp $
 
 /////////////////////////////////////////////////////////////////////////////////
 ///  Code fragment to define the version of chat
@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 $module->version  = 2007020200;   // The (date) version of this module
-$module->requires = 2007020200;  // Requires this Moodle version
+$module->requires = 2007101000;  // Requires this Moodle version
 $module->cron     = 300;          // How often should cron check this module (seconds)?
 
 ?>

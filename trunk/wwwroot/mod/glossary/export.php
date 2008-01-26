@@ -1,4 +1,4 @@
-<?php   // $Id: export.php,v 1.32 2007/08/17 12:49:30 skodak Exp $
+<?php   // $Id: export.php,v 1.32.3 2008/01/21 16:09:44 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -37,15 +37,11 @@
     $strexportfile = get_string("exportfile", "glossary");
     $strexportentries = get_string('exportentries', 'glossary');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-   
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($glossary->name), "",$navigation,
         "", "", true, update_module_button($cm->id, $course->id, $strglossary),
-        navmenu($course, $cm));
+        // kowy - 2007-01-12 - add standard logout box 
+		user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     print_heading($strexportentries);
 

@@ -1,4 +1,4 @@
-<?php  // $Id: jsupdate.php,v 1.31 2007/01/28 21:18:17 skodak Exp $
+<?php  // $Id: jsupdate.php,v 1.32 2007/10/09 13:43:52 skodak Exp $
 
     $nomoodlecookie = true;     // Session not needed!
 
@@ -19,7 +19,7 @@
     }
 
     //Get the user theme and enough info to be used in chat_format_message() which passes it along to
-    if (!$USER = get_record('user','id',$chatuser->userid,'','','','','id, lang, theme, username, timezone')) {
+    if (!$USER = get_record('user','id',$chatuser->userid)) { // no optimisation here, it would break again in future!
         error('User does not exist!');
     }
     $USER->description = '';

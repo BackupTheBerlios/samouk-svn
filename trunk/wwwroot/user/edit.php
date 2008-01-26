@@ -1,4 +1,4 @@
-<?php // $Id: edit.php,v 1.167 2007/09/16 09:21:29 skodak Exp $
+<?php // $Id: edit.php,v 1.167.2.2 2008/01/09 16:46:19 tjhunt Exp $
 
     require_once('../config.php');
     require_once($CFG->libdir.'/gdlib.php');
@@ -50,13 +50,20 @@
         redirect($CFG->wwwroot . "/user/view.php?course={$course->id}");
     }
 
+    if ($course->id == SITEID) {
+        $coursecontext = get_context_instance(CONTEXT_SYSTEM);   // SYSTEM context
+    } else {
+        $coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);   // Course context
+    }
     $systemcontext   = get_context_instance(CONTEXT_SYSTEM);
     $personalcontext = get_context_instance(CONTEXT_USER, $user->id);
 
     // check access control
     if ($user->id == $USER->id) {
-        //editing own profile
-        require_capability('moodle/user:editownprofile', $systemcontext);
+        //editing own profile - require_login() MUST NOT be used here, it would result in infinite loop!
+        if (!has_capability('moodle/user:editownprofile', $systemcontext)) {
+            error('Can not edit own profile, sorry.');
+        }
 
     } else {
         // teachers, parents, etc.
@@ -146,7 +153,9 @@
     $userfullname     = fullname($user, true);
 
     $navlinks = array();
-    $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    if (has_capability('moodle/course:viewparticipants', $coursecontext) || has_capability('moodle/site:viewparticipants', $systemcontext)) {
+        $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    }
     $navlinks[] = array('name' => $userfullname,
                         'link' => "view.php?id=$user->id&amp;course=$course->id",
                         'type' => 'misc');

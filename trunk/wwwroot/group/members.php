@@ -1,4 +1,4 @@
-<?php // $Id: members.php,v 1.3 2007/09/24 21:55:15 mattc-catalyst Exp $
+<?php // $Id: members.php,v 1.3.2.2 2007/12/27 13:39:43 poltawski Exp $
 /**
  * Add/remove members from group.
  *
@@ -111,12 +111,11 @@ if ($potentialmemberscount <=  MAX_USERS_PER_PAGE) {
         while ($usergroup =  rs_fetch_next_record($rs)) {
             $usergroups[$usergroup->userid][$usergroup->id] = $usergroup;
         }
-        
+
         // Put the groupings into a hash and sorts them
         foreach ($potentialmembers as $userid => $user) {
             $nonmembers[$userid] = fullname($user)." (".@count($usergroups[$userid]).")";
         }
-        natcasesort($nonmembers);
 
         // Print out the HTML
         foreach($nonmembers as $id => $name) {
@@ -147,7 +146,7 @@ print_header("$course->shortname: $strgroups", $course->fullname, $navigation, '
 ?>
 <script type="text/javascript">
 //<![CDATA[
-var userSummaries = Array( 
+var userSummaries = Array(
 <?php
 $membercnt = count($nonmembers);
 $i=1;
@@ -155,7 +154,7 @@ foreach ($nonmembers as $userid => $potentalmember) {
 
     if (isset($usergroups[$userid])) {
         $usergrouplist = '<ul>';
-    
+
         foreach ($usergroups[$userid] as $groupitem) {
             $usergrouplist .= '<li>'.addslashes(format_string($groupitem->name)).'</li>';
         }
@@ -180,7 +179,7 @@ function updateUserSummary() {
     var length = selectEl.length;
     var selectCnt = 0;
     var selectIdx = -1;
-    
+
     for(i=0;i<length;i++) {
         if (selectEl.options[i].selected) {
         	selectCnt++;
@@ -193,7 +192,7 @@ function updateUserSummary() {
     } else {
         summaryDiv.innerHTML = '';
     }
-    
+
     return(true);
 }
 //]]>

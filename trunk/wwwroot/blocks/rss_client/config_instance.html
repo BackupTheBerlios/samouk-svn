@@ -1,4 +1,4 @@
-<?php // $Id: config_instance.html,v 1.32 2007/07/30 17:11:56 stronk7 Exp $ //
+<?php // $Id: config_instance.html,v 1.32.2.2 2007/12/31 15:36:48 skodak Exp $ //
 require_once($CFG->libdir .'/rsslib.php');
 
 $id = optional_param('id', SITEID, PARAM_INT);
@@ -93,7 +93,11 @@ print_box_start();
                     print $checkbox . $feedtitle .'<br />'."\n";
                 }
             } else {
-                $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+                if (empty($this->instance->pinned)) {
+                    $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+                } else {
+                    $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+                }
                 print_string('nofeeds', 'block_rss_client');
 
                 if (has_capability('block/rss_client:createprivatefeeds', $context)
@@ -169,11 +173,15 @@ print_box_start();
 } else {
   global $act, $url, $rssid, $preferredtitle, $shared;
   print '</div></form></div>';   // Closes off page form
-  $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+  if (empty($this->instance->pinned)) {
+    $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+  } else {
+    $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+  }
 
   print_box_start();
   rss_display_feeds($id, $USER->id, '', $context);
   rss_print_form($act, $url, $rssid, $preferredtitle, $shared, $id, $context);
-  // Do NOT print_box_end() here, this is taken care of by blocks/moodleblock.class.php:582
+  print_box_end();
 }
 ?>

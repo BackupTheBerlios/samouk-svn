@@ -301,6 +301,7 @@ function cron() {
                 } // End of while-tags-are-detected
                 } // end of while loop
                 fclose($fh);
+                fix_course_sortorder();
             } // end of if(file_open) for first pass
 
             /*
@@ -555,7 +556,6 @@ function process_group_tag($tagcontents){
                     $section->section = 0;
                     $section->id = insert_record("course_sections", $section);
 
-                    fix_course_sortorder();
                     add_to_log(SITEID, "course", "new", "view.php?id=$course->id", "$course->fullname (ID $course->id)");
 
                     $this->log_line("Created course $coursecode in Moodle (Moodle ID is $course->id)");
@@ -669,7 +669,7 @@ function process_person_tag($tagcontents){
                                    $person->picture = 1;
                                    //Llibreria creada per nosaltres mateixos.
                                    require_once($CFG->dirroot.'/lib/gdlib.php');
-                                   if ($usernew->picture = save_profile_image($id, $person->urlphoto,'users', true)) {
+                                   if ($usernew->picture = save_profile_image($id, $person->urlphoto,'user')) {
                                      set_field('user', 'picture', $usernew->picture, 'id', $id);  /// Note picture in DB
                                    }
                                  }

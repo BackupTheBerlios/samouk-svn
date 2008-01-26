@@ -1,4 +1,4 @@
-<?php  //$Id: upgrade.php,v 1.4 2007/07/22 21:43:50 skodak Exp $
+<?php  //$Id: upgrade.php,v 1.5 2007/10/10 02:52:27 moodler Exp $
 
 // This file keeps track of upgrades to 
 // the forum module
@@ -39,6 +39,18 @@ function xmldb_forum_upgrade($oldversion=0) {
         forum_update_grades();
         $db->debug = true;
     }  
+
+    if ($result && $oldversion < 2007101000) {
+
+    /// Define field timemodified to be added to forum_queue
+        $table = new XMLDBTable('forum_queue');
+        $field = new XMLDBField('timemodified');
+        $field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0', 'postid');
+
+    /// Launch add field timemodified
+        $result = $result && add_field($table, $field);
+    }
+
 
     return $result;
 }

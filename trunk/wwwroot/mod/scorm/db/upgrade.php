@@ -1,4 +1,4 @@
-<?php  //$Id: upgrade.php,v 1.13 2007/08/10 20:58:09 skodak Exp $
+<?php  //$Id: upgrade.php,v 1.13.2.1 2007/11/09 01:24:29 fmarier Exp $
 
 // This file keeps track of upgrades to 
 // the scorm module
@@ -281,6 +281,15 @@ function xmldb_scorm_upgrade($oldversion=0) {
         scorm_update_grades();
         $db->debug = true;
     }  
+
+	// Adding missing 'version' field to table scorm
+    if ($result && $oldversion < 2007110500) {
+        $table = new XMLDBTable('scorm');
+        $field = new XMLDBField('version');
+        $field->setAttributes(XMLDB_TYPE_CHAR, '9', null, XMLDB_NOTNULL, null, null, null, 'scorm_12', 'summary');
+
+        $result = $result && add_field($table, $field);
+    }
 
     return $result;
 }

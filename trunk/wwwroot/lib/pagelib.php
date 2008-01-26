@@ -1,4 +1,4 @@
-<?php //$Id: pagelib.php,v 1.62 2007/09/19 06:53:09 martinlanghoff Exp $
+<?php //$Id: pagelib.php,v 1.62.3 2008/01/21 15:42:05 kowy Exp $
 
 /**
  * This file contains the parent class for moodle pages, page_base, 
@@ -7,7 +7,7 @@
  * (courseid, blogid, activity id, etc).
  *
  * @author Jon Papaioannou
- * @version  $Id: pagelib.php,v 1.62 2007/09/19 06:53:09 martinlanghoff Exp $
+ * @version  $Id: pagelib.php,v 1.62.2.7 2008/01/11 15:42:05 poltawski Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package pages
  */
@@ -409,7 +409,7 @@ class page_course extends page_base {
 
     // This function prints out the common part of the page's header.
     // You should NEVER print the header "by hand" in other code.
-    function print_header($title, $morenavlinks=NULL, $meta='', $bodytags='') {
+    function print_header($title, $morenavlinks=NULL, $meta='', $bodytags='', $extrabuttons='') {
         global $USER, $CFG;
 
         $this->init_full();
@@ -436,10 +436,13 @@ class page_course extends page_base {
         }
         $buttons = empty($morenavlinks) ? $buttons : '&nbsp;';
 
+        // Add any extra buttons requested (by the resource module, for example)
+        if ($extrabuttons != '') {
+            $buttons = ($buttons == '&nbsp;') ? $extrabuttons : $buttons.$extrabuttons;
+        }
+
         print_header($title, $this->courserecord->fullname, $navigation,
                      '', $meta, true, $buttons, user_login_string($this->courserecord, $USER), false, $bodytags);
-
-        echo '<div class="accesshide"><a href="#startofcontent">'.get_string('skiptomaincontent').'</a></div>';
     }
 
     // SELF-REPORTING SECTION
@@ -591,9 +594,7 @@ class page_generic_activity extends page_base {
         if(empty($this->activityname)) {
             error('Page object derived from page_generic_activity but did not define $this->activityname');
         }
-        $module = get_record('modules', 'name', $this->activityname);
-        $this->modulerecord = get_record('course_modules', 'module', $module->id, 'instance', $this->id);
-        if(empty($this->modulerecord)) {
+        if (!$this->modulerecord = get_coursemodule_from_instance($this->activityname, $this->id)) {
             error('Cannot fully initialize page: invalid '.$this->activityname.' instance id '. $this->id);
         }
         $this->courserecord = get_record('course', 'id', $this->modulerecord->course);
@@ -601,7 +602,7 @@ class page_generic_activity extends page_base {
             error('Cannot fully initialize page: invalid course id '. $this->modulerecord->course);
         }
         $this->activityrecord = get_record($this->activityname, 'id', $this->id);
-        if(empty($this->courserecord)) {
+        if(empty($this->activityrecord)) {
             error('Cannot fully initialize page: invalid '.$this->activityname.' id '. $this->id);
         }
         $this->full_init_done = true;
@@ -638,7 +639,7 @@ class page_generic_activity extends page_base {
     }
     
     function print_header($title, $morenavlinks = NULL, $bodytags = '', $meta = '') {
-        global $USER, $CFG;
+        global $USER, $CFG, $COURSE;
     
         $this->init_full();
         $replacements = array(
@@ -648,30 +649,26 @@ class page_generic_activity extends page_base {
             $title = str_replace($search, $replace, $title);
         }
     
-        $navlinks = array();
-        $navlinks[] = array('name' => get_string('modulenameplural', $this->activityname), 'link' => $CFG->wwwroot."/mod/{$this->activityname}/index.php?id={$this->courserecord->id}", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($this->activityrecord->name), 'link' => $CFG->wwwroot."/mod/{$this->activityname}/view.php?id={$this->modulerecord->id}", 'type' => 'activityinstance');
-    
-        if (!empty($morenavlinks)) {
-            $navlinks = array_merge($navlinks, $morenavlinks);
-        }
-              
         if (empty($morenavlinks) && $this->user_allowed_editing()) {
             $buttons = '<table><tr><td>'.update_module_button($this->modulerecord->id, $this->courserecord->id, get_string('modulename', $this->activityname)).'</td>';
             if (!empty($CFG->showblocksonmodpages)) {
-                $buttons .= '<td><form target="'.$CFG->framename.'" method="get" action="view.php">'.
+                $buttons .= '<td><form '.$CFG->frametarget.' method="get" action="view.php"><div>'.
                     '<input type="hidden" name="id" value="'.$this->modulerecord->id.'" />'.
                     '<input type="hidden" name="edit" value="'.($this->user_is_editing()?'off':'on').'" />'.
-                    '<input type="submit" value="'.get_string($this->user_is_editing()?'blockseditoff':'blocksediton').'" /></form></td>';
+                    '<input type="submit" value="'.get_string($this->user_is_editing()?'blockseditoff':'blocksediton').'" /></div></form></td>';
             }
             $buttons .= '</tr></table>';
         } else {
             $buttons = '&nbsp;';
         }
         
-        $navigation = build_navigation($navlinks);
-        
-        print_header($title, $this->courserecord->fullname, $navigation, '', $meta, true, $buttons, navmenu($this->courserecord, $this->modulerecord), false, $bodytags);
+        if (empty($morenavlinks)) {
+            $morenavlinks = array();
+        }
+        $navigation = build_navigation($morenavlinks, $this->modulerecord);
+        print_header($title, $this->courserecord->fullname, $navigation, '', $meta, true, $buttons, 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($COURSE).'<hr style="width:95%">'.navmenu($this->courserecord, $this->modulerecord), false, $bodytags);
     }
     
 }

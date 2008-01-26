@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.46 2007/09/03 19:41:55 stronk7 Exp $
+<?php // $Id: resource.class.php,v 1.47.3 2008/01/21 21:21:07 kowy Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-3001 Martin Dougiamas        http://dougiamas.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas     http://dougiamas.com  //
 //           (C) 2001-3001 Eloy Lafuente (stronk7) http://contiento.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
@@ -372,12 +372,11 @@ class resource_ims extends resource_base {
             if ($inpopup) {
                 print_header($pagetitle, $course->fullname.' : '.$resource->name);
             } else {
-
-                $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activityinstance');
-                $this->navigation = build_navigation($this->navlinks);
-
-                print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                        update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+                $navigation = build_navigation($this->navlinks, $cm);
+                print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                        update_module_button($cm->id, $course->id, $this->strresource), 
+                        // kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
             }
             print_simple_box_start('center', '60%');
             echo '<p align="center">'.$errortext.'</p>';
@@ -426,11 +425,12 @@ class resource_ims extends resource_base {
     /// Check whether this is supposed to be a popup, but was called directly
 
         if (empty($frameset) && $resource->popup && !$inpopup) {    /// Make a page and a pop-up window
-            $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-            $this->navigation = build_navigation($this->navlinks);
+            $navigation = build_navigation($this->navlinks, $cm);
 
-            print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                    update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+            print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                    update_module_button($cm->id, $course->id, $this->strresource),
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
             echo "\n<script type=\"text/javascript\">";
             echo "\n<!--\n";
@@ -478,19 +478,15 @@ class resource_ims extends resource_base {
                 //print_header($pagetitle, $course->fullname.' : '.$resource->name);
                 print_header();
             } else {
-                $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activityinstance');
-                $this->navigation = build_navigation($this->navlinks);
-                print_header($pagetitle, $course->fullname, $this->navigation, "", "", true, update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm, "parent"));
+                $navigation = build_navigation($this->navlinks, $cm);
+                print_header($pagetitle, $course->fullname, $navigation, "", "", true, update_module_button($cm->id, $course->id, $this->strresource), 
+                			// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm, "parent"));
             }
         /// content - this produces everything else
             $this->print_ims($cm, $course, $items, $resource, $page);
-        /// Now, let's print the footer. It's harcoded here to save some space
-        /// because it's impossible to use print_footer() to print NOTHING
-        /// Added programatic support to customcorners themes.
-            if (!empty($THEME->customcorners)) {
-                print_custom_corners_end(false, 'content');
-            }
-            echo '</div></div></body></html>'; /// Close everything.
+
+            print_footer('empty');
 
         /// log it.
             add_to_log($course->id, "resource", "view", "view.php?id={$cm->id}", $resource->id, $cm->id);
@@ -908,13 +904,13 @@ class resource_ims extends resource_base {
         $cm = $resource_obj->cm;
         $resource = $resource_obj->resource;
 
-        $strtoc = get_string('toc', 'resource');
+        $strtoc = get_string('tableofcontentsabbrev', 'resource');
 
         $contents = '';
 
         if (!empty($resource_obj->parameters->tableofcontents)) {  //The toc is enabled
             $page = 0;
-            $contents .= "<span class=\"ims-nav-button\"><a href=\"view.php?id={$cm->id}&amp;type={$resource->type}&amp;page={$page}&amp;frameset=ims\">TOC</a></span>";
+            $contents .= "<span class=\"ims-nav-button\"><a href=\"view.php?id={$cm->id}&amp;type={$resource->type}&amp;page={$page}&amp;frameset=ims\">{$strtoc}</a></span>";
         }
 
         return $contents;

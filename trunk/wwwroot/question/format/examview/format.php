@@ -1,4 +1,4 @@
-<?php // $Id: format.php,v 1.10 2007/04/25 09:43:37 thepurpleblob Exp $
+<?php // $Id: format.php,v 1.10.4.1 2007/11/02 16:21:08 tjhunt Exp $
 
 // Based on default.php, included by ../import.php
 /**

@@ -298,7 +298,8 @@ function showAdvancedOnClick(button, hidetext, showtext){
         button.form.elements['mform_showadvanced_last'].value = '0';
     }
     var formelements = button.form.elements;
-    for (var i in formelements){
+    // Fixed MDL-10506
+    for (var i = 0; i < formelements.length; i++){
         if (formelements[i] && formelements[i].name && (formelements[i].name=='mform_showadvanced')){
             formelements[i].value = buttontext;
         }
@@ -346,19 +347,30 @@ function unmaskPassword(id) {
 
     If persistent == true, also sets a cookie for this.
 */
-function elementToggleHide(el, persistent, elementFinder) {
+function elementToggleHide(el, persistent, elementFinder, strShow, strHide) {
     if(!elementFinder) {
-        var obj = el;
+        var obj = el;  //el:container
+        el = document.getElementById('togglehide_'+obj.id);
     }
     else {
-        var obj = elementFinder(el);
+        var obj = elementFinder(el);  //el:button.
     }
     if(obj.className.indexOf('hidden') == -1) {
         obj.className += ' hidden';
+        if (el.src) {
+            el.src = el.src.replace('switch_minus', 'switch_plus');
+            el.alt = strShow;
+            el.title = strShow;
+        }
         var shown = 0;
     }
     else {
-        obj.className = obj.className.replace(new RegExp(' ?hidden'), '')
+        obj.className = obj.className.replace(new RegExp(' ?hidden'), '');
+        if (el.src) {
+            el.src = el.src.replace('switch_plus', 'switch_minus');
+            el.alt = strHide;
+            el.title = strHide;
+        }
         var shown = 1;
     }
 
@@ -367,12 +379,11 @@ function elementToggleHide(el, persistent, elementFinder) {
     }
 }
 
-
-function elementCookieHide(id) {
+function elementCookieHide(id, strShow, strHide) {
     var obj  = document.getElementById(id);
     var cook = new cookie('hide:' + id).read();
     if(cook != null) {
-        elementToggleHide(obj, false);
+        elementToggleHide(obj, false, null, strShow, strHide);
     }
 }
 

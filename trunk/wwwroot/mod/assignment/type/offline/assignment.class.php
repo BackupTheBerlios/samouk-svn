@@ -1,4 +1,4 @@
-<?php // $Id: assignment.class.php,v 1.12 2007/09/23 16:05:45 skodak Exp $
+<?php // $Id: assignment.class.php,v 1.12.2.1 2007/11/29 14:40:51 skodak Exp $
 
 /**
  * Extend the base assignment class for offline assignments
@@ -8,6 +8,7 @@ class assignment_offline extends assignment_base {
 
     function assignment_offline($cmid='staticonly', $assignment=NULL, $cm=NULL, $course=NULL) {
         parent::assignment_base($cmid, $assignment, $cm, $course);
+        $this->type = 'offline';
     }
 
     function display_lateness($timesubmitted) {

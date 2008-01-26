@@ -1,4 +1,4 @@
-<?PHP // $Id: message.php,v 1.7 2007/08/27 03:22:16 moodler Exp $ 
+<?PHP // $Id: message.php,v 1.7.2.1 2007/11/22 01:04:59 toyomoyo Exp $ 
       // message.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -33,6 +33,7 @@ $string['message'] = 'Message';
 $string['messagehistory'] = 'Message History';
 $string['messages'] = 'Messages';
 $string['messaging'] = 'Messaging';
+$string['messagingdisabled'] = 'Messaging is disabled on this site, emails will be sent instead';
 $string['mycontacts'] = 'My Contacts';
 $string['newsearch'] = 'New search';
 $string['newonlymsg'] = 'Show only new';

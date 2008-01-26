@@ -98,7 +98,8 @@ class hotpot_xml_quiz_template extends hotpot_xml_template_default {
         return $this->js_value('hotpot-config-file,global,incorrect-indicator');
     }
     function v6_expand_LastQCaption() {
-        return $this->parent->xml_value('hotpot-config-file,global,last-q-caption');
+        $caption = $this->parent->xml_value('hotpot-config-file,global,last-q-caption');
+        return ($caption=='<=' ? '&lt;=' : $caption);
     }
     function v6_expand_NextCorrect() {
         $value = $this->js_value('hotpot-config-file,'.$this->parent->quiztype.',next-correct-part');
@@ -111,7 +112,8 @@ class hotpot_xml_quiz_template extends hotpot_xml_template_default {
         return $this->int_value('hotpot-config-file,global,include-next-ex');
     }
     function v6_expand_NextExCaption() {
-        return $this->parent->xml_value('hotpot-config-file,global,next-ex-caption');
+        $caption = $this->parent->xml_value('hotpot-config-file,global,next-ex-caption');
+        return ($caption=='=>' ? '=&gt;' : $caption);
     }
     function v6_expand_NextQCaption() {
         return $this->parent->xml_value('hotpot-config-file,global,next-q-caption');
@@ -654,7 +656,7 @@ class hotpot_xml_quiz_template extends hotpot_xml_template_default {
         return $this->parent->xml_value('hotpot-config-file,'.$this->parent->quiztype.',remaining-words');
     }
     function v6_expand_TimesUp() {
-        return $this->parent->xml_value('hotpot-config-file,global,times-up');
+        return $this->js_safe($this->parent->xml_value('hotpot-config-file,global,times-up'));
     }
 
     // nav bar
@@ -911,7 +913,7 @@ class hotpot_xml_quiz_template extends hotpot_xml_template_default {
                         $a++;
                     }
 
-                    $gap .= '<input type="text" id="Gap'.$q.'" onfocus="TrackFocus('.$q.')" onblur="LeaveGap()" class="GapBox" size="'.$gapsize.'" /></input>';
+                    $gap .= '<input type="text" id="Gap'.$q.'" onfocus="TrackFocus('.$q.')" onblur="LeaveGap()" class="GapBox" size="'.$gapsize.'"></input>';
                 }
                 if ($includeclues) {
                     $clue = $this->parent->xml_value($question_record, $question."['clue'][0]['#']");
@@ -1262,7 +1264,7 @@ class hotpot_xml_quiz_template extends hotpot_xml_template_default {
                     $question_type==HOTPOT_JQUIZ_HYBRID
                 ) {
                     $str .= '<div class="ShortAnswer" id="Q_'.$q.'_SA"><form method="post" action="" onsubmit="return false;"><div>';
-                    $str .= '<input type="text" id="Q_'.$q.'_Guess" onfocus="TrackFocus('."'".'Q_'.$q.'_Guess'."'".')" onblur="LeaveGap()" class="ShortAnswerBox" size="9" /></input><br /><br />';
+                    $str .= '<input type="text" id="Q_'.$q.'_Guess" onfocus="TrackFocus('."'".'Q_'.$q.'_Guess'."'".')" onblur="LeaveGap()" class="ShortAnswerBox" size="9"></input><br /><br />';
 
                     $caption = $this->v6_expand_CheckCaption();
                     $str .= $this->v6_expand_jquiz_button($caption, "CheckShortAnswer($q)");

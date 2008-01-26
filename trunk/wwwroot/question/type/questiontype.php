@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.74 2007/09/27 07:41:58 jamiesensei Exp $
+<?php  // $Id: questiontype.php,v 1.74.2.3 2007/11/28 12:45:42 tjhunt Exp $
 /**
  * The default questiontype class.
  *
@@ -285,8 +285,17 @@ class default_questiontype {
                 error('Could not update question!');
             }
         } else {         // Question is a new one
+            if (isset($form->categorymoveto)){
+                // Doing save as new question, and we have move rights.
+                list($question->category, $notused) = explode(',', $form->categorymoveto);
+                //don't need to test add permission of category we are moving question to.
+                //Only categories that we have permission to add
+                //a question to will get through the form cleaning code for the select box.
+            } else {
+                // Really a new question.
+                list($question->category, $notused) = explode(',', $form->category);
+            }
             // Set the unique code
-            list($question->category,$notused) = explode(',', $form->category);
             $question->stamp = make_unique_id_code();
             $question->createdby = $USER->id;
             $question->modifiedby = $USER->id;
@@ -677,10 +686,8 @@ class default_questiontype {
     */
     // ULPGC ecastro
     function get_actual_response($question, $state) {
-       // change length to truncate responses here if you want
-       $lmax = 40;
        if (!empty($state->responses)) {
-           $responses[] = shorten_text(stripslashes($state->responses['']), 45);
+           $responses[] = stripslashes($state->responses['']);
        } else {
            $responses[] = '';
        }

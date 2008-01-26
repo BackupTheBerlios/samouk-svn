@@ -1,4 +1,4 @@
-<?php // $Id: pagelib.php,v 1.23 2007/08/16 15:01:26 nicolasconnault Exp $
+<?php // $Id: pagelib.php,v 1.23.2.1 2007/12/19 17:38:40 skodak Exp $
 
 require_once($CFG->libdir.'/pagelib.php');
 
@@ -21,7 +21,6 @@ page_map_class(PAGE_ADMIN, 'page_admin');
 class page_admin extends page_base {
 
     var $section;
-    var $pathtosection;
     var $visiblepathtosection;
 
     // hack alert!
@@ -34,22 +33,12 @@ class page_admin extends page_base {
             return;
         }
 
-        $adminroot = admin_get_root();
+        $adminroot =& admin_get_root(false, false); //settings not required - only pages
 
         // fetch the path parameter
         $this->section = $section;
-
-        $this->visiblepathtosection = array();
-
-        // this part is (potentially) processor-intensive... there's gotta be a better way
-        // of handling this
-        if ($this->pathtosection = $adminroot->path($this->section)) {
-            foreach($this->pathtosection as $element) {
-                if ($pointer = $adminroot->locate($element)) {
-                    array_push($this->visiblepathtosection, $pointer->visiblename);
-                }
-            }
-        }
+        $current =& $adminroot->locate($section, true);
+        $this->visiblepathtosection = array_reverse($current->visiblepath);
 
         // all done
         $this->full_init_done = true;
@@ -74,9 +63,9 @@ class page_admin extends page_base {
     function url_get_path() {
         global $CFG;
 
-        $adminroot = admin_get_root();
+        $adminroot =& admin_get_root(false, false); //settings not required - only pages
 
-        $root = $adminroot->locate($this->section);
+        $root =& $adminroot->locate($this->section);
         if (is_a($root, 'admin_externalpage')) {
             return $root->url;
         } else {
@@ -110,7 +99,7 @@ class page_admin extends page_base {
         parent::init_quick($data);
     }
 
-    function print_header($section = '') {
+    function print_header($section = '', $focus='') {
         global $USER, $CFG, $SITE;
 
         $this->init_full($section); // we're trusting that init_full() has already been called by now; it should have.
@@ -132,7 +121,7 @@ class page_admin extends page_base {
         }
         $navigation = build_navigation($navlinks);
 
-        print_header("$SITE->shortname: " . implode(": ",$this->visiblepathtosection), $SITE->fullname, $navigation,'', '', true, $buttons, '');
+        print_header("$SITE->shortname: " . implode(": ",$this->visiblepathtosection), $SITE->fullname, $navigation, $focus, '', true, $buttons, '');
     }
 
     function get_type() {

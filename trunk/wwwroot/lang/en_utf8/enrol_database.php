@@ -1,4 +1,4 @@
-<?PHP // $Id: enrol_database.php,v 1.5 2007/07/20 13:03:19 thepurpleblob Exp $ 
+<?PHP // $Id: enrol_database.php,v 1.5.2.1 2007/11/21 11:04:52 thepurpleblob Exp $ 
       // enrol_database.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -17,6 +17,7 @@ $string['dbname'] = 'Database name';
 $string['dbtable'] = 'Database table';
 $string['defaultcourseroleid'] = 'The role that will be assigned by default if no other role is specified.';
 $string['description'] = 'You can use a external database (of nearly any kind) to control your enrolments. It is assumed your external database contains a field containing a course ID, and a field containing a user ID. These are compared against fields that you choose in the local course and user tables.';
+$string['disableunenrol'] = 'If set to yes users previously enrolled by the external database plugin will not be unenrolled by the same plugin regardless of the database contents.';
 $string['enrolname'] = 'External Database';
 $string['enrol_database_autocreation_settings'] = 'Auto-creation of new courses';
 $string['general_options'] = 'General Options';

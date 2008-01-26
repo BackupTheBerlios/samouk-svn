@@ -1,4 +1,4 @@
-<?PHP // $Id: view.php,v 1.38 2007/10/04 05:32:27 gbateson Exp $
+<?PHP // $Id: view.php,v 1.38.2.2 2007/10/21 02:52:49 gbateson Exp $
     /// This page prints a hotpot quiz
     if (defined('HOTPOT_FIRST_ATTEMPT') && HOTPOT_FIRST_ATTEMPT==false) {
         // this script is being included (by attempt.php)
@@ -43,11 +43,7 @@
     $title = format_string($course->shortname.': '.$hotpot->name, true);
     $heading = $course->fullname;
 
-    $navlinks = array();
-    $navlinks[] = array('name' => get_string("modulenameplural", "hotpot"), 'link' => $CFG->wwwroot.'/mod/hotpot/index.php?id='.$course->id, 'type' => 'activity');
-    $navlinks[] = array('name' => $hotpot->name, 'link' => '', 'type' => 'activityinstance');
-
-    $navigation = build_navigation($navlinks);
+    $navigation = build_navigation('', $cm);
 
     $button = update_module_button($cm->id, $course->id, get_string("modulename", "hotpot"));
     $button = '<div style="font-size:0.75em;">'.$button.'</div>';
@@ -344,7 +340,7 @@
             default:
                 // add a HotPot navigation frame at the top of the page
                 //$rows = empty($CFG->resource_framesize) ? 85 : $CFG->resource_framesize;
-                //$frameset = "\n\t".'<frame src="view.php?id='.$cm->id.'&framename=top" frameborder="0" name="top"></frame>'.$frameset;
+                //$frameset = "\n\t".'<frame src="view.php?id='.$cm->id.'&amp;framename=top" frameborder="0" name="top"></frame>'.$frameset;
                 //$frameset_tags = preg_replace('|rows="(.*?)"|', 'rows="'.$rows.',\\1"', $frameset_tags);
                 // put navigation into var NavBar='';
                 // add form to TopFrame in "WriteFeedback" function
@@ -372,6 +368,8 @@
         print($styles);
         exit;
     }
+    // closing tags for "page" and "content" divs
+    $footer = '</div></div>'.$footer;
     switch ($hotpot->navigation) {
         case HOTPOT_NAVIGATION_BAR:
             //update_module_button($cm->id, $course->id, $strmodulename.'" style="font-size:0.8em')
@@ -407,12 +405,12 @@
                     print "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />\n";
                     print "<head><title>$title</title></head>\n";
                     print "<frameset rows=$rows,*>\n";
-                    print "<frame title=\"$txttoptitle\" src=\"view.php?id=$cm->id&framename=top\">\n";
-                    print "<frame title=\"$txtmaintitle\" src=\"view.php?id=$cm->id&framename=main\">\n";
+                    print "<frame title=\"$txttoptitle\" src=\"view.php?id=$cm->id&amp;framename=top\">\n";
+                    print "<frame title=\"$txtmaintitle\" src=\"view.php?id=$cm->id&amp;framename=main\">\n";
                     print "<noframes>\n";
                     print "<p>$txtframesetinfo</p>\n";
-                    print "<ul><li><a href=\"view.php?id=$cm->id&framename=top\">$txttoptitle</a></li>\n";
-                    print "<li><a href=\"view.php?id=$cm->id&framename=main\">$txtmaintitle</a></li></ul>\n";
+                    print "<ul><li><a href=\"view.php?id=$cm->id&amp;framename=top\">$txttoptitle</a></li>\n";
+                    print "<li><a href=\"view.php?id=$cm->id&amp;framename=main\">$txtmaintitle</a></li></ul>\n";
                     print "</noframes>\n";
                     print "</frameset>\n";
                     print "</html>\n";
@@ -436,8 +434,8 @@
                     if (!empty($available_msg)) {
                         notify($available_msg);
                     }
-                    print "<iframe id=\"$iframe_id\" src=\"view.php?id=$cm->id&framename=main\" height=\"100%\" width=\"100%\">";
-                    print "<ilayer name=\"$iframe_id\" src=\"view.php?id=$cm->id&framename=main\" height=\"100%\" width=\"100%\">";
+                    print "<iframe id=\"$iframe_id\" src=\"view.php?id=$cm->id&amp;framename=main\" height=\"100%\" width=\"100%\">";
+                    print "<ilayer name=\"$iframe_id\" src=\"view.php?id=$cm->id&amp;framename=main\" height=\"100%\" width=\"100%\">";
                     print "</ilayer>\n";
                     print "</iframe>\n";
                     print $footer;

@@ -1,4 +1,4 @@
-<?php // $Id: user.php,v 1.29 2007/09/18 18:24:52 stronk7 Exp $
+<?php // $Id: user.php,v 1.29.2.2 2007/12/14 21:21:07 skodak Exp $
       
     require('../config.php');
     require('lib.php');
@@ -87,10 +87,6 @@
 
     echo '</td></tr></table>';
 
-    if (!empty($THEME->customcorners)) {
-        print_custom_corners_end(false, 'content');
-    }
-
-    echo '</div></div></body></html>'; // Close possible theme tables off
+    print_footer('empty');
 
 ?>

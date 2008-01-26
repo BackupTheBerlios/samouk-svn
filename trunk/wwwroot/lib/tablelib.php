@@ -1,4 +1,4 @@
-<?php // $Id: tablelib.php,v 1.24 2007/09/23 15:54:33 skodak Exp $
+<?php // $Id: tablelib.php,v 1.24.2.2 2007/12/12 19:02:01 tjhunt Exp $
 
 define('TABLE_VAR_SORT',   1);
 define('TABLE_VAR_HIDE',   2);
@@ -153,9 +153,13 @@ class flexible_table {
     }
 
     /**
-     * Sets the given $column index to true in $this->column_suppress.
-     * @param integer $column
-     * @return void
+     * I think that what this method does is set the column so that if the same data appears in 
+     * consecutive rows, then it is not repeated.
+     * 
+     * For example, in the quiz overview report, the fullname column is set to be suppressed, so
+     * that when one student has made multiple attempts, their name is only printed in the row
+     * for their first attempt.
+     * @param integer $column the index of a column.
      */
     function column_suppress($column) {
         if(isset($this->column_suppress[$column])) {
@@ -654,8 +658,8 @@ class flexible_table {
                         $fsortorder = get_string('asc');
                         $lsortorder = get_string('asc');
                     }
-                    $this->headers[$index] = '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'=firstname">'.get_string('firstname').'<span class="accesshide">'.get_string('sortby').' '.get_string('firstname').' '.$fsortorder.'</span></a> '.$icon_sort_first.' / '.
-                                          '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'=lastname">'.get_string('lastname').'<span class="accesshide">'.get_string('sortby').' '.get_string('lastname').' '.$lsortorder.'</span></a> '.$icon_sort_last;
+                    $this->headers[$index] = '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'=firstname">'.get_string('firstname').get_accesshide(get_string('sortby').' '.get_string('firstname').' '.$fsortorder).'</a> '.$icon_sort_first.' / '.
+                                          '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'=lastname">'.get_string('lastname').get_accesshide(get_string('sortby').' '.get_string('lastname').' '.$lsortorder).'</a> '.$icon_sort_last;
                 }
                 break;
 
@@ -677,7 +681,7 @@ class flexible_table {
                     } else {
                         $localsortorder = get_string('asc');  
                     }
-                    $this->headers[$index] = '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'='.$column.'">'.$this->headers[$index].'<span class="accesshide">'.get_string('sortby').' '.$this->headers[$index].' '.$localsortorder.'</span></a>';
+                    $this->headers[$index] = '<a href="'.$this->baseurl.$this->request[TABLE_VAR_SORT].'='.$column.'">'.$this->headers[$index].get_accesshide(get_string('sortby').' '.$this->headers[$index].' '.$localsortorder).'</a>';
                 }
             }
 

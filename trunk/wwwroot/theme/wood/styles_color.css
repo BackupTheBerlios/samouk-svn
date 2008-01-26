@@ -24,7 +24,8 @@ ul.tabrow1 li a:visited,
 .sideblock .r0,
 .sideblock .r1,
 .generaltable .cell,
-div.sideblock table.minicalendar {
+div.sideblock table.minicalendar,
+.sideblock .hide-show-image {
     border:none;
     background:none;
 }
@@ -181,14 +182,6 @@ ul.tabrow1 li.here a:visited {
   border-bottom-color:#330000;
 }
 
-.sideblock .header .hide-show img.hide-show-image {
-  background: url('pix/t/switch_minus.gif') no-repeat bottom;
-}
-
-.sideblock.hidden .header .hide-show img.hide-show-image {
-  background: url('pix/t/switch_plus.gif') no-repeat bottom;
-}
-
 /** Places using the horizontal medium wood texture with borders **/
 
 th.header,
@@ -203,6 +196,7 @@ table.files th,
 legend,
 #mod-assignment-submissions table.submissions th,
 #mod-assignment-submissions .feedback tr,
+.que .feedback,
 #footer-bar {
     border-top:1px solid #FFCC99;
     border-left:1px solid #FFCC99;
@@ -243,7 +237,9 @@ legend,
 .generaltable,
 .forumheaderlist,
 .forumpost,
-#course-user .section, 
+.que,
+.que .answer,
+#course-user .section,
 #site-index .sitetopic .sitetopiccontent,
 #calendar .maincalendar .filters table,
 #calendar .sidecalendar,
@@ -404,4 +400,11 @@ table .flexible .r1,
     border-bottom:1px solid #330000;
     border-right:1px solid #330000;
     border-collapse: separate;
+}
+
+/** Changing some standard colors **/
+
+.grade-report-grader #user-grades tr.groupavg td.cell,
+.grade-report-grader #user-grades tr.avg td.cell {
+    color: #330000;
 }

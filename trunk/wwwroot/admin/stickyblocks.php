@@ -1,13 +1,9 @@
-<?PHP // $Id: stickyblocks.php,v 1.18 2007/08/31 19:05:26 urs_hunkler Exp $
+<?PHP // $Id: stickyblocks.php,v 1.18.2.1 2007/11/23 16:41:14 skodak Exp $
 
     require_once('../config.php');
     require_once($CFG->dirroot.'/my/pagelib.php');
     require_once($CFG->dirroot.'/lib/pagelib.php');
     require_once($CFG->dirroot.'/lib/blocklib.php');
-
-    if (!empty($THEME->customcorners)) {
-        require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-    }
 
     $pt  = optional_param('pt', null, PARAM_SAFEDIR); //alhanumeric and -
 
@@ -58,12 +54,12 @@
         echo '<tr valign="top">';
 
         echo '<td valign="top" style="width: '.$blocks_preferred_width.'px;" id="left-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $blocks, BLOCK_POS_LEFT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
         echo '<td valign="top" id="middle-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
 
     } else {
         require_once($CFG->libdir.'/adminlib.php');
@@ -80,12 +76,12 @@
 
 
     if (!empty($pt)) {
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
         echo '<td valign="top" style="width: '.$blocks_preferred_width.'px;" id="right-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $blocks, BLOCK_POS_RIGHT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
         echo '</tr></table>';
         print_footer();

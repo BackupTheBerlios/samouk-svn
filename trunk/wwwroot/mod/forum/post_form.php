@@ -1,4 +1,4 @@
-<?php  // $Id: post_form.php,v 1.21 2007/05/08 16:12:02 poltawski Exp $
+<?php  // $Id: post_form.php,v 1.21.2.2 2007/11/23 22:12:38 skodak Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -64,7 +64,7 @@ class mod_forum_post_form extends moodleform {
             $mform->addElement('checkbox', 'mailnow', get_string('mailnow', 'forum'));
         }
 
-        if (!empty($CFG->forum_enabletimedposts) && !$post->parent) {
+        if (!empty($CFG->forum_enabletimedposts) && !$post->parent && has_capability('mod/forum:viewhiddentimedposts', $coursecontext)) {
             $mform->addElement('header', '', get_string('displayperiod', 'forum'));
 
             $mform->addElement('date_selector', 'timestart', get_string('displaystart', 'forum'), array('optional'=>true));
@@ -115,13 +115,13 @@ class mod_forum_post_form extends moodleform {
 
     }
 
-    function validation($data) {
-        $error = array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
         if (($data['timeend']!=0) && ($data['timestart']!=0)
             && $data['timeend'] <= $data['timestart']) {
-                $error['timeend'] = get_string('timestartenderror', 'forum');
+                $errors['timeend'] = get_string('timestartenderror', 'forum');
             }
-        return (count($error)==0) ? true : $error;
+        return $errors;
     }
 
 }

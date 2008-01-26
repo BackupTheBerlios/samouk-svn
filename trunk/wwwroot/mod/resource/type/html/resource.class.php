@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.40 2007/07/06 08:42:03 urs_hunkler Exp $
+<?php // $Id: resource.class.php,v 1.40.3 2008/01/21 16:09:49 kowy Exp $
 
 class resource_html extends resource_base {
 
@@ -83,13 +83,12 @@ function display() {
                         "center clearfix", "", "", "20");
                 print_footer($course);
             } else {                           /// Make a page and a pop-up window
-
-                $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activityinstance');
-                $this->navigation = build_navigation($this->navlinks);
+                $navigation = build_navigation($this->navlinks, $cm);
                 
-                print_header($pagetitle, $course->fullname, $this->navigation,
+                print_header($pagetitle, $course->fullname, $navigation,
                         "", "", true, update_module_button($cm->id, $course->id, $this->strresource),
-                        navmenu($course, $cm));
+                        // kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
                 echo "\n<script type=\"text/javascript\">";
                 echo "\n//<![CDATA[\n";
@@ -112,13 +111,12 @@ function display() {
                 print_footer($course);
             }
         } else {    /// not a popup at all
-
-            $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activityinstance');
-            $this->navigation = build_navigation($this->navlinks);
+            $navigation = build_navigation($this->navlinks, $cm);
             
-            print_header($pagetitle, $course->fullname, $this->navigation,
+            print_header($pagetitle, $course->fullname, $navigation,
                     "", "", true, update_module_button($cm->id, $course->id, $this->strresource),
-                    navmenu($course, $cm));
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
             print_simple_box(format_text($resource->alltext, FORMAT_HTML, $formatoptions, $course->id), "center clearfix", "", "", "20");
 

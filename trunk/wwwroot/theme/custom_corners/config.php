@@ -1,4 +1,4 @@
-<?php   // $Id: config.php,v 1.7 2007/08/09 11:47:24 urs_hunkler Exp $
+<?php   // $Id: config.php,v 1.7.2.1 2008/01/12 17:52:03 urs_hunkler Exp $
 ////////////////////////////////////////////////////////////////////////////////
 /// This file contains a few configuration variables that control 
 /// how Moodle uses this theme.
@@ -86,6 +86,14 @@ $THEME->block_r_max_width = 210;
 /// These values define the min and max width of the left and right
 /// sieblocks in the course pages. If not set or false the standard 
 /// values are taken.
+
+
+// $THEME->layouttable = array('left', 'middle', 'right');
+
+/// $THEME->layouttable defines the way the columns are displayed
+/// on the pages. You can rearange the columns to have the content
+/// left and the two columns on the right page side.
+/// $THEME->layouttable = array('middle', 'left', 'right');
 
 
 $THEME->courseformatsheets = true;

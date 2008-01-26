@@ -1,4 +1,27 @@
-<?php  //$Id: outcomeitem_form.php,v 1.11 2007/08/10 15:00:37 skodak Exp $
+<?php  //$Id: outcomeitem_form.php,v 1.12.2.5 2007/11/26 04:42:24 scyrma Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once $CFG->libdir.'/formslib.php';
 
@@ -30,7 +53,7 @@ class edit_outcomeitem_form extends moodleform {
             }
         }
         $mform->addElement('select', 'outcomeid', get_string('outcome', 'grades'), $options);
-        $mform->setHelpButton('outcomeid', array(false, get_string('outcomeid', 'grades'),
+        $mform->setHelpButton('outcomeid', array(false, get_string('outcome', 'grades'),
                 false, true, false, get_string('outcomeidhelp', 'grades')));
         $mform->addRule('outcomeid', get_string('required'), 'required');
 
@@ -46,15 +69,9 @@ class edit_outcomeitem_form extends moodleform {
                 false, true, false, get_string('linkedactivityhelp', 'grades')));
         $mform->setDefault('cmid', 0);
 
-        //$mform->addElement('text', 'calculation', get_string('calculation', 'grades'));
-
         /*$mform->addElement('text', 'gradepass', get_string('gradepass', 'grades'));
         $mform->setHelpButton('gradepass', array(false, get_string('gradepass', 'grades'),
                 false, true, false, get_string('gradepasshelp', 'grades')));*/
-
-        $mform->addElement('text', 'aggregationcoef', get_string('aggregationcoef', 'grades'));
-        $mform->setHelpButton('aggregationcoef', array(false, get_string('aggregationcoef', 'grades'),
-                false, true, false, get_string('aggregationcoefhelp', 'grades')));
 
         /// hiding
         /// advcheckbox is not compatible with disabledIf !!
@@ -70,6 +87,45 @@ class edit_outcomeitem_form extends moodleform {
         $mform->addElement('date_time_selector', 'locktime', get_string('locktime', 'grades'), array('optional'=>true));
         $mform->setHelpButton('locktime', array('locktime', get_string('locktime', 'grades'), 'grade'));
 
+/// parent category related settings
+        $mform->addElement('header', 'headerparent', get_string('parentcategory', 'grades'));
+
+        $options = array();
+        $default = '';
+        $coefstring = '';
+        $categories = grade_category::fetch_all(array('courseid'=>$COURSE->id));
+        foreach ($categories as $cat) {
+            $cat->apply_forced_settings();
+            $options[$cat->id] = $cat->get_name();
+            if ($cat->is_course_category()) {
+                $default = $cat->id;
+            }
+            if ($cat->is_aggregationcoef_used()) {
+                if ($cat->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefweight') ? 'aggregationcoefweight' : 'aggregationcoef';
+
+                } else if ($cat->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefextra') ? 'aggregationcoefextra' : 'aggregationcoef';
+
+                } else {
+                    $coefstring = 'aggregationcoef';
+                }
+            } else {
+                $mform->disabledIf('aggregationcoef', 'parentcategory', 'eq', $cat->id);
+            }
+        }
+
+        if (count($categories) > 1) {
+            $mform->addElement('select', 'parentcategory', get_string('gradecategory', 'grades'), $options);
+            $mform->disabledIf('parentcategory', 'cmid', 'noteq', 0);
+        }
+
+        if ($coefstring !== '') {
+            $mform->addElement('text', 'aggregationcoef', get_string($coefstring, 'grades'));
+            $mform->setHelpButton('aggregationcoef', array(false, get_string($coefstring, 'grades'),
+                                    false, true, false, get_string($coefstring.'help', 'grades')));
+        }
+
 /// hidden params
         $mform->addElement('hidden', 'id', 0);
         $mform->setType('id', PARAM_INT);
@@ -81,6 +137,15 @@ class edit_outcomeitem_form extends moodleform {
         $gpr = $this->_customdata['gpr'];
         $gpr->add_mform_elements($mform);
 
+/// mark advanced according to site settings
+        if (isset($CFG->grade_item_advanced)) {
+            $advanced = explode(',', $CFG->grade_item_advanced);
+            foreach ($advanced as $el) {
+                if ($mform->elementExists($el)) {
+                    $mform->setAdvanced($el);
+                }
+            }
+        }
 //-------------------------------------------------------------------------------
         // buttons
         $this->add_action_buttons();
@@ -98,34 +163,61 @@ class edit_outcomeitem_form extends moodleform {
 
             //remove the aggregation coef element if not needed
             if ($grade_item->is_course_item()) {
-                $mform->removeElement('aggregationcoef');
-
-            } else if ($grade_item->is_category_item()) {
-                $category = $grade_item->get_item_category();
-                $parent_category = $category->get_parent_category();
-                if (!$parent_category->is_aggregationcoef_used()) {
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->removeElement('parentcategory');
+                }
+                if ($mform->elementExists('aggregationcoef')) {
                     $mform->removeElement('aggregationcoef');
                 }
 
             } else {
-                $parent_category = $grade_item->get_parent_category();
+                // if we wanted to change parent of existing item - we would have to verify there are no circular references in parents!!!
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->hardFreeze('parentcategory');
+                }
+
+                if ($grade_item->is_category_item()) {
+                    $category = $grade_item->get_item_category();
+                    $parent_category = $category->get_parent_category();
+                } else {
+                    $parent_category = $grade_item->get_parent_category();
+                }
+
+                $parent_category->apply_forced_settings();
+
                 if (!$parent_category->is_aggregationcoef_used()) {
-                    $mform->removeElement('aggregationcoef');
+                    if ($mform->elementExists('aggregationcoef')) {
+                        $mform->removeElement('aggregationcoef');
+                    }
+                } else {
+                    //fix label if needed
+                    $agg_el =& $mform->getElement('aggregationcoef');
+                    $aggcoef = '';
+                    if ($parent_category->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                        $aggcoef = 'aggregationcoefweight';
+                    } else if ($parent_category->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                        $aggcoef = 'aggregationcoefextra';
+                    }
+                    if ($aggcoef !== '') {
+                        $agg_el->setLabel(get_string($aggcoef, 'grades'));
+                        $mform->setHelpButton('aggregationcoef', array(false, get_string($aggcoef, 'grades'),
+                                false, true, false, get_string($aggcoef.'help', 'grades')));
+                    }
                 }
             }
 
-        } else {
-            $course_category = grade_category::fetch_course_category($COURSE->id);
-            if (!$course_category->is_aggregationcoef_used()) {
-                $mform->removeElement('aggregationcoef');
-            }
+        }
+
+        // no parent header for course category
+        if (!$mform->elementExists('aggregationcoef') and !$mform->elementExists('parentcategory')) {
+            $mform->removeElement('headerparent');
         }
     }
 
 
 /// perform extra validation before submission
-    function validation($data){
-        $errors= array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         if (array_key_exists('idnumber', $data)) {
             if ($data['id']) {
@@ -138,11 +230,7 @@ class edit_outcomeitem_form extends moodleform {
             }
         }
 
-        if (0 == count($errors)){
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
     }
 
 }

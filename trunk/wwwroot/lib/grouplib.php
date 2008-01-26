@@ -1,4 +1,4 @@
-<?php  //$Id: grouplib.php,v 1.22 2007/10/03 09:12:01 moodler Exp $
+<?php  //$Id: grouplib.php,v 1.22.2.3 2007/12/26 12:41:54 skodak Exp $
 
 /**
  * Groups not used in course or activity
@@ -79,6 +79,15 @@ function groups_get_grouping_by_name($courseid, $name) {
  */
 function groups_get_group($groupid) {
     return get_record('groups', 'id', $groupid);
+}
+
+/**
+ * Get the grouping object
+ * @param groupingid ID of the group.
+ * @return group object
+ */
+function groups_get_grouping($groupingid) {
+    return get_record('groupings', 'id', $groupingid);
 }
 
 /**
@@ -166,9 +175,9 @@ function groups_is_member($groupid, $userid=null) {
  */
 function groups_has_membership($cm, $userid=null) {
     global $CFG, $USER;
-    
+
     static $cache = array();
-    
+
     // groupings are ignored when not enabled
     if (empty($CFG->enablegroupings)) {
         $cm->groupingid = 0;
@@ -195,9 +204,9 @@ function groups_has_membership($cm, $userid=null) {
                   FROM {$CFG->prefix}groups_members gm, {$CFG->prefix}groups g
                  WHERE gm.userid = $userid AND gm.groupid = g.id AND g.courseid = {$cm->course}";
     }
-    
+
     $cache[$cachekey] = record_exists_sql($sql);
-    
+
     return $cache[$cachekey];
 }
 
@@ -249,6 +258,7 @@ function groups_get_course_groupmode($course) {
 /**
  * Returns effective groupmode used in activity, course setting
  * overrides activity setting if groupmodeforce enabled.
+ * @param $cm the course module object. Only the ->course and ->groupmode need to be set.
  * @return integer group mode
  */
 function groups_get_activity_groupmode($cm) {
@@ -274,7 +284,7 @@ function groups_get_activity_groupmode($cm) {
  * @return mixed void or string depending on $return param
  */
 function groups_print_course_menu($course, $urlroot, $return=false) {
-    global $CFG, $USER;
+    global $CFG, $USER, $SESSION;
 
     if (!$groupmode = $course->groupmode) {
         if ($return) {
@@ -287,8 +297,36 @@ function groups_print_course_menu($course, $urlroot, $return=false) {
     $context = get_context_instance(CONTEXT_COURSE, $course->id);
     if ($groupmode == VISIBLEGROUPS or has_capability('moodle/site:accessallgroups', $context)) {
         $allowedgroups = groups_get_all_groups($course->id, 0);
+        // detect changes related to groups and fix active group
+        if (!empty($SESSION->activegroup[$course->id][VISIBLEGROUPS][0])) {
+            if (!array_key_exists($SESSION->activegroup[$course->id][VISIBLEGROUPS][0], $allowedgroups)) {
+                // active does not exist anymore
+                unset($SESSION->activegroup[$course->id][VISIBLEGROUPS][0]);
+            } 
+        }
+        if (!empty($SESSION->activegroup[$course->id]['aag'][0])) {
+            if (!array_key_exists($SESSION->activegroup[$course->id]['aag'][0], $allowedgroups)) {
+                // active group does not exist anymore
+                unset($SESSION->activegroup[$course->id]['aag'][0]);
+            } 
+        }
+
     } else {
         $allowedgroups = groups_get_all_groups($course->id, $USER->id);
+        // detect changes related to groups and fix active group
+        if (isset($SESSION->activegroup[$course->id][SEPARATEGROUPS][0])) {
+            if ($SESSION->activegroup[$course->id][SEPARATEGROUPS][0] == 0) {
+                if ($allowedgroups) {
+                    // somebody must have assigned at least one group, we can select it now - yay!
+                    unset($SESSION->activegroup[$course->id][SEPARATEGROUPS][0]);
+                }
+            } else {
+                if (!array_key_exists($SESSION->activegroup[$course->id][SEPARATEGROUPS][0], $allowedgroups)) {
+                    // active group not allowed or does not exist anymore
+                    unset($SESSION->activegroup[$course->id][SEPARATEGROUPS][0]);
+                } 
+            }
+        }
     }
 
     $activegroup = groups_get_course_group($course, true);
@@ -329,19 +367,19 @@ function groups_print_course_menu($course, $urlroot, $return=false) {
 /**
  * Print group menu selector for activity.
  * @param object $cm course module object
- * @param string $urlroot return address that users get to if they choose an option; 
+ * @param string $urlroot return address that users get to if they choose an option;
  *   should include any parameters needed, e.g. 'view.php?id=34'
  * @param boolean $return return as string instead of printing
- * @param boolean $hideallparticipants If true, this prevents the 'All participants' 
- *   option from appearing in cases where it normally would. This is intended for 
- *   use only by activities that cannot display all groups together. (Note that 
- *   selecting this option does not prevent groups_get_activity_group from 
- *   returning 0; it will still do that if the user has chosen 'all participants' 
- *   in another activity, or not chosen anything.) 
+ * @param boolean $hideallparticipants If true, this prevents the 'All participants'
+ *   option from appearing in cases where it normally would. This is intended for
+ *   use only by activities that cannot display all groups together. (Note that
+ *   selecting this option does not prevent groups_get_activity_group from
+ *   returning 0; it will still do that if the user has chosen 'all participants'
+ *   in another activity, or not chosen anything.)
  * @return mixed void or string depending on $return param
  */
 function groups_print_activity_menu($cm, $urlroot, $return=false, $hideallparticipants=false) {
-    global $CFG, $USER;
+    global $CFG, $USER, $SESSION;
 
     // groupings are ignored when not enabled
     if (empty($CFG->enablegroupings)) {
@@ -359,14 +397,42 @@ function groups_print_activity_menu($cm, $urlroot, $return=false, $hideallpartic
     $context = get_context_instance(CONTEXT_MODULE, $cm->id);
     if ($groupmode == VISIBLEGROUPS or has_capability('moodle/site:accessallgroups', $context)) {
         $allowedgroups = groups_get_all_groups($cm->course, 0, $cm->groupingid); // any group in grouping (all if groupings not used)
+        // detect changes related to groups and fix active group
+        if (!empty($SESSION->activegroup[$cm->course][VISIBLEGROUPS][$cm->groupingid])) {
+            if (!array_key_exists($SESSION->activegroup[$cm->course][VISIBLEGROUPS][$cm->groupingid], $allowedgroups)) {
+                // active group does not exist anymore
+                unset($SESSION->activegroup[$cm->course][VISIBLEGROUPS][$cm->groupingid]);
+            } 
+        }
+        if (!empty($SESSION->activegroup[$cm->course]['aag'][$cm->groupingid])) {
+            if (!array_key_exists($SESSION->activegroup[$cm->course]['aag'][$cm->groupingid], $allowedgroups)) {
+                // active group does not exist anymore
+                unset($SESSION->activegroup[$cm->course]['aag'][$cm->groupingid]);
+            } 
+        }
+
     } else {
         $allowedgroups = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid); // only assigned groups
+        // detect changes related to groups and fix active group
+        if (isset($SESSION->activegroup[$cm->course][SEPARATEGROUPS][$cm->groupingid])) {
+            if ($SESSION->activegroup[$cm->course][SEPARATEGROUPS][$cm->groupingid] == 0) {
+                if ($allowedgroups) {
+                    // somebody must have assigned at least one group, we can select it now - yay!
+                    unset($SESSION->activegroup[$cm->course][SEPARATEGROUPS][$cm->groupingid]);
+                }
+            } else {
+                if (!array_key_exists($SESSION->activegroup[$cm->course][SEPARATEGROUPS][$cm->groupingid], $allowedgroups)) {
+                    // active group not allowed or does not exist anymore
+                    unset($SESSION->activegroup[$cm->course][SEPARATEGROUPS][$cm->groupingid]);
+                } 
+            }
+        }
     }
 
     $activegroup = groups_get_activity_group($cm, true);
 
     $groupsmenu = array();
-    if ((!$allowedgroups or $groupmode == VISIBLEGROUPS or 
+    if ((!$allowedgroups or $groupmode == VISIBLEGROUPS or
       has_capability('moodle/site:accessallgroups', $context)) and !$hideallparticipants) {
         $groupsmenu[0] = get_string('allparticipants');
     }
@@ -547,7 +613,7 @@ function groups_get_activity_group($cm, $update=false) {
 }
 
 /**
- * Gets a list of groups that the user is allowed to access within the 
+ * Gets a list of groups that the user is allowed to access within the
  * specified activity.
  * @param object $cm Course-module
  * @param int $userid User ID (defaults to current user)
@@ -559,19 +625,19 @@ function groups_get_activity_allowed_groups($cm,$userid=0) {
     if(!$userid) {
         $userid=$USER->id;
     }
-    
+
     // Get groupmode for activity, taking into account course settings
     $groupmode=groups_get_activity_groupmode($cm);
 
     // If visible groups mode, or user has the accessallgroups capability,
     // then they can access all groups for the activity...
-    $context = get_context_instance(CONTEXT_MODULE, $cm->id);    
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
     if ($groupmode == VISIBLEGROUPS or has_capability('moodle/site:accessallgroups', $context)) {
-        return groups_get_all_groups($cm->course, 0, $cm->groupingid); 
+        return groups_get_all_groups($cm->course, 0, $cm->groupingid);
     } else {
         // ...otherwise they can only access groups they belong to
-        return groups_get_all_groups($cm->course, $userid, $cm->groupingid); 
-    }    
+        return groups_get_all_groups($cm->course, $userid, $cm->groupingid);
+    }
 }
 
 /**
@@ -583,7 +649,7 @@ function groups_get_activity_allowed_groups($cm,$userid=0) {
  */
 function groups_course_module_visible($cm, $userid=null) {
     global $CFG, $USER;
-    
+
     if (empty($userid)) {
         $userid = $USER->id;
     }

@@ -1,4 +1,4 @@
-<?php  // $Id: block_admin_bookmarks.php,v 1.20 2007/03/30 18:04:34 moodler Exp $
+<?php  // $Id: block_admin_bookmarks.php,v 1.20.2.2 2007/12/19 17:38:44 skodak Exp $
 
 // seems to work...
 // maybe I should add some pretty icons?
@@ -28,26 +28,27 @@ class block_admin_bookmarks extends block_base {
     }
 
     function get_content() {
-    
+
         global $CFG, $USER, $PAGE;
-    
-        require_once($CFG->libdir.'/adminlib.php');
-        $adminroot = admin_get_root();
-    
+
         if ($this->content !== NULL) {
             return $this->content;
         }
-    
+
         $this->content = new stdClass;
         $this->content->text = '';
         if (get_user_preferences('admin_bookmarks')) {
-            $bookmarks = explode(',',get_user_preferences('admin_bookmarks'));
+            // this is expensive! Only require when bookmakrs exist..
+            require_once($CFG->libdir.'/adminlib.php');
+            $adminroot =& admin_get_root(false, false);  // settings not required - only pages
+
+            $bookmarks = explode(',', get_user_preferences('admin_bookmarks'));
             // hmm... just a liiitle (potentially) processor-intensive
             // (recall that $adminroot->locate is a huge recursive call... and we're calling it repeatedly here
-    
+
             /// Accessibility: markup as a list.
             $this->content->text .= '<ol class="list">'."\n";
-    
+
             foreach($bookmarks as $bookmark) {
                 $temp = $adminroot->locate($bookmark);
                 if (is_a($temp, 'admin_settingpage')) {
@@ -60,7 +61,7 @@ class block_admin_bookmarks extends block_base {
         } else {
             $bookmarks = array();
         }
-    
+
         if (isset($PAGE->section) and $PAGE->section == 'search'){
             // the search page can't be properly bookmarked at present
             $this->content->footer = '';
@@ -71,7 +72,7 @@ class block_admin_bookmarks extends block_base {
         } else {
             $this->content->footer = '';
         }
-    
+
         return $this->content;
     }
 }

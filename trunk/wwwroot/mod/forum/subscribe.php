@@ -1,4 +1,4 @@
-<?php // $Id: subscribe.php,v 1.37 2007/08/22 19:36:27 skodak Exp $
+<?php // $Id: subscribe.php,v 1.37.3 2009/01/21 04:42:24 kowy Exp $
 
 //  Subscribe to or unsubscribe from a forum.
 
@@ -51,14 +51,10 @@
             $wwwroot = str_replace('http:','https:', $wwwroot);
         }
         
-        $strforums = get_string('modulenameplural', 'forum');
-        $navlinks = array();
-        $navlinks[] = array('name' => $strforums, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($forum->name), 'link' => "view.php?f=$forum->id", 'type' => 'activityinstance');
-    
-        $navigation = build_navigation($navlinks);
-        
-        print_header($course->shortname, $course->fullname, $navigation, '', '', true, "", navmenu($course, $cm));
+        $navigation = build_navigation('', $cm);
+        print_header($course->shortname, $course->fullname, $navigation, '', '', true, "", 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         
         notice_yesno(get_string('noguestsubscribe', 'forum').'<br /><br />'.get_string('liketologin'),
                      $wwwroot, $_SERVER['HTTP_REFERER']);
@@ -66,7 +62,9 @@
         exit;
     }
 
-    $returnto = forum_go_back_to("index.php?id=$course->id");
+    $returnto = optional_param('backtoindex',0,PARAM_INT) 
+        ? "index.php?id=".$course->id 
+        : "view.php?f=$id";
 
     if ($force and has_capability('mod/forum:managesubscriptions', $context)) {
         if (forum_is_forcesubscribed($forum->id)) {
@@ -96,7 +94,10 @@
     } else {  // subscribe
         if ($forum->forcesubscribe == FORUM_DISALLOWSUBSCRIBE &&
                     !has_capability('mod/forum:managesubscriptions', $context)) {
-            error(get_string('disallowsubscribe'),$_SERVER["HTTP_REFERER"]);
+            error(get_string('disallowsubscribe', 'forum'),$_SERVER["HTTP_REFERER"]);
+        }
+        if (!has_capability('mod/forum:viewdiscussion', $context)) {
+            error("Could not subscribe you to that forum", $_SERVER["HTTP_REFERER"]);
         }
         if (forum_subscribe($user->id, $forum->id) ) {
             add_to_log($course->id, "forum", "subscribe", "view.php?f=$forum->id", $forum->id, $cm->id);

@@ -1,4 +1,4 @@
-<?php // $Id: export_execute.php,v 1.5 2007/08/20 21:30:40 mattc-catalyst Exp $
+<?php // $Id: export_execute.php,v 1.5.2.1 2007/11/26 14:43:07 dwoolhead Exp $
 
 require_once('../config.php');
 //require_once($CFG->dirroot.'/course/lib.php');
@@ -99,17 +99,7 @@ if(!empty($what) && !empty($time)) {
         die();
     }
 }
-$whereclause = calendar_sql_where($timestart, $timeend, $include_user ? array($user->id) : false, false, array_keys($courses), false);
-if($whereclause === false) {
-    $events = array();
-}
-else {
-    $events = get_records_select('event', $whereclause, 'timestart');
-}
-
-if ($events === false) {
-    $events = array();
-}
+$events = calendar_get_events($timestart, $timeend, $include_user ? array($user->id) : false, false, array_keys($courses), false);
 
 $ical = new iCalendar;
 $ical->add_property('method', 'PUBLISH');

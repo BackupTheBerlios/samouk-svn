@@ -1,4 +1,4 @@
-<?php // $Id: version.php,v 1.16 2007/02/02 13:02:29 moodler Exp $
+<?php // $Id: version.php,v 1.17 2007/10/10 16:09:54 skodak Exp $
 
 /////////////////////////////////////////////////////////////////////////////////
 ///  Code fragment to define the version of label
@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 $module->version  = 2007020200;  // The current module version (Date: YYYYMMDDXX)
-$module->requires = 2007020200;  // Requires this Moodle version
+$module->requires = 2007101000;  // Requires this Moodle version
 $module->cron     = 0;           // Period for cron to check this module (secs)
 
 ?>

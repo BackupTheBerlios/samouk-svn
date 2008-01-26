@@ -1,4 +1,4 @@
-<?php  // $Id: groupaddnote.php,v 1.3 2007/08/17 19:09:26 nicolasconnault Exp $
+<?php  // $Id: groupaddnote.php,v 1.9 2008/01/21 19:09:26 kowy Exp $
 require_once("../config.php");
 require_once($CFG->dirroot .'/notes/lib.php');
 
@@ -45,7 +45,9 @@ $navlinks = array();
 $navlinks[] = array('name' => $straddnote, 'link' => null, 'type' => 'misc');
 $navigation = build_navigation($navlinks);
 
-print_header("$course->shortname: ".get_string('extendenrol'), $course->fullname, $navigation, "", "", true, "&nbsp;", navmenu($course));
+print_header("$course->shortname: ".get_string('extendenrol'), $course->fullname, $navigation, "", "", true, "&nbsp;", 
+			// kowy - 2007-01-12 - add standard logout box 
+			user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 // this will contain all available the based On select options, but we'll disable some on them on a per user basis
 

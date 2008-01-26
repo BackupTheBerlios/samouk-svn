@@ -1,15 +1,37 @@
-<?php // $Id: settings.php,v 1.31 2007/10/07 18:15:58 skodak Exp $
-require_once($CFG->libdir.'/grade/constants.php');
+<?php // $Id: settings.php,v 1.34.2.2 2007/12/04 16:05:57 nicolasconnault Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com     //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 $strinherit             = get_string('inherit', 'grades');
 $strpercentage          = get_string('percentage', 'grades');
 $strreal                = get_string('real', 'grades');
 $strletter              = get_string('letter', 'grades');
-$strdefault             = get_string('default');
+$strinherit             = get_string('inherit', 'grades');
 
 /// Add settings for this module to the $settings object (it's already defined)
 $settings->add(new admin_setting_configtext('grade_report_studentsperpage', get_string('studentsperpage', 'grades'),
-                                        get_string('configstudentsperpage', 'grades'), 20));
+                                        get_string('configstudentsperpage', 'grades'), 100));
 
 $settings->add(new admin_setting_configcheckbox('grade_report_quickgrading', get_string('quickgrading', 'grades'),
                                             get_string('configquickgrading', 'grades'), 1));
@@ -18,9 +40,10 @@ $settings->add(new admin_setting_configcheckbox('grade_report_quickfeedback', ge
                                             get_string('configquickfeedback', 'grades'), 1));
 
 $settings->add(new admin_setting_configselect('grade_report_aggregationposition', get_string('aggregationposition', 'grades'),
-                                          get_string('configaggregationposition', 'grades'), GRADE_REPORT_AGGREGATION_POSITION_RIGHT,
-                                          array(GRADE_REPORT_AGGREGATION_POSITION_LEFT => get_string('left', 'grades'),
-                                                GRADE_REPORT_AGGREGATION_POSITION_RIGHT => get_string('right', 'grades'))));
+                                          get_string('configaggregationposition', 'grades'), GRADE_REPORT_PREFERENCE_INHERIT,
+                                          array(GRADE_REPORT_PREFERENCE_INHERIT => $strinherit,
+                                                GRADE_REPORT_AGGREGATION_POSITION_FIRST => get_string('positionfirst', 'grades'),
+                                                GRADE_REPORT_AGGREGATION_POSITION_LAST => get_string('positionlast', 'grades'))));
 
 $settings->add(new admin_setting_configselect('grade_report_aggregationview', get_string('aggregationview', 'grades'),
                                           get_string('configaggregationview', 'grades'), GRADE_REPORT_AGGREGATION_VIEW_FULL,
@@ -29,7 +52,7 @@ $settings->add(new admin_setting_configselect('grade_report_aggregationview', ge
                                                 GRADE_REPORT_AGGREGATION_VIEW_GRADES_ONLY => get_string('gradesonly', 'grades'))));
 
 $settings->add(new admin_setting_configselect('grade_report_meanselection', get_string('meanselection', 'grades'),
-                                          get_string('configmeanselection', 'grades'), GRADE_REPORT_MEAN_ALL,
+                                          get_string('configmeanselection', 'grades'), GRADE_REPORT_MEAN_GRADED,
                                           array(GRADE_REPORT_MEAN_ALL => get_string('meanall', 'grades'),
                                                 GRADE_REPORT_MEAN_GRADED => get_string('meangraded', 'grades'))));
 
@@ -43,7 +66,7 @@ $settings->add(new admin_setting_configcheckbox('grade_report_showeyecons', get_
                                             get_string('configshoweyecons', 'grades'), 0));
 
 $settings->add(new admin_setting_configcheckbox('grade_report_showaverages', get_string('showaverages', 'grades'),
-                                            get_string('configshowaverages', 'grades'), 0));
+                                            get_string('configshowaverages', 'grades'), 1));
 
 $settings->add(new admin_setting_configcheckbox('grade_report_showgroups', get_string('showgroups', 'grades'),
                                             get_string('configshowgroups', 'grades'), 0));
@@ -64,22 +87,22 @@ $settings->add(new admin_setting_configcheckbox('grade_report_shownumberofgrades
                                             get_string('configshownumberofgrades', 'grades'), 0));
 
 $settings->add(new admin_setting_configselect('grade_report_averagesdisplaytype', get_string('averagesdisplaytype', 'grades'),
-                                          get_string('configaveragesdisplaytype', 'grades'), GRADE_REPORT_PREFERENCE_DEFAULT,
-                                          array(GRADE_REPORT_PREFERENCE_DEFAULT => $strdefault,
+                                          get_string('configaveragesdisplaytype', 'grades'), GRADE_REPORT_PREFERENCE_INHERIT,
+                                          array(GRADE_REPORT_PREFERENCE_INHERIT => $strinherit,
                                                 GRADE_DISPLAY_TYPE_REAL => $strreal,
                                                 GRADE_DISPLAY_TYPE_PERCENTAGE => $strpercentage,
                                                 GRADE_DISPLAY_TYPE_LETTER => $strletter)));
 
 $settings->add(new admin_setting_configselect('grade_report_rangesdisplaytype', get_string('rangesdisplaytype', 'grades'),
-                                          get_string('configrangesdisplaytype', 'grades'), GRADE_REPORT_PREFERENCE_DEFAULT,
-                                          array(GRADE_REPORT_PREFERENCE_DEFAULT => $strdefault,
+                                          get_string('configrangesdisplaytype', 'grades'), GRADE_REPORT_PREFERENCE_INHERIT,
+                                          array(GRADE_REPORT_PREFERENCE_INHERIT => $strinherit,
                                                 GRADE_DISPLAY_TYPE_REAL => $strreal,
                                                 GRADE_DISPLAY_TYPE_PERCENTAGE => $strpercentage,
                                                 GRADE_DISPLAY_TYPE_LETTER => $strletter)));
 
 $settings->add(new admin_setting_configselect('grade_report_averagesdecimalpoints', get_string('averagesdecimalpoints', 'grades'),
-                                          get_string('configaveragesdecimalpoints', 'grades'), 2,
-                                          array(GRADE_REPORT_PREFERENCE_DEFAULT => $strdefault,
+                                          get_string('configaveragesdecimalpoints', 'grades'), GRADE_REPORT_PREFERENCE_INHERIT,
+                                          array(GRADE_REPORT_PREFERENCE_INHERIT => $strinherit,
                                                  '0' => '0',
                                                  '1' => '1',
                                                  '2' => '2',
@@ -87,8 +110,8 @@ $settings->add(new admin_setting_configselect('grade_report_averagesdecimalpoint
                                                  '4' => '4',
                                                  '5' => '5')));
 $settings->add(new admin_setting_configselect('grade_report_rangesdecimalpoints', get_string('rangesdecimalpoints', 'grades'),
-                                          get_string('configrangesdecimalpoints', 'grades'), 2,
-                                          array(GRADE_REPORT_PREFERENCE_DEFAULT => $strdefault,
+                                          get_string('configrangesdecimalpoints', 'grades'), GRADE_REPORT_PREFERENCE_INHERIT,
+                                          array(GRADE_REPORT_PREFERENCE_INHERIT => $strinherit,
                                                  '0' => '0',
                                                  '1' => '1',
                                                  '2' => '2',

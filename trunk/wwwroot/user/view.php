@@ -1,4 +1,4 @@
-<?PHP // $Id: view.php,v 1.168 2007/09/19 07:21:47 martinlanghoff Exp $
+<?PHP // $Id: view.php,v 1.168.3 2008/01/21 07:12:39 kowy Exp $
 
 //  Display profile for a particular user
 
@@ -61,7 +61,9 @@
     $fullname = fullname($user, has_capability('moodle/site:viewfullnames', $coursecontext));
 
     $navlinks = array();
-    $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    if (has_capability('moodle/course:viewparticipants', $coursecontext) || has_capability('moodle/site:viewparticipants', $systemcontext)) {
+        $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    }
 
 /// If the user being shown is not ourselves, then make sure we are allowed to see them!
 
@@ -74,7 +76,9 @@
                 $navlinks[] = array('name' => $struser, 'link' => null, 'type' => 'misc');
                 $navigation = build_navigation($navlinks);
 
-                print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", navmenu($course));
+                print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", 
+                			// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($course));
                 print_heading(get_string('usernotavailable', 'error'));
                 print_footer($course);
                 exit;
@@ -90,12 +94,16 @@
                 if (has_capability('moodle/course:view', $coursecontext)) {
                     $navlinks[] = array('name' => $fullname, 'link' => null, 'type' => 'misc');
                     $navigation = build_navigation($navlinks);
-                    print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", navmenu($course));
+                    print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", 
+                    			// kowy - 2007-01-12 - add standard logout box 
+								user_login_string($course).'<hr style="width:95%">'.navmenu($course));
                     print_heading(get_string('notenrolled', '', $fullname));
                 } else {
                     $navlinks[] = array('name' => $struser, 'link' => null, 'type' => 'misc');
                     $navigation = build_navigation($navlinks);
-                    print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", navmenu($course));
+                    print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", 
+                    			// kowy - 2007-01-12 - add standard logout box 
+								user_login_string($course).'<hr style="width:95%">'.navmenu($course));
                     print_heading(get_string('notenrolledprofile'));
                 }
                 print_continue($_SERVER['HTTP_REFERER']);
@@ -113,7 +121,9 @@
             $gtrue = (bool)groups_get_all_groups($course->id, $user->id);
             if (!$gtrue) {
                 $navigation = build_navigation($navlinks);
-                print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", navmenu($course));
+                print_header("$strpersonalprofile: ", "$strpersonalprofile: ", $navigation, "", "", true, "&nbsp;", 
+                			// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($course));
                 error(get_string("groupnotamember"), "../course/view.php?id=$course->id");
             }
         }
@@ -127,7 +137,9 @@
     $navigation = build_navigation($navlinks);
 
     print_header("$course->fullname: $strpersonalprofile: $fullname", $course->fullname,
-                 $navigation, "", "", true, "&nbsp;", navmenu($course));
+				$navigation, "", "", true, "&nbsp;", 
+				// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 
     if (($course->id != SITEID) and ! isguest() ) {   // Need to have access to a course to see that info
@@ -147,6 +159,7 @@
     add_to_log($course->id, "user", "view", "view.php?id=$user->id&course=$course->id", "$user->id");
 
     if ($course->id != SITEID) {
+        $user->lastaccess = false;
         if ($lastaccess = get_record('user_lastaccess', 'userid', $user->id, 'courseid', $course->id)) {
             $user->lastaccess = $lastaccess->timeaccess;
         }
@@ -357,8 +370,8 @@
         print_row(get_string("lastaccess").":", $datestring);
     }
 /// printing roles
-
-    if ($rolestring = get_user_roles_in_context($id, $coursecontext->id)) {
+    
+    if ($rolestring = get_user_roles_in_context($id, $coursecontext)) {
         print_row(get_string('roles').':', format_string($rolestring, false));
     }
 
@@ -470,7 +483,7 @@
         echo '</form>';
     }
 
-    if (!empty($CFG->messaging) and !isguest()) {
+    if (!empty($CFG->messaging) and !isguest() and has_capability('moodle/site:sendmessage', get_context_instance(CONTEXT_SYSTEM))) {
         if (!empty($USER->id) and ($USER->id == $user->id)) {
             if ($countmessages = count_records('message', 'useridto', $user->id)) {
                 $messagebuttonname = get_string("messages", "message")."($countmessages)";

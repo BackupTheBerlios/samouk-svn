@@ -1,4 +1,4 @@
-<?php //$Id: block_admin.php,v 1.100 2007/08/26 08:24:53 skodak Exp $
+<?php //$Id: block_admin.php,v 1.100.2.2 2007/12/07 16:57:53 tjhunt Exp $
 
 class block_admin extends block_list {
     function init() {
@@ -70,10 +70,20 @@ class block_admin extends block_list {
         }
 
     /// View course grades (or just your own grades, same link)
-        if ((has_capability('moodle/grade:viewall', $context) or
-            (has_capability('moodle/grade:view', $context) && $course->showgrades)) && ($course->id!==SITEID)) {
-            $this->content->items[]='<a href="'.$CFG->wwwroot.'/grade/report/index.php?id='.$this->instance->pageid.'">'.get_string('grades').'</a>';
-            $this->content->icons[]='<img src="'.$CFG->pixpath.'/i/grades.gif" class="icon" alt="" />';
+    /// find all accessible reports
+        if ($course->id!==SITEID) {
+            if ($reports = get_list_of_plugins('grade/report', 'CVS')) {     // Get all installed reports
+                foreach ($reports as $key => $plugin) {                      // Remove ones we can't see
+                    if (!has_capability('gradereport/'.$plugin.':view', $context)) {
+                        unset($reports[$key]);
+                    }
+                }
+            }
+
+            if (!empty($reports)) {
+                $this->content->items[]='<a href="'.$CFG->wwwroot.'/grade/report/index.php?id='.$this->instance->pageid.'">'.get_string('grades').'</a>';
+                $this->content->icons[]='<img src="'.$CFG->pixpath.'/i/grades.gif" class="icon" alt="" />';
+            }
         }
 
     /// Course outcomes (to help give it more prominence because it's important)
@@ -139,6 +149,7 @@ class block_admin extends block_list {
 
     /// Manage questions
         if ($course->id!==SITEID){
+            $questionlink = '';
             $questioncaps = array(
                                     'moodle/question:add',
                                     'moodle/question:editmine',
@@ -147,15 +158,18 @@ class block_admin extends block_list {
                                     'moodle/question:viewall',
                                     'moodle/question:movemine',
                                     'moodle/question:moveall');
-            $questionpermission = false;
             foreach ($questioncaps as $questioncap){
                 if (has_capability($questioncap, $context)){
-                    $questionpermission = true;
+                    $questionlink = 'edit.php';
                     break;
                 }
             }
-            if ($questionpermission) {
-                $this->content->items[]='<a href="'.$CFG->wwwroot.'/question/edit.php?courseid='.$this->instance->pageid.'">'.get_string('questions', 'quiz').'</a>';
+            if (!$questionlink && has_capability('moodle/question:managecategory', $context)) {
+               $questionlink = 'category.php';
+            }
+            if ($questionlink) {
+                $this->content->items[]='<a href="'.$CFG->wwwroot.'/question/'.$questionlink.
+                        '?courseid='.$this->instance->pageid.'">'.get_string('questions', 'quiz').'</a>';
                 $this->content->icons[]='<img src="'.$CFG->pixpath.'/i/questions.gif" class="icon" alt="" />';
             }
         }

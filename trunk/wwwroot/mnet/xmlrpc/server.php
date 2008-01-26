@@ -132,8 +132,6 @@ function mnet_server_strip_wrappers($HTTP_RAW_POST_DATA) {
 
         if (false == $host_record_exists) {
             exit(mnet_server_fault(7020, 'wrong-wwwroot', $crypt_parser->remote_wwwroot));
-        } elseif (isset($_SERVER['REMOTE_ADDR']) && $_SERVER['REMOTE_ADDR'] != $MNET_REMOTE_CLIENT->ip_address) {
-            exit(mnet_server_fault(7017, 'wrong-ip'));
         }
 
         if ($crypt_parser->payload_encrypted) {
@@ -283,7 +281,7 @@ function mnet_server_fault_xml($code, $text) {
 </methodResponse>');
 
     if (!empty($CFG->mnet_rpcdebug)) {
-        trigger_error("XMLRPC Error Response");
+        trigger_error("XMLRPC Error Response $code: $text");
         trigger_error(print_r($return,1));
     }
 
@@ -544,7 +542,8 @@ function mnet_system($method, $params, $hostinfo) {
                 WHERE
                     s2r.rpcid = rpc.id AND
                     h2s.serviceid = s2r.serviceid AND 
-                    h2s.hostid in ('.$id_list .')
+                    h2s.hostid in ('.$id_list .') AND
+                    h2s.publish =\'1\'
                 ORDER BY
                     rpc.xmlrpc_path ASC';
 
@@ -565,6 +564,7 @@ function mnet_system($method, $params, $hostinfo) {
                     s2r.rpcid = rpc.id AND
                     h2s.serviceid = s2r.serviceid AND 
                     h2s.hostid in ('.$id_list .') AND
+                    h2s.publish =\'1\' AND
                     svc.id = h2s.serviceid AND
                     svc.name = \''.$params[0].'\'
                 ORDER BY
@@ -593,6 +593,7 @@ function mnet_system($method, $params, $hostinfo) {
                 rpc.xmlrpc_path = \''.$params[0].'\' AND
                 s2r.rpcid = rpc.id AND
                 h2s.serviceid = s2r.serviceid AND 
+                h2s.publish =\'1\' AND
                 h2s.hostid in ('.$id_list .')';
 
         $result = get_records_sql($query);
@@ -620,6 +621,7 @@ function mnet_system($method, $params, $hostinfo) {
             WHERE
                 rpc.xmlrpc_path = \''.$params[0].'\' AND
                 s2r.rpcid = rpc.id AND
+                h2s.publish =\'1\' AND
                 h2s.serviceid = s2r.serviceid AND 
                 h2s.hostid in ('.$id_list .')';
 
@@ -641,6 +643,7 @@ function mnet_system($method, $params, $hostinfo) {
                 '.$CFG->prefix.'mnet_service s
             WHERE
                 h2s.serviceid = s.id AND
+               (h2s.publish =\'1\' OR h2s.subscribe =\'1\') AND
                 h2s.hostid in ('.$id_list .')
             ORDER BY
                 s.name ASC';

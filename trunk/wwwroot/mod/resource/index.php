@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.26 2007/08/16 15:01:28 nicolasconnault Exp $
+<?php // $Id: index.php,v 1.27.3 2008/01/21 10:42:18 kowy Exp $
 
     require_once("../../config.php");
 
@@ -28,10 +28,12 @@
     $navigation = build_navigation($navlinks);
 
     print_header("$course->shortname: $strresources", $course->fullname, $navigation,
-                 "", "", true, "", navmenu($course));
+				"", "", true, "", 
+    			// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     if (! $resources = get_all_instances_in_course("resource", $course)) {
-        notice("There are no resources", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strresources), "../../course/view.php?id=$course->id");
         exit;
     }
 
@@ -87,4 +89,3 @@
     print_footer($course);
 
 ?>
-

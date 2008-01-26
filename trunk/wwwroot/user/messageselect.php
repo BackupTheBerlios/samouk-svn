@@ -17,12 +17,10 @@
     }
 
     require_login();
-    require_capability('moodle/site:readallmessages', get_context_instance(CONTEXT_COURSE, $id));
 
-    // fix for MDL-10112
-    if (empty($CFG->messaging)) {
-        error("Messaging is disabled on this site");
-    }
+    $coursecontext = get_context_instance(CONTEXT_COURSE, $id);   // Course context
+    $systemcontext = get_context_instance(CONTEXT_SYSTEM);   // SYSTEM context
+    require_capability('moodle/course:bulkmessaging', $coursecontext);
 
     if (empty($SESSION->emailto)) {
         $SESSION->emailto = array();
@@ -66,12 +64,18 @@
     }
 
     $navlinks = array();
-    $navlinks[] = array('name' => get_string('participants'), 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    if (has_capability('moodle/course:viewparticipants', $coursecontext) || has_capability('moodle/site:viewparticipants', $systemcontext)) {
+        $navlinks[] = array('name' => get_string('participants'), 'link' => "index.php?id=$course->id", 'type' => 'misc');
+    }
     $navlinks[] = array('name' => $strtitle, 'link' => null, 'type' => 'misc');
     $navigation = build_navigation($navlinks);
 
     print_header($strtitle,$strtitle,$navigation,$formstart);
 
+    // if messaging is disabled on site, we can still allow users with capabilities to send emails instead
+    if (empty($CFG->messaging)) {
+        notify(get_string('messagingdisabled','message'));  
+    }
 
     if ($count) {
         if ($count == 1) {
@@ -90,8 +94,10 @@
 <input type="hidden" name="id" value="'.$id.'" />
 <input type="hidden" name="format" value="'.$format.'" />
 ';
-                echo "<h3>".get_string('previewhtml')."</h3><div class=\"messagepreview\">\n".format_text(stripslashes($messagebody),$format)."\n</div>";
-                echo "\n<p align=\"center\"><input type=\"submit\" name=\"send\" value=\"Send\" /> <input type=\"submit\" name=\"edit\" value=\"Edit\" /></p>\n</form>";
+                echo "<h3>".get_string('previewhtml')."</h3><div class=\"messagepreview\">\n".format_text(stripslashes($messagebody),$format)."\n</div>\n";
+                echo '<p align="center"><input type="submit" name="send" value="'.get_string('sendmessage', 'message').'" />'."\n";
+                echo '<input type="submit" name="edit" value="'.get_string('edit').'" /></p>';
+                echo "\n</form>";
             } elseif ($send) {
                 $good = 1;
                 $teachers = array();

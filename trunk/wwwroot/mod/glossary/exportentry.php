@@ -1,4 +1,4 @@
-<?php  // $Id: exportentry.php,v 1.30 2007/07/05 04:55:30 mattc-catalyst Exp $
+<?php  // $Id: exportentry.php,v 1.30.3 2008/01/21 16:09:44 kowy Exp $
     require_once('../../config.php');
     require_once('lib.php');
 
@@ -38,13 +38,10 @@
     $entryalreadyexist = get_string('entryalreadyexist','glossary');
     $entryexported = get_string('entryexported','glossary');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-   
-    $navigation = build_navigation($navlinks);
-
-    print_header_simple(format_string($glossary->name), '', $navigation, '', '', true, '', navmenu($course, $cm));
+    $navigation = build_navigation('', $cm);
+    print_header_simple(format_string($glossary->name), '', $navigation, '', '', true, '', 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     if ( $PermissionGranted ) {
         $entry = get_record('glossary_entries', 'id', $entry);

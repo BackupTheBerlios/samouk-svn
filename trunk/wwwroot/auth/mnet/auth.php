@@ -1,4 +1,4 @@
-<?php // $Id: auth.php,v 1.27 2007/08/06 22:16:36 stronk7 Exp $
+<?php // $Id: auth.php,v 1.27.2.3 2007/11/01 06:13:02 donal72 Exp $
 
 /**
  * @author Martin Dougiamas
@@ -89,7 +89,7 @@ class auth_plugin_mnet extends auth_plugin_base {
         }
 
         // session okay, try getting the user
-        if (!$user = get_complete_user_data('id', $mnet_session->userid)) {
+        if (!$user = get_record('user', 'id', $mnet_session->userid)) {
             echo mnet_server_fault(3, get_string('authfail_usermismatch', 'mnet'));
             exit;
         }
@@ -115,7 +115,7 @@ class auth_plugin_mnet extends auth_plugin_base {
         $userdata['session.gc_maxlifetime']  = ini_get('session.gc_maxlifetime');
         $userdata['picture']                 = $user->picture;
         if (!empty($user->picture)) {
-            $imagefile = "{$CFG->dataroot}/users/{$user->id}/f1.jpg";
+            $imagefile = make_user_directory($user->id, true) . "/f1.jpg";
             if (file_exists($imagefile)) {
                 $userdata['imagehash'] = sha1(file_get_contents($imagefile));
             }
@@ -289,7 +289,7 @@ class auth_plugin_mnet extends auth_plugin_base {
 
         // add the remote user to the database if necessary, and if allowed
         // TODO: refactor into a separate function
-        if (! $localuser->id) {
+        if (empty($localuser) || ! $localuser->id) {
             if (empty($this->config->auto_add_remote_users)) {
                 error(get_string('nolocaluser', 'mnet'));
             }
@@ -319,7 +319,7 @@ class auth_plugin_mnet extends auth_plugin_base {
 
             // TODO: fetch image if it has changed
             if ($key == 'imagehash') {
-                $dirname = "{$CFG->dataroot}/users/{$localuser->id}";
+                $dirname = make_user_directory($localuser->id, true);
                 $filename = "$dirname/f1.jpg";
 
                 $localhash = '';
@@ -1263,8 +1263,8 @@ class auth_plugin_mnet extends auth_plugin_base {
         global $CFG;
 
         if ($user = get_record('user', 'username', addslashes($username), 'mnethostid', $CFG->mnet_localhost_id)) {
-            $filename1 = "{$CFG->dataroot}/users/{$user->id}/f1.jpg";
-            $filename2 = "{$CFG->dataroot}/users/{$user->id}/f2.jpg";
+            $filename1 = make_user_directory($user->id, true) . "/f1.jpg";
+            $filename2 = make_user_directory($user->id, true) . "/f2.jpg";
             $return = array();
             if (file_exists($filename1)) {
                 $return['f1'] = base64_encode(file_get_contents($filename1));

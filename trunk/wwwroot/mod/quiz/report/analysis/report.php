@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.41 2007/09/18 12:15:22 tjhunt Exp $
+<?php  // $Id: report.php,v 1.41.2.4 2007/12/17 17:17:17 tjhunt Exp $
 
     require_once($CFG->libdir.'/tablelib.php');
 
@@ -7,7 +7,6 @@ class quiz_report extends quiz_default_report {
 
     function display($quiz, $cm, $course) {     /// This function just displays the report
         global $CFG, $SESSION, $QTYPES;
-        $strnoquiz = get_string('noquiz','quiz');
         $strnoattempts = get_string('noattempts','quiz');
     /// Only print headers if not asked to download data
         $download = optional_param('download', NULL);
@@ -87,8 +86,8 @@ class quiz_report extends quiz_default_report {
         $sql = 'SELECT  qa.* FROM '.$CFG->prefix.'quiz_attempts qa, '.$CFG->prefix.'user u '.$groupmembers.
                  'WHERE u.id = qa.userid AND qa.quiz = '.$quiz->id.' AND qa.preview = 0 AND ( qa.sumgrades >= '.$scorelimit.' ) '.$groupwhere;
 
-        // ^^^^^^ es posible seleccionar aqu� TODOS los quizzes, como quiere Jussi,
-        // pero habr�a que llevar la cuenta ed cada quiz para restaura las preguntas (quizquestions, states)
+        // ^^^^^^ es posible seleccionar aqu TODOS los quizzes, como quiere Jussi,
+        // pero haba que llevar la cuenta ed cada quiz para restaura las preguntas (quizquestions, states)
 
         /// Fetch the attempts
         $attempts = get_records_sql($sql);
@@ -244,6 +243,7 @@ class quiz_report extends quiz_default_report {
         $table->define_baseurl($CFG->wwwroot.'/mod/quiz/report.php?q='.$quiz->id.'&amp;mode=analysis');
 
         $table->sortable(true);
+        $table->no_sorting('rpercent');
         $table->collapsible(true);
         $table->initialbars(false);
 
@@ -370,26 +370,20 @@ class quiz_report extends quiz_default_report {
         echo '<input type="hidden" name="id" value="'.$cm->id.'" />';
         echo '<input type="hidden" name="q" value="'.$quiz->id.'" />';
         echo '<input type="hidden" name="mode" value="analysis" />';
-        echo '<table id="analysis-options" class="boxaligncenter">';
-        echo '<tr align="left"><td><label for="menuattemptselection">'.get_string('attemptselection', 'quiz_analysis').'</label></td><td>';
+        echo '<p><label for="menuattemptselection">'.get_string('attemptselection', 'quiz_analysis').'</label> ';
         $options = array ( QUIZ_ALLATTEMPTS     => get_string("attemptsall", 'quiz_analysis'),
                            QUIZ_HIGHESTATTEMPT => get_string("attemptshighest", 'quiz_analysis'),
                            QUIZ_FIRSTATTEMPT => get_string("attemptsfirst", 'quiz_analysis'),
                            QUIZ_LASTATTEMPT  => get_string("attemptslast", 'quiz_analysis'));
         choose_from_menu($options, "attemptselection", "$attempts", "");
-        echo '</td></tr>';
-        echo '<tr align="left">';
-        echo '<td><label for="lowmarklimit">'.get_string('lowmarkslimit', 'quiz_analysis').'</label></td>';
-        echo '<td><input type="text" id="lowmarklimit" name="lowmarklimit" size="1" value="'.$lowlimit.'" /> % </td>';
-        echo '</tr>';
-        echo '<tr align="left">';
-        echo '<td><label for="pagesize">'.get_string('pagesize', 'quiz_analysis').'</label></td>';
-        echo '<td><input type="text" id="pagesize" name="pagesize" size="1" value="'.$pagesize.'" /></td>';
-        echo '</tr>';
-        echo '<tr><td colspan="2" align="center">';
-        echo '<input type="submit" value="'.get_string('go').'" />';
+        echo '</p>';
+        echo '<p><label for="lowmarklimit">'.get_string('lowmarkslimit', 'quiz_analysis').'</label> ';
+        echo '<input type="text" id="lowmarklimit" name="lowmarklimit" size="1" value="'.$lowlimit.'" /> % </p>';
+        echo '<p><label for="pagesize">'.get_string('pagesize', 'quiz_analysis').'</label> ';
+        echo '<input type="text" id="pagesize" name="pagesize" size="1" value="'.$pagesize.'" /></p>';
+        echo '<p><input type="submit" value="'.get_string('go').'" />';
         helpbutton("analysisoptions", get_string("analysisoptions",'quiz_analysis'), 'quiz');
-        echo '</td></tr></table>';
+        echo '</p>';
         echo '</fieldset>';
         echo '</form>';
         echo '</div>';

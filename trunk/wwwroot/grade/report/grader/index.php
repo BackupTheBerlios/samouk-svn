@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.65 2007/09/17 17:31:48 nicolasconnault Exp $
+<?php // $Id: index.php,v 1.9 2008/01/21 14:57:05 kowy Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 // NOTICE OF COPYRIGHT                                                   //
@@ -121,23 +121,30 @@ if (!empty($target) && !empty($action) && confirm_sesskey()) {
 // Initialise the grader report object
 $report = new grade_report_grader($courseid, $gpr, $context, $page, $sortitemid);
 
+
 /// processing posted grades & feedback here
-if ($data = data_submitted() and confirm_sesskey()) {
-    $report->process_data($data);
+if ($data = data_submitted() and confirm_sesskey() and has_capability('moodle/grade:edit', $context)) {
+    $warnings = $report->process_data($data);
+} else {
+    $warnings = array();
 }
+
 
 // Override perpage if set in URL
 if ($perpageurl) {
     $report->user_prefs['studentsperpage'] = $perpageurl;
 }
 
+// final grades MUST be loaded after the processing
 $report->load_users();
 $numusers = $report->get_numusers();
 $report->load_final_grades();
 
 /// Print header
 print_header_simple($strgrades.': '.$reportname, ': '.$strgrades, $navigation,
-                        '', '', true, $buttons, navmenu($course));
+                        '', '', true, $buttons, 
+						// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Print the plugin selector at the top
 print_grade_plugin_selector($courseid, 'report', 'grader');
@@ -147,18 +154,25 @@ $currenttab = 'graderreport';
 require('tabs.php');
 
 echo $report->group_selector;
-
 echo '<div class="clearer"></div>';
-
 echo $report->get_toggles_html();
+
+//show warnings if any
+foreach($warnings as $warning) {
+    notify($warning);
+}
+
 $studentsperpage = $report->get_pref('studentsperpage');
 // Don't use paging if studentsperpage is empty or 0 at course AND site levels
 if (!empty($studentsperpage)) {
     print_paging_bar($numusers, $report->page, $studentsperpage, $report->pbarurl);
 }
 
-$reporthtml = '<table class="gradestable flexible boxaligncenter generaltable">';
+$reporthtml = '<script src="functions.js" type="text/javascript"></script>';
+
+$reporthtml .= '<table id="user-grades" class="gradestable flexible boxaligncenter generaltable">';
 $reporthtml .= $report->get_headerhtml();
+$reporthtml .= $report->get_iconshtml();
 $reporthtml .= $report->get_rangehtml();
 $reporthtml .= $report->get_studentshtml();
 $reporthtml .= $report->get_avghtml(true);

@@ -1,4 +1,4 @@
-<?PHP // $Id: scorm.php,v 1.18 2007/07/03 12:07:58 bobopinna Exp $ 
+<?PHP // $Id: scorm.php,v 1.18.4.1 2007/11/29 14:40:47 skodak Exp $ 
       // scorm.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -110,6 +110,7 @@ $string['position_error'] = 'The $a->tag tag can\'t be child of $a->parent tag';
 $string['prev'] = 'Previous';
 $string['raw'] = 'Raw score';
 $string['regular'] = 'Regular Manifest';
+$string['deleteallattempts'] = 'Delete all SCORM attempts';
 $string['report'] = 'Report';
 $string['resizable'] = 'Allow the window to be resized';
 $string['result'] = 'Result';

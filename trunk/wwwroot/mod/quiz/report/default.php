@@ -1,4 +1,4 @@
-<?php  // $Id: default.php,v 1.11 2007/09/19 10:26:39 tjhunt Exp $ 
+<?php  // $Id: default.php,v 1.11.3 2008/01/21 16:20:41 kowy Exp $ 
 
 ////////////////////////////////////////////////////////////////////
 /// Default class for report plugins                            
@@ -27,13 +27,12 @@ class quiz_default_report {
         $strquizzes = get_string("modulenameplural", "quiz");
         $strquiz  = get_string("modulename", "quiz");
     /// Print the page header
-        $navlinks = array();
-        $navlinks[] = array('name' => $strquizzes, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($quiz->name), 'link' => '', 'type' => 'activityinstance');
-        $navigation = build_navigation($navlinks);
+        $navigation = build_navigation('', $cm);
         
         print_header_simple(format_string($quiz->name), "", $navigation,
-                     '', $meta, true, update_module_button($cm->id, $course->id, $strquiz), navmenu($course, $cm));
+						'', $meta, true, update_module_button($cm->id, $course->id, $strquiz), 
+        				// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
     /// Print the tabs    
         $currenttab = 'reports';
         $mode = $reportmode;

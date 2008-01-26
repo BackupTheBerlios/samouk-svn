@@ -8,7 +8,7 @@
  * See {@link helpbutton()} in {@link lib/moodlelib.php}
  *
  * @author Martin Dougiamas
- * @version $Id: help.php,v 1.40 2007/05/23 12:03:22 nfreear Exp $
+ * @version $Id: help.php,v 1.40.2.2 2008/01/07 16:46:10 tjhunt Exp $
  * @package moodlecore
  */
 require_once('config.php');
@@ -35,7 +35,7 @@ if (!empty($file)) {
     if (empty($forcelang)) {
         $langs = array(current_language(), get_string('parentlanguage'), 'en_utf8');  // Fallback
     } else {
-        $langs = array($forcelang);
+        $langs = array($forcelang, 'en_utf8');
     }
     
     // _local language packs take precedence with both forced language and non-forced language settings
@@ -149,7 +149,7 @@ function include_help_for_each_module($file, $langs, $helpdir) {
         $strmodulename = get_string('modulename', $mod->name);
         $modulebyname[$strmodulename] = $mod;
     }
-    ksort($modulebyname);
+    ksort($modulebyname, SORT_LOCALE_STRING);
 
     foreach ($modulebyname as $mod) {
         foreach ($langs as $lang) {

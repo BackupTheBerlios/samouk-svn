@@ -1,4 +1,4 @@
-<?php  //$Id: editlib.php,v 1.11 2007/09/16 09:39:03 skodak Exp $
+<?php  //$Id: editlib.php,v 1.11.2.2 2007/12/27 11:35:38 poltawski Exp $
 
 
 function useredit_load_preferences(&$user) {
@@ -23,10 +23,10 @@ function useredit_update_picture(&$usernew, &$userform) {
     global $CFG;
 
     if (isset($usernew->deletepicture) and $usernew->deletepicture) {
-        $location = $CFG->dataroot.'/users/'.$usernew->id;
+        $location = make_user_directory($usernew->id, true);
         @remove_dir($location);
         set_field('user', 'picture', 0, 'id', $usernew->id);
-    } else if ($usernew->picture = save_profile_image($usernew->id, $userform->get_um(), 'users')) {
+    } else if ($usernew->picture = save_profile_image($usernew->id, $userform->get_um(), 'user')) {
         set_field('user', 'picture', 1, 'id', $usernew->id);
     }
 }
@@ -171,7 +171,7 @@ function useredit_shared_definition(&$mform) {
     $mform->setDefault('screenreader', 0);
     $mform->setAdvanced('screenreader');
 
-    $mform->addElement('text', 'city', get_string('city'), 'maxlength="100" size="25"');
+    $mform->addElement('text', 'city', get_string('city'), 'maxlength="20" size="21"');
     $mform->setType('city', PARAM_MULTILANG);
     $mform->addRule('city', $strrequired, 'required', null, 'client');
 

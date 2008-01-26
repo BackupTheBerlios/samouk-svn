@@ -1,4 +1,4 @@
-<?php // $Id: version.php,v 1.59 2007/07/22 21:43:50 skodak Exp $
+<?php // $Id: version.php,v 1.60 2007/10/10 16:09:28 skodak Exp $
 
 /////////////////////////////////////////////////////////////////////////////////
 ///  Code fragment to define the version of glossary
@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 $module->version  = 2007072200;
-$module->requires = 2007072200;  // Requires this Moodle version
+$module->requires = 2007101000;  // Requires this Moodle version
 $module->cron     = 0;           // Period for cron to check this module (secs)
 
 ?>

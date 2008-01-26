@@ -1,4 +1,4 @@
-<?php // $Id: report.php,v 1.41 2007/08/17 12:49:37 skodak Exp $
+<?php // $Id: report.php,v 1.42.2.1 2007/10/12 16:09:47 tjhunt Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -38,14 +38,8 @@
     $strentries = get_string("entries", "journal");
     $strjournals = get_string("modulenameplural", "journal");
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strjournals, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($journal->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strentries, 'link' => '', 'type' => 'title');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($strentries, $cm);
     print_header_simple("$strjournals", "", $navigation, "", "", true);
-
 
 /// Check to see if groups are being used in this journal
     $groupmode = groupmode($course, $cm);
@@ -145,4 +139,3 @@
     print_footer($course);
 
 ?>
-

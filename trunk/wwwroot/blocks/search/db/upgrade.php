@@ -1,4 +1,4 @@
-<?php  //$Id: upgrade.php,v 1.4 2007/08/11 00:19:51 stronk7 Exp $
+<?php  //$Id: upgrade.php,v 1.4.2.2 2007/12/06 07:07:32 toyomoyo Exp $
 
 // This file keeps track of upgrades to 
 // the search block
@@ -107,6 +107,60 @@ function xmldb_block_search_upgrade($oldversion=0) {
         $result = $result && change_field_default($table, $field);
     }
 
+    if ($result && $oldversion < 2007112700) {
+    
+    /*
+    /// Truncate the block_search_documents table
+        execute_sql("TRUNCATE TABLE {$CFG->prefix}block_search_documents", true);
+    
+    /// Changing type of field docdate on table block_search_documents to int
+        $table = new XMLDBTable('block_search_documents');
+        $field = new XMLDBField('docdate');
+        $field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0', 'url');
+
+    /// Launch change of type for field docdate
+        $result = $result && change_field_type($table, $field);
+        
+    /// Changing type of field updated on table block_search_documents to int
+        $table = new XMLDBTable('block_search_documents');
+        $field = new XMLDBField('updated');
+        $field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0', 'docdate');
+
+    /// Launch change of type for field updated
+        $result = $result && change_field_type($table, $field);
+    */    
+        
+        
+    /// MDL-12352, postgres can not cope with change_field_type(), so dropping the fields and adding again
+    
+    /// Define field docdate to be dropped from block_search_documents
+        $table = new XMLDBTable('block_search_documents');
+        $field = new XMLDBField('docdate');
+
+    /// Launch drop field docdate
+        $result = $result && drop_field($table, $field);
+        
+    /// Define field updated to be dropped from block_search_documents
+        $field = new XMLDBField('updated');
+
+    /// Launch drop field updated
+        $result = $result && drop_field($table, $field);
+
+    /// Define field docdate to be added to block_search_documents
+        $field = new XMLDBField('docdate');
+        $field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0', 'url');
+
+    /// Launch add field docdate
+        $result = $result && add_field($table, $field);      
+        
+    /// Define field updated to be added to block_search_documents
+        $field = new XMLDBField('updated');
+        $field->setAttributes(XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0', 'docdate');
+
+    /// Launch add field updated
+        $result = $result && add_field($table, $field);  
+    }
+    
     return $result;
 }
 

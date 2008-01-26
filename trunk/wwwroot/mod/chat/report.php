@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.37 2007/08/27 02:28:36 mattc-catalyst Exp $
+<?php  // $Id: report.php,v 1.37.3 2008/01/21 16:09:37 kowy Exp $
 
 /// This page prints reports and info about chats
 
@@ -39,15 +39,11 @@
 /// Print a session if one has been specified
 
     if ($start and $end and !$confirmdelete) {   // Show a full transcript
-        
-        $navlinks[] = array('name' => $strchats, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($chat->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => $strchatreport, 'link' => "report.php?id=$cm->id", 'type' => 'title');
-        
-        $navigation = build_navigation($navlinks);
-        
+        $navigation = build_navigation($strchatreport, $cm);
         print_header_simple(format_string($chat->name).": $strchatreport", '', $navigation,
-                      '', '', true, '', navmenu($course, $cm));
+						'', '', true, '', 
+        				// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     /// Check to see if groups are being used here
         $groupmode = groups_get_activity_groupmode($cm);
@@ -95,14 +91,11 @@
 
 
 /// Print the Sessions display
-    $navlinks[] = array('name' => $strchats, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($chat->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strchatreport, 'link' => '', 'type' => 'title');
-    
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation($strchatreport, $cm);
     print_header_simple(format_string($chat->name).": $strchatreport", '', $navigation,
-                  '', '', true, '', navmenu($course, $cm));
+					'', '', true, '', 
+    				// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     print_heading(format_string($chat->name).': '.get_string('sessions', 'chat'));
 

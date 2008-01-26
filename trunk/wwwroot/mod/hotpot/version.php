@@ -1,11 +1,11 @@
-<?PHP // $Id: version.php,v 1.47 2007/05/04 02:53:52 gbateson Exp $
+<?PHP // $Id: version.php,v 1.48 2007/10/10 16:09:42 skodak Exp $
 /////////////////////////////////////////////////////////////////////////////////
 ///  Code fragment to define the version of hotpot
 ///  This fragment is called by moodle_needs_upgrading() and /admin/index.php
 /////////////////////////////////////////////////////////////////////////////////
 $module->version  = 2007040200;   // release date of this version (see note below)
 $module->release  = 'v2.4.2';    // human-friendly version name (used in mod/hotpot/lib.php)
-$module->requires = 2007020200;  // Requires this Moodle version
+$module->requires = 2007101000;  // Requires this Moodle version
 $module->cron     = 0;            // period for cron to check this module (secs)
 // interpretation of YYYYMMDDXY version numbers
 //     YYYY : year

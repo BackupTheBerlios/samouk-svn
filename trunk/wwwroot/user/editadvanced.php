@@ -1,4 +1,4 @@
-<?php // $Id: editadvanced.php,v 1.21 2007/10/02 21:38:53 skodak Exp $
+<?php // $Id: editadvanced.php,v 1.21.2.2 2008/01/09 16:46:19 tjhunt Exp $
 
     require_once('../config.php');
     require_once($CFG->libdir.'/gdlib.php');
@@ -17,19 +17,26 @@
     }
     require_login($course->id);
 
+    if ($course->id == SITEID) {
+        $coursecontext = get_context_instance(CONTEXT_SYSTEM);   // SYSTEM context
+    } else {
+        $coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);   // Course context
+    }
+    $systemcontext = get_context_instance(CONTEXT_SYSTEM);
+
     if ($id == -1) {
         // creating new user
-        require_capability('moodle/user:create', get_context_instance(CONTEXT_SYSTEM));
+        require_capability('moodle/user:create', $systemcontext);
         $user = new object();
         $user->id = -1;
         $user->auth = 'manual';
         $user->confirmed = 1;
     } else {
         // editing existing user
-        
+        require_capability('moodle/user:update', $systemcontext);
         if (!$user = get_record('user', 'id', $id)) {
             error('User ID was incorrect');
-        }        
+        }
     }
 
     // remote users cannot be edited
@@ -60,9 +67,9 @@
 
     //create form
     $userform = new user_editadvanced_form();
-    $userform->set_data($user);    
+    $userform->set_data($user);
 
-    if ($usernew = $userform->get_data()) {        
+    if ($usernew = $userform->get_data()) {
         add_to_log($course->id, 'user', 'update', "view.php?id=$user->id&course=$course->id", '');
 
         if (empty($usernew->auth)) {
@@ -141,9 +148,8 @@
             }
             if (!empty($USER->newadminuser)) {
                 unset($USER->newadminuser);
-                // try to apply defaults again - some of them might depend on admin user info
-                $adminroot = admin_get_root();
-                apply_default_settings($adminroot, false);
+                // apply defaults again - some of them might depend on admin user info, backup, roles, etc.
+                admin_apply_default_settings(NULL , false);
                 // redirect to admin/ to continue with installation
                 redirect("$CFG->wwwroot/$CFG->admin/");
             } else {
@@ -179,7 +185,9 @@
         $userfullname     = fullname($user, true);
 
         $navlinks = array();
-        $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+        if (has_capability('moodle/course:viewparticipants', $coursecontext) || has_capability('moodle/site:viewparticipants', $systemcontext)) {
+            $navlinks[] = array('name' => $strparticipants, 'link' => "index.php?id=$course->id", 'type' => 'misc');
+        }
         $navlinks[] = array('name' => $userfullname,
                             'link' => "view.php?id=$user->id&amp;course=$course->id",
                             'type' => 'misc');

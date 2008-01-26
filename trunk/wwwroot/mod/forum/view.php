@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.106 2007/10/05 06:36:32 moodler Exp $
+<?php  // $Id: view.php,v 1.106.3 2008/01/21 15:03:30 kowy Exp $
 
     require_once('../../config.php');
     require_once('lib.php');
@@ -64,14 +64,11 @@
 
 
 /// Print header.
-    $navlinks = array();
-    $navlinks[] = array('name' => $strforums, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($forum->name), 'link' => "view.php?f=$forum->id", 'type' => 'activityinstance');
-    
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($forum->name), "",
-                 $navigation, "", "", true, $buttontext, navmenu($course, $cm));
+                 $navigation, "", "", true, $buttontext, 
+                 // kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
 /// Some capability checks.
     if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities', $context)) {
@@ -116,9 +113,10 @@
     }
 
 
-    print_box_start('forumcontrol');
+//    print_box_start('forumcontrol clearfix');
 
-    print_box_start('subscription');
+//    print_box_start('subscription clearfix');
+    echo '<div class="subscription">';
 
     if (!empty($USER->id) && !has_capability('moodle/legacy:guest', $context, NULL, false)) {
         $SESSION->fromdiscussion = "$FULLME";
@@ -159,7 +157,7 @@
         }
 
         if (($forum->trackingtype == FORUM_TRACKING_OPTIONAL) && forum_tp_can_track_forums($forum)) {
-            echo '<div class="helplink" id="trackinglink">'. forum_get_tracking_link($forum). '</div';
+            echo '<div class="helplink" id="trackinglink">'. forum_get_tracking_link($forum). '</div>';
         }
 
     }
@@ -178,16 +176,19 @@
         } else {
             $userid = $USER->id;
         }
-        print_box_start('rsslink');
+//        print_box_start('rsslink');
+        echo '<span class="wrap rsslink">';
         rss_print_link($course->id, $userid, "forum", $forum->id, $tooltiptext);
-        print_box_end(); // subscription
+        echo '</span>';
+//        print_box_end(); // subscription
 
     }
-    print_box_end(); // subscription
+//    print_box_end(); // subscription
+    echo '</div>';
 
-    print_box_end();  // forumcontrol
+//    print_box_end();  // forumcontrol
 
-    print_box('&nbsp;', 'clearer'); 
+//    print_box('&nbsp;', 'clearer'); 
 
 
     if (!empty($forum->blockafter) && !empty($forum->blockperiod)) {

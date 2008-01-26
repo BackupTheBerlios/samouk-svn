@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.121 2007/09/27 08:18:28 skodak Exp $
+<?php // $Id: index.php,v 1.121.2.1 2007/11/07 18:11:26 urs_hunkler Exp $
 
 //  Manage all uploaded files in a course file area
 
@@ -747,7 +747,7 @@ function displaydir ($wdir) {
     echo "<hr/>";
     echo "<table border=\"0\" cellspacing=\"2\" cellpadding=\"2\" width=\"640\" class=\"files\">";
     echo "<tr>";
-    echo "<th scope=\"col\"></th>";
+    echo "<th class=\"header\" scope=\"col\"></th>";
     echo "<th class=\"header name\" scope=\"col\">$strname</th>";
     echo "<th class=\"header size\" scope=\"col\">$strsize</th>";
     echo "<th class=\"header date\" scope=\"col\">$strmodified</th>";

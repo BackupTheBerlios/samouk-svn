@@ -1,4 +1,4 @@
-<?PHP // $Id: install.php,v 1.15 2007/08/21 10:41:03 skodak Exp $ 
+<?PHP // $Id: install.php,v 1.15.2.1 2007/12/29 11:46:25 stronk7 Exp $ 
       // install.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -110,6 +110,7 @@ $string['databasesettingssub_postgres7'] = '<b>Type:</b> PostgreSQL<br />
        <b>User:</b> your database username<br />
        <b>Password:</b> your database password<br />
        <b>Tables Prefix:</b> prefix to use for all table names (mandatory)';
+$string['databasesettingswillbecreated'] = '<b>Note:</b> The installer will try to create the database automatically if not exists.';
 $string['dataroot'] = 'Data Directory';
 $string['datarooterror'] = 'The \'Data Directory\' you specified could not be found or created.  Either correct the path or create that directory manually.';
 $string['dbconnectionerror'] = 'We could not connect to the database you specified. Please check your database settings.';

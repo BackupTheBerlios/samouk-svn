@@ -1,4 +1,4 @@
-<?php /// $Id: install.php,v 1.79 2007/08/22 20:22:22 skodak Exp $
+<?php /// $Id: install.php,v 1.80.2.8 2008/01/08 07:15:29 skodak Exp $
       /// install.php - helps admin user to create a config.php file
 
 /// If config.php exists already then we are not needed.
@@ -32,6 +32,10 @@ define('SITEID', 0);
 
 session_name('MoodleSession');
 @session_start();
+
+/// make sure PHP errors are displayed to help diagnose problems
+@error_reporting(1023); //E_ALL not used because we do not want strict notices in PHP5 yet
+@ini_set('display_errors', '1');
 
 if (! isset($_SESSION['INSTALL'])) {
     $_SESSION['INSTALL'] = array();
@@ -103,6 +107,7 @@ if (isset($_POST['stage'])) {
         $nextstage = $_POST['stage'];
     }
 
+    $nextstage = (int)$nextstage;
 
     if ($nextstage < 0) {
         $nextstage = WELCOME;
@@ -344,14 +349,12 @@ if ($INSTALL['stage'] == DATABASE) {
         error_reporting(0);  // Hide errors
 
         if (! $dbconnected = $db->Connect($INSTALL['dbhost'],$INSTALL['dbuser'],$INSTALL['dbpass'],$INSTALL['dbname'])) {
-            /// The following doesn't seem to work but we're working on it
-            /// If you come up with a solution for creating a database in MySQL
-            /// feel free to put it in and let us know
-            if ($dbconnected = $db->Connect($INSTALL['dbhost'],$INSTALL['dbuser'],$INSTALL['dbpass'])) {
+            $db->database = ''; // reset database name cached by ADODB. Trick from MDL-9609
+            if ($dbconnected = $db->Connect($INSTALL['dbhost'],$INSTALL['dbuser'],$INSTALL['dbpass'])) { /// Try to connect without DB
                 switch ($INSTALL['dbtype']) {   /// Try to create a database
                     case 'mysql':
                     case 'mysqli':
-                        if ($db->Execute("CREATE DATABASE {$INSTALL['dbname']};")) {
+                        if ($db->Execute("CREATE DATABASE {$INSTALL['dbname']} DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;")) {
                             $dbconnected = $db->Connect($INSTALL['dbhost'],$INSTALL['dbuser'],$INSTALL['dbpass'],$INSTALL['dbname']);
                         } else {
                             $errormsg = get_string('dbcreationerror', 'install');
@@ -369,7 +372,7 @@ if ($INSTALL['stage'] == DATABASE) {
                 case 'mysqli':
                 /// Get MySQL character_set_database value
                     $rs = $db->Execute("SHOW VARIABLES LIKE 'character_set_database'");
-                    if ($rs && $rs->RecordCount() > 0) {
+                    if ($rs && !$rs->EOF) {
                         $records = $rs->GetAssoc(true);
                         $encoding = $records['character_set_database']['Value'];
                         if (strtoupper($encoding) != 'UTF8') {
@@ -465,10 +468,10 @@ if ($INSTALL['stage'] == DOWNLOADLANG && $INSTALL['downloadlangpack']) {
 /// Download and install component
     if (($cd = new component_installer('http://download.moodle.org', 'lang16',
         $INSTALL['language'].'.zip', 'languages.md5', 'lang')) && empty($errormsg)) {
-        $status = $cd->install(); //returns ERROR | UPTODATE | INSTALLED
+        $status = $cd->install(); //returns COMPONENT_(ERROR | UPTODATE | INSTALLED)
         switch ($status) {
-            case ERROR:
-                if ($cd->get_error() == 'remotedownloadnotallowed') {
+            case COMPONENT_ERROR:
+                if ($cd->get_error() == 'remotedownloaderror') {
                     $a = new stdClass();
                     $a->url = 'http://download.moodle.org/lang16/'.$pack.'.zip';
                     $a->dest= $CFG->dataroot.'/lang';
@@ -477,8 +480,8 @@ if ($INSTALL['stage'] == DOWNLOADLANG && $INSTALL['downloadlangpack']) {
                     $downloaderror = get_string($cd->get_error(), 'error');
                 }
             break;
-            case UPTODATE:
-            case INSTALLED:
+            case COMPONENT_UPTODATE:
+            case COMPONENT_INSTALLED:
                 $downloadsuccess = true;
             break;
             default:
@@ -521,8 +524,9 @@ if ($nextstage == SAVE) {
     $str .= '$CFG->dbhost    = \''.addslashes($INSTALL['dbhost'])."';\r\n";
     if (!empty($INSTALL['dbname'])) {
         $str .= '$CFG->dbname    = \''.$INSTALL['dbname']."';\r\n";
-        $str .= '$CFG->dbuser    = \''.$INSTALL['dbuser']."';\r\n";
-        $str .= '$CFG->dbpass    = \''.$INSTALL['dbpass']."';\r\n";
+        // support single quotes in db user/passwords
+        $str .= '$CFG->dbuser    = \''.addsingleslashes($INSTALL['dbuser'])."';\r\n";
+        $str .= '$CFG->dbpass    = \''.addsingleslashes($INSTALL['dbpass'])."';\r\n";
     }
     $str .= '$CFG->dbpersist =  false;'."\r\n";
     $str .= '$CFG->prefix    = \''.$INSTALL['prefix']."';\r\n";
@@ -596,9 +600,13 @@ if (isset($_GET['help'])) {
                   /// from the standard one to show better instructions for each DB
                 if ($nextstage == DATABASE) {
                     echo '<script type="text/javascript" defer="defer">window.onload=toggledbinfo;</script>';
-                    echo '<div id="mysql" name="mysql">' . get_string('databasesettingssub_mysql', 'install') . '</div>';
+                    echo '<div id="mysql" name="mysql">' . get_string('databasesettingssub_mysql', 'install');
+                    echo '<p align="center">' . get_string('databasesettingswillbecreated', 'install') . '</p>';
+                    echo '</div>';
 
-                    echo '<div id="mysqli" name="mysqli">' . get_string('databasesettingssub_mysqli', 'install') . '</div>';
+                    echo '<div id="mysqli" name="mysqli">' . get_string('databasesettingssub_mysqli', 'install');
+                    echo '<p align="center">' . get_string('databasesettingswillbecreated', 'install') . '</p>';
+                    echo '</div>';
 
                     echo '<div id="postgres7" name="postgres7">' . get_string('databasesettingssub_postgres7', 'install') . '</div>';
 
@@ -816,31 +824,31 @@ function form_table($nextstage = WELCOME, $formaction = "install.php") {
             <tr>
                 <td class="td_left"><p><?php print_string('dbhost', 'install') ?></p></td>
                 <td class="td_right">
-                    <input type="text" size="40" name="dbhost" value="<?php echo $INSTALL['dbhost'] ?>" />
+                    <input type="text" size="40" name="dbhost" value="<?php p($INSTALL['dbhost']) ?>" />
                 </td>
             </tr>
             <tr>
                 <td class="td_left"><p><?php print_string('database', 'install') ?></p></td>
                 <td class="td_right">
-                    <input type="text" size="40" name="dbname" value="<?php echo $INSTALL['dbname'] ?>" />
+                    <input type="text" size="40" name="dbname" value="<?php p($INSTALL['dbname']) ?>" />
                 </td>
             </tr>
             <tr>
                 <td class="td_left"><p><?php print_string('user') ?></p></td>
                 <td class="td_right">
-                    <input type="text" size="40" name="dbuser" value="<?php echo $INSTALL['dbuser'] ?>" />
+                    <input type="text" size="40" name="dbuser" value="<?php p($INSTALL['dbuser']) ?>" />
                 </td>
             </tr>
             <tr>
                 <td class="td_left"><p><?php print_string('password') ?></p></td>
                 <td class="td_right">
-                    <input type="password" size="40" name="dbpass" value="<?php echo $INSTALL['dbpass'] ?>" />
+                    <input type="password" size="40" name="dbpass" value="<?php p($INSTALL['dbpass']) ?>" />
                 </td>
             </tr>
             <tr>
                 <td class="td_left"><p><?php print_string('dbprefix', 'install') ?></p></td>
                 <td class="td_right">
-                    <input type="text" size="40" name="prefix" value="<?php echo $INSTALL['prefix'] ?>" />
+                    <input type="text" size="40" name="prefix" value="<?php p($INSTALL['prefix']) ?>" />
                 </td>
             </tr>
 
@@ -852,7 +860,7 @@ function form_table($nextstage = WELCOME, $formaction = "install.php") {
             <tr>
                 <td class="td_left"><p><?php print_string('admindirname', 'install') ?></p></td>
                 <td class="td_right">
-                    <input type="text" size="40" name="admindirname" value="<?php echo $INSTALL['admindirname'] ?>" />
+                    <input type="text" size="40" name="admindirname" value="<?php p($INSTALL['admindirname']) ?>" />
                 </td>
             </tr>
 
@@ -1274,5 +1282,14 @@ function toggledbinfo() {
 </script>
 
 <?php
+}
+
+/**
+ * Add slashes for single quotes and backslashes
+ * so they can be included in single quoted string
+ * (for config.php)
+ */
+function addsingleslashes($input){
+    return preg_replace("/(['\\\])/", "\\\\$1", $input);
 }
 ?>

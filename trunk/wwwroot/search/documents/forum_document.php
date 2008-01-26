@@ -95,8 +95,8 @@ function forum_get_content_for_index(&$forum) {
                 foreach($children as $aChild) {
                     $aChild->itemtype = 'post';
                     if (strlen($aChild->message) > 0) {
-                        $documents[] = new ForumSearchDocument(get_object_vars($child), $forum->id, $forum->course, 'post', $context->id);
-                    } 
+                        $documents[] = new ForumSearchDocument(get_object_vars($aChild), $forum->id, $forum->course, 'post', $context->id);
+                    }
                 } 
             } 
         } 
@@ -250,9 +250,9 @@ function forum_check_text_access($path, $itemtype, $this_id, $user, $group_id){
 
     // get the glossary object and all related stuff
     $post = get_record('forum_posts', 'id', $this_id);
-    $dicussion = get_record('forum_discussion', 'id', $post->discussion);
+    $discussion = get_record('forum_discussions', 'id', $post->discussion);
     $course = get_record('course', 'id', $discussion->course);
-    $cm = get_coursemodule_from_instance('forum', $dicussion->forum, $course->id);
+    $cm = get_coursemodule_from_instance('forum', $discussion->forum, $course->id);
     $context_module = get_context_instance(CONTEXT_MODULE, $cm->id);
     if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context_module)) return false;
     

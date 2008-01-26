@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.76 2007/09/03 06:15:58 moodler Exp $
+<?php  // $Id: view.php,v 1.76.2.1 2007/10/12 16:09:43 tjhunt Exp $
 /// Extended by Michael Schneider
 /// This page prints a particular instance of wiki
 
@@ -284,12 +284,7 @@
     $strwikis = get_string("modulenameplural", "wiki");
     $strwiki  = get_string("modulename", "wiki");
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strwikis, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($wiki->name,true), 'link' => "view.php?id=$moodleID", 'type' => 'activityinstace');
-
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation('', $cm);
     print_header_simple($ewiki_title?$ewiki_title:format_string($wiki->name), "", $navigation,
                 "", "", $cacheme, update_module_button($cm->id, $course->id, $strwiki),
                 navmenu($course, $cm));

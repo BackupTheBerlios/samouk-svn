@@ -1,9 +1,9 @@
-<?php // $Id: pagelib.php,v 1.5 2007/07/05 04:55:33 mattc-catalyst Exp $
+<?php // $Id: pagelib.php,v 1.9 2008/01/21 22:52:27 kowy Exp $
 /**
  * Page class for lesson
  *
  * @author Mark Nielsen
- * @version $Id: pagelib.php,v 1.5 2007/07/05 04:55:33 mattc-catalyst Exp $
+ * @version $Id: pagelib.php,v 1.5.2.2 2007/12/06 22:52:27 mattc-catalyst Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -76,15 +76,6 @@ class page_lesson extends page_generic_activity {
             $title = "{$this->courserecord->shortname}: $activityname";
         }
         
-        $navlinks = array();
-        $navlinks[] = array('name' => get_string('modulenameplural', $this->activityname), 'link' => $CFG->wwwroot."/mod/{$this->activityname}/index.php?id={$this->courserecord->id}", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($this->activityrecord->name), 'link' => $CFG->wwwroot."/mod/{$this->activityname}/view.php?id={$this->modulerecord->id}", 'type' => 'activityinstance');
-    
-        if (!empty($morenavlinks)) {
-            $navlinks = array_merge($navlinks, $morenavlinks);
-        }
- 
-
     /// Build the buttons
         if (has_capability('mod/lesson:edit', $context)) {
             $buttons = '<span class="edit_buttons">'.update_module_button($this->modulerecord->id, $this->courserecord->id, get_string('modulename', 'lesson'));
@@ -133,9 +124,10 @@ class page_lesson extends page_generic_activity {
             $meta = '';
         // }
 
-        $navigation = build_navigation($navlinks);
-
-        print_header($title, $this->courserecord->fullname, $navigation, '', $meta, true, $buttons, navmenu($this->courserecord, $this->modulerecord));
+        $navigation = build_navigation($morenavlinks, $this->modulerecord);
+        print_header($title, $this->courserecord->fullname, $navigation, '', $meta, true, $buttons, 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($this->courserecord).'<hr style="width:95%">'.navmenu($this->courserecord, $this->modulerecord));
 
         if (has_capability('mod/lesson:manage', $context)) {
             print_heading_with_help($activityname, 'overview', 'lesson');

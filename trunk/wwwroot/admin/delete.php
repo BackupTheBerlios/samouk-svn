@@ -1,4 +1,4 @@
-<?PHP //$Id: delete.php,v 1.13 2007/04/30 17:08:44 skodak Exp $
+<?PHP //$Id: delete.php,v 1.13.4.1 2007/10/15 05:42:23 nicolasconnault Exp $
 
 // Deletes the moodledata directory, COMPLETELY!!
 // BE VERY CAREFUL USING THIS!
@@ -54,7 +54,7 @@ function delete_subdirectories($rootdir) {
 
     $dir = opendir($rootdir);
 
-    while ($file = readdir($dir)) {
+    while (false !== ($file = readdir($dir))) {
         if ($file != '.' and $file != '..') {
             $fullfile = $rootdir .'/'. $file;
             if (filetype($fullfile) == 'dir') {

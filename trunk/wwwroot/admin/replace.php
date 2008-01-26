@@ -1,4 +1,4 @@
-<?php /// $Id: replace.php,v 1.8 2007/04/30 17:08:36 skodak Exp $
+<?php /// $Id: replace.php,v 1.8.4.1 2007/12/03 04:45:49 toyomoyo Exp $
       /// Search and replace strings throughout all texts in the whole database
 
 require_once('../config.php');
@@ -32,32 +32,10 @@ if (!data_submitted() or !$search or !$replace or !confirm_sesskey()) {   /// Pr
     die;
 }
 
-
-if (!$tables = $db->Metatables() ) {    // No tables yet at all.
-    error("no tables");
-}
-
 print_simple_box_start('center');
 
-/// Turn off time limits, sometimes upgrades can be slow.
-
-@set_time_limit(0);
-@ob_implicit_flush(true);
-while(@ob_end_flush());
-
-foreach ($tables as $table) {
-    if (in_array($table, array($CFG->prefix.'config'))) {      // Don't process these
-        continue;
-    }
-    if ($columns = $db->MetaColumns($table, false)) {
-        foreach ($columns as $column => $data) {
-            if (in_array($data->type, array('text','mediumtext','longtext','varchar'))) {  // Text stuff only
-                $db->debug = true;
-                execute_sql("UPDATE $table SET $column = REPLACE($column, '$search', '$replace');");
-                $db->debug = false;
-            }
-        }
-    }
+if (!db_replace($search, $replace)) {
+    error('An error has occured during this process'); 
 }
 
 print_simple_box_end();

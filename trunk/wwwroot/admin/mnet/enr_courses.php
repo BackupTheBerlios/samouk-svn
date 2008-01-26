@@ -1,4 +1,4 @@
-<?PHP  // $Id: enr_courses.php,v 1.8 2007/04/30 17:08:46 skodak Exp $
+<?PHP  // $Id: enr_courses.php,v 1.8.4.1 2007/12/19 17:38:38 skodak Exp $
        // enrol_config.php - allows admin to edit all enrollment variables
        //                    Yes, enrol is correct English spelling.
 
@@ -37,7 +37,7 @@
     " class=\"icon\" alt=\"".get_string("course")."\" />";
 
     foreach ($courses as $course) {
-        $link = $CFG->wwwroot . '/admin/mnet/enr_course_enrol.php?'
+        $link = "$CFG->wwwroot/$CFG->admin/mnet/enr_course_enrol.php?"
             . "host={$mnethost}&amp;courseid={$course->id}&amp;sesskey={$USER->sesskey}";
         echo '<tr>'
                . "<td>$icon</td>"

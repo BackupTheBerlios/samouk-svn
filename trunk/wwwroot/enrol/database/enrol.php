@@ -1,4 +1,4 @@
-<?php  // $Id: enrol.php,v 1.41 2007/09/21 11:02:30 nicolasconnault Exp $
+<?php  // $Id: enrol.php,v 1.42.2.2 2007/11/23 15:41:27 thepurpleblob Exp $
 
 require_once($CFG->dirroot.'/enrol/enrol.class.php');
 
@@ -78,15 +78,18 @@ function setup_enrolments(&$user) {
                 $existing = array();
             }
 
-            //error_log('[ENROL_DB] Found '.count($existing).' existing roles and '.$rs->RecordCount().' in external database');
 
-            if ($rs->RecordCount() > 0) {   // We found some courses
+            if (!$rs->EOF) {   // We found some courses
 
+                //$count = 0;
                 $courselist = array();
                 while ($fields_obj = rs_fetch_next_record($rs)) {         // Make a nice little array of courses to process
                     $courselist[] = $fields_obj->enrolremotecoursefield;
+                    //$count++;
                 }
                 rs_close($rs);
+
+                //error_log('[ENROL_DB] Found '.count($existing).' existing roles and '.$count.' in external database');
 
                 foreach ($courselist as $coursefield) {   /// Check the list of courses against existing
                     $course = get_record('course', $CFG->enrol_localcoursefield, $coursefield);
@@ -147,10 +150,13 @@ function setup_enrolments(&$user) {
 
             /// We have some courses left that we might need to unenrol from
             /// Note: we only process enrolments that we (ie 'database' plugin) made
-            foreach ($existing as $role_assignment) {
-                if ($role_assignment->enrol == 'database') {
-                    //error_log('[ENROL_DB] Removing user from context '.$role_assignment->contextid);
-                    role_unassign($role_assignment->roleid, $user->id, '', $role_assignment->contextid);
+            /// Do not unenrol anybody if the disableunenrol option is 'yes'
+            if (!$CFG->enrol_db_disableunenrol) {
+                foreach ($existing as $role_assignment) {
+                    if ($role_assignment->enrol == 'database') {
+                        //error_log('[ENROL_DB] Removing user from context '.$role_assignment->contextid);
+                        role_unassign($role_assignment->roleid, $user->id, '', $role_assignment->contextid);
+                    } 
                 }
             }
         } else {
@@ -209,7 +215,7 @@ function sync_enrolments($role = null) {
         trigger_error($enroldb->ErrorMsg() .' STATEMENT: '. $sql);
         return false;
     }
-    if ( $rs->RecordCount() == 0 ) { // no courses! outta here...
+    if ( $rs->EOF ) { // no courses! outta here...
         return true;
     }
 
@@ -267,7 +273,7 @@ function sync_enrolments($role = null) {
             trigger_error($enroldb->ErrorMsg() .' STATEMENT: '. $sql);
             return false;
         }
-        if ( $crs->RecordCount() == 0 ) { // shouldn't happen, but cover all bases
+        if ( $crs->EOF ) { // shouldn't happen, but cover all bases
             continue;
         }
 
@@ -289,22 +295,24 @@ function sync_enrolments($role = null) {
         // When the user logs in though, their role list will be updated
         // correctly.
         //
-        $to_prune = get_records_sql("
-         SELECT ra.*
-         FROM {$CFG->prefix}role_assignments ra
-          JOIN {$CFG->prefix}user u ON ra.userid = u.id
-         WHERE ra.enrol = 'database'
-          AND ra.contextid = {$context->id}
-          AND ra.roleid = ". $role->id . ($extenrolments
-            ? " AND u.{$CFG->enrol_localuserfield} NOT IN (".join(", ", array_map(array(&$db, 'quote'), $extenrolments)).")"
-            : ''));
+        if (!$CFG->enrol_db_disableunenrol) {
+            $to_prune = get_records_sql("
+             SELECT ra.*
+             FROM {$CFG->prefix}role_assignments ra
+              JOIN {$CFG->prefix}user u ON ra.userid = u.id
+             WHERE ra.enrol = 'database'
+              AND ra.contextid = {$context->id}
+              AND ra.roleid = ". $role->id . ($extenrolments
+                ? " AND u.{$CFG->enrol_localuserfield} NOT IN (".join(", ", array_map(array(&$db, 'quote'), $extenrolments)).")"
+                : ''));
 
-        if ($to_prune) {
-            foreach ($to_prune as $role_assignment) {
-                if (role_unassign($role->id, $role_assignment->userid, 0, $role_assignment->contextid)){
-                    error_log( "Unassigned {$role->shortname} assignment #{$role_assignment->id} for course {$course->id} (" . format_string($course->shortname) . "); user {$role_assignment->userid}");
-                } else {
-                    error_log( "Failed to unassign {$role->shortname} assignment #{$role_assignment->id} for course {$course->id} (" . format_string($course->shortname) . "); user {$role_assignment->userid}");
+            if ($to_prune) {
+                foreach ($to_prune as $role_assignment) {
+                    if (role_unassign($role->id, $role_assignment->userid, 0, $role_assignment->contextid)){
+                        error_log( "Unassigned {$role->shortname} assignment #{$role_assignment->id} for course {$course->id} (" . format_string($course->shortname) . "); user {$role_assignment->userid}");
+                    } else {
+                        error_log( "Failed to unassign {$role->shortname} assignment #{$role_assignment->id} for course {$course->id} (" . format_string($course->shortname) . "); user {$role_assignment->userid}");
+                    }
                 }
             }
         }
@@ -329,7 +337,7 @@ function sync_enrolments($role = null) {
                 trigger_error($db->ErrorMsg() .' STATEMENT: '. $sql);
                 return false;
             }
-            if ( $ers->RecordCount() == 0 ) { // if this returns empty, it means we don't have the student record.
+            if ( $ers->EOF ) { // if this returns empty, it means we don't have the student record.
                                               // should not happen -- but skip it anyway
                 trigger_error('weird! no user record entry?');
                 continue;
@@ -364,36 +372,39 @@ function sync_enrolments($role = null) {
     // When the user logs in though, their role list will be updated
     // correctly.
     //
-    $sql = "
-        SELECT ra.roleid, ra.userid, ra.contextid
-        FROM {$CFG->prefix}role_assignments ra
-         LEFT OUTER JOIN ({$CFG->prefix}context cn
-           JOIN {$CFG->prefix}course c ON cn.contextlevel = ".CONTEXT_COURSE." AND cn.instanceid = c.id)
-          ON ra.contextid = cn.id
-        WHERE ra.enrol = 'database'" .
-            ($have_role ? ' AND ra.roleid = '.$role->id : '') .
-            ($extcourses
-                ? " AND (c.id IS NULL OR c.{$CFG->enrol_localcoursefield} NOT IN (" . join(",", array_map(array(&$db, 'quote'), $extcourses)) . "))"
-                : '');
+    if (!$CFG->enrol_db_disableunenrol) {
+        $sql = "
+            SELECT ra.roleid, ra.userid, ra.contextid
+            FROM {$CFG->prefix}role_assignments ra
+             LEFT OUTER JOIN ({$CFG->prefix}context cn
+               JOIN {$CFG->prefix}course c ON cn.contextlevel = ".CONTEXT_COURSE." AND cn.instanceid = c.id)
+              ON ra.contextid = cn.id
+            WHERE ra.enrol = 'database'" .
+                ($have_role ? ' AND ra.roleid = '.$role->id : '') .
+                ($extcourses
+                    ? " AND (c.id IS NULL OR c.{$CFG->enrol_localcoursefield} NOT IN (" . join(",", array_map(array(&$db, 'quote'), $extcourses)) . "))"
+                    : '');
 
-    $ers = $db->Execute($sql);
-    if (!$ers) {
-        trigger_error($db->ErrorMsg() .' STATEMENT: '. $sql);
-        return false;
-    }
-    if ( $ers->RecordCount() > 0 ) {
-        while ($user_obj = rs_fetch_next_record($ers)) {
-            $roleid     = $user_obj->roleid;
-            $user       = $user_obj->userid;
-            $contextid  = $user_obj->contextid;
-            if (role_unassign($roleid, $user, 0, $contextid)){
-                error_log( "Unassigned role {$roleid} from user $user in context $contextid");
-            } else {
-                error_log( "Failed unassign role {$roleid} from user $user in context $contextid");
-            }
+        $ers = $db->Execute($sql);
+        if (!$ers) {
+            trigger_error($db->ErrorMsg() .' STATEMENT: '. $sql);
+            return false;
         }
-        rs_close($ers); // release the handle
+        if ( !$ers->EOF ) {
+            while ($user_obj = rs_fetch_next_record($ers)) {
+                $roleid     = $user_obj->roleid;
+                $user       = $user_obj->userid;
+                $contextid  = $user_obj->contextid;
+                if (role_unassign($roleid, $user, 0, $contextid)){
+                    error_log( "Unassigned role {$roleid} from user $user in context $contextid");
+                } else {
+                    error_log( "Failed unassign role {$roleid} from user $user in context $contextid");
+                }
+            }
+            rs_close($ers); // release the handle
+        }
     }
+
     commit_sql();
 
     // we are done now, a bit of housekeeping
@@ -419,7 +430,8 @@ function config_form($frm) {
                   'enrol_db_autocreate', 'enrol_db_category', 'enrol_db_template',
                   'enrol_db_localrolefield', 'enrol_db_remoterolefield',
                   'enrol_remotecoursefield', 'enrol_remoteuserfield',
-                  'enrol_db_ignorehiddencourse', 'enrol_db_defaultcourseroleid');
+                  'enrol_db_ignorehiddencourse', 'enrol_db_defaultcourseroleid',
+                  'enrol_db_disableunenrol');
 
     foreach ($vars as $var) {
         if (!isset($frm->$var)) {
@@ -516,6 +528,11 @@ function process_config($config) {
         $config->enrol_db_ignorehiddencourse = '';
     }
     set_config('enrol_db_ignorehiddencourse', $config->enrol_db_ignorehiddencourse );
+
+    if (!isset($config->enrol_db_disableunenrol)) {
+        $config->enrol_db_disableunenrol = '';
+    }
+    set_config('enrol_db_disableunenrol', $config->enrol_db_disableunenrol );
 
     return true;
 }

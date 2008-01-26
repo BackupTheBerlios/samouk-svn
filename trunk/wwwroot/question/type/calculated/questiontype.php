@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.26 2007/10/06 19:02:26 pichetp Exp $
+<?php  // $Id: questiontype.php,v 1.26.2.4 2007/12/13 17:24:51 tjhunt Exp $
 
 /////////////////
 // CALCULATED ///
@@ -28,7 +28,7 @@ class question_calculated_qtype extends question_dataset_dependent_questiontype 
                                 "WHERE a.question = $question->id " .
                                 "AND   a.id = c.answer ".
                                 "ORDER BY a.id ASC")) {
-            notify('Error: Missing question answer!');
+            notify('Error: Missing question answer for calculated question ' . $question->id . '!');
             return false;
         }
 
@@ -885,6 +885,11 @@ class question_calculated_qtype extends question_dataset_dependent_questiontype 
         return $datasetmenus;
     }
 
+    function print_question_grading_details(&$question, &$state, &$cmoptions, &$options) {
+        $virtualqtype = $this->get_virtual_qtype();
+        $virtualqtype->print_question_grading_details($question, $state, $cmoptions, $options) ;
+    }
+
     function get_correct_responses(&$question, &$state) {
         $virtualqtype = $this->get_virtual_qtype();
         if($unit = $virtualqtype->get_default_numerical_unit($question)){
@@ -961,7 +966,6 @@ class question_calculated_qtype extends question_dataset_dependent_questiontype 
         $maxstr=get_string('max', 'quiz');
         $rangeofvaluestr=get_string('minmax','qtype_datasetdependent');
         $questionusingstr = get_string('usedinquestion','qtype_calculated');
-        $wildcardstr =  get_string('wildcard', 'qtype_calculated');
         $itemscountstr = get_string('itemscount','qtype_datasetdependent');
        $text ='';
         if (!empty($form->category)) {           

@@ -1,31 +1,30 @@
-<?php // $Id: edit.php,v 1.107 2007/09/26 16:10:40 tjhunt Exp $
+<?php // $Id: edit.php,v 1.107.2.7 2007/12/12 17:23:38 tjhunt Exp $
 /**
-* Page to edit quizzes
-*
-* This page generally has two columns:
-* The right column lists all available questions in a chosen category and
-* allows them to be edited or more to be added. This column is only there if
-* the quiz does not already have student attempts
-* The left column lists all questions that have been added to the current quiz.
-* The lecturer can add questions from the right hand list to the quiz or remove them
-*
-* The script also processes a number of actions:
-* Actions affecting a quiz:
-* up and down  Changes the order of questions and page breaks
-* addquestion  Adds a single question to the quiz
-* add          Adds several selected questions to the quiz
-* addrandom    Adds a certain number of random questions to the quiz
-* repaginate   Re-paginates the quiz
-* delete       Removes a question from the quiz
-* savechanges  Saves the order and grades for questions in the quiz
-*
-* @version $Id: edit.php,v 1.107 2007/09/26 16:10:40 tjhunt Exp $
-* @author Martin Dougiamas and many others. This has recently been extensively
-*         rewritten by Gustav Delius and other members of the Serving Mathematics project
-*         {@link http://maths.york.ac.uk/serving_maths}
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * Page to edit quizzes
+ *
+ * This page generally has two columns:
+ * The right column lists all available questions in a chosen category and
+ * allows them to be edited or more to be added. This column is only there if
+ * the quiz does not already have student attempts
+ * The left column lists all questions that have been added to the current quiz.
+ * The lecturer can add questions from the right hand list to the quiz or remove them
+ *
+ * The script also processes a number of actions:
+ * Actions affecting a quiz:
+ * up and down  Changes the order of questions and page breaks
+ * addquestion  Adds a single question to the quiz
+ * add          Adds several selected questions to the quiz
+ * addrandom    Adds a certain number of random questions to the quiz
+ * repaginate   Re-paginates the quiz
+ * delete       Removes a question from the quiz
+ * savechanges  Saves the order and grades for questions in the quiz
+ *
+ * @author Martin Dougiamas and many others. This has recently been extensively
+ *         rewritten by Gustav Delius and other members of the Serving Mathematics project
+ *         {@link http://maths.york.ac.uk/serving_maths}
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
     require_once("../../config.php");
     require_once($CFG->dirroot.'/mod/quiz/editlib.php');
 
@@ -100,14 +99,10 @@
     $streditingquestions = get_string('editquestions', "quiz");
     $streditingquiz = get_string('editinga', 'moodle', $strquiz);
 
-
-
-
     // Get the course object and related bits.
     if (! $course = get_record("course", "id", $quiz->course)) {
         error("This course doesn't exist");
     }
-
 
     // Log this visit.
     add_to_log($cm->course, 'quiz', 'editquestions',
@@ -248,7 +243,7 @@
                 $key = $matches[1];
                 $quiz->grades[$key] = $value;
                 quiz_update_question_instance($quiz->grades[$key], $key, $quiz->instance);
-            } elseif (preg_match('!^q([0-9]+)$!', $key, $matches)) {   // Parse input for ordering info
+            } elseif (preg_match('!^o([0-9]+)$!', $key, $matches)) {   // Parse input for ordering info
                 $key = $matches[1];
                 $questions[$value] = $oldquestions[$key];
             }
@@ -257,6 +252,10 @@
         // If ordering info was given, reorder the questions
         if ($questions) {
             ksort($questions);
+            // Make sure that the quiz does not start with a page break.
+            while (reset($questions) == '0') {
+                array_shift($questions);
+            }
             $quiz->questions = implode(",", $questions);
             // Always have a page break at the end
             $quiz->questions = $quiz->questions . ',0';
@@ -293,12 +292,7 @@
         $strupdatemodule = has_capability('moodle/course:manageactivities', $contexts->lowest())
                     ? update_module_button($cm->id, $course->id, get_string('modulename', 'quiz'))
                     : "";
-        $navlinks = array();
-        $navlinks[] = array('name' => $strquizzes, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($quiz->name), 'link' => "view.php?q=$quiz->instance", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => $streditingquiz, 'link' => '', 'type' => 'title');
-        $navigation = build_navigation($navlinks);
-
+        $navigation = build_navigation($streditingquiz, $cm);
         print_header_simple($streditingquiz, '', $navigation, "", "",
                  true, $strupdatemodule);
 
@@ -309,13 +303,11 @@
 
         print_box_start();
 
-        $a->attemptnum = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0);
-        $a->studentnum = count_records_select('quiz_attempts', "quiz = '$quiz->id' AND preview = '0'", 'COUNT(DISTINCT userid)');
-        $a->studentstring  = $course->students;
-
-        echo "<div class=\"attemptsnotice\">\n";
-        echo "<a href=\"report.php?mode=overview&amp;id=$cm->id\">".get_string('numattempts', 'quiz', $a)."</a><br />".get_string("attemptsexist","quiz");
-        echo "</div><br />\n";
+        echo "<div class=\"quizattemptcounts\">\n";
+        echo '<a href="report.php?mode=overview&amp;id=' . $cm->id . '">' .
+                quiz_num_attempt_summary($quiz, $cm) . '</a><br />' .
+                get_string('cannoteditafterattempts', 'quiz');
+        echo "</div>\n";
 
         $sumgrades = quiz_print_question_list($quiz,  $thispageurl, false, $quiz_showbreaks, $quiz_reordertool);
         if (!set_field('quiz', 'sumgrades', $sumgrades, 'id', $quiz->instance)) {
@@ -331,12 +323,7 @@
     $strupdatemodule = has_capability('moodle/course:manageactivities', $contexts->lowest())
         ? update_module_button($cm->id, $course->id, get_string('modulename', 'quiz'))
         : "";
-    $navlinks = array();
-    $navlinks[] = array('name' => $strquizzes, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($quiz->name), 'link' => "view.php?q=$quiz->instance", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $streditingquiz, 'link' => '', 'type' => 'title');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($streditingquiz, $cm);
     print_header_simple($streditingquiz, '', $navigation, "", "", true, $strupdatemodule);
 
     $currenttab = 'edit';

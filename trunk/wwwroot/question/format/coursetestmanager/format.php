@@ -1,4 +1,4 @@
-<?php  // $Id: format.php,v 1.12 2007/09/27 08:18:28 skodak Exp $
+<?php  // $Id: format.php,v 1.13.2.2 2007/11/02 16:20:38 tjhunt Exp $
 ////////////////////////////////////////////////////////////////////
 /// Class for importing course test manager questions.            //
 ///                                                               //
@@ -307,7 +307,7 @@ class qformat_coursetestmanager extends qformat_default {
         if (PHP_OS == "WINNT") {
             $ldb =& $this->connect_win($filename);
             $qset = $ldb->Execute("$sql");
-            if ( $qset->RecordCount() > 0 ) {
+            if ( !$qset->EOF ) {
                 $records = $qset->GetAssoc(true);
             } else {
                 $this->err("There were no records in the database.",$dsn);
@@ -341,7 +341,7 @@ class qformat_coursetestmanager extends qformat_default {
         if (PHP_OS == "WINNT") {
             $ldb =& $this->connect_win($filename);
             $qset = $ldb->Execute("$sql");
-            if ( $qset->RecordCount() > 0 ) {
+            if ( !$qset->EOF ) {
                 $records = $qset->GetArray(true);
                 foreach ($records as $record) {
                     $categories[$record[0]] = $record[0];
@@ -434,7 +434,7 @@ class qformat_coursetestmanager extends qformat_default {
     function fulldelete($location) {
         if (is_dir($location)) {
             $currdir = opendir($location);
-            while ($file = readdir($currdir)) {
+            while (false !== ($file = readdir($currdir))) {
                 if ($file <> ".." && $file <> ".") {
                     $fullfile = $location."/".$file;
                     if (is_dir($fullfile)) {

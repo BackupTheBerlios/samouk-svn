@@ -1,4 +1,4 @@
-<?php  // $Id: submissions.php,v 1.60 2007/07/05 04:55:37 mattc-catalyst Exp $
+<?php  // $Id: submissions.php,v 1.60.2.1 2007/10/12 16:09:46 tjhunt Exp $
 
 /*************************************************
     ACTIONS handled are:
@@ -51,12 +51,7 @@
     $strsubmissions = get_string("submissions", "workshop");
 
     // ... print the header and...
-    $navlinks = array();
-    $navlinks[] = array('name' => $strworkshops, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($workshop->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strsubmissions, 'link' => '', 'type' => 'title');
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation($strsubmissions, $cm);
     print_header_simple(format_string($workshop->name), "", $navigation,
                   "", "", true);
 

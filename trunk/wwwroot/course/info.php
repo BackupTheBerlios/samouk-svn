@@ -1,4 +1,4 @@
-<?php // $Id: info.php,v 1.17 2007/09/19 07:09:50 martinlanghoff Exp $
+<?php // $Id: info.php,v 1.17.2.4 2007/12/07 00:24:29 mattc-catalyst Exp $
 
 /// Displays external information about a course
 
@@ -27,7 +27,12 @@
     if ($CFG->forcelogin) {
         require_login();
     }
-
+    
+    $context = get_context_instance(CONTEXT_COURSE, $course->id); 
+    if ((!(course_parent_visible($course) && $CFG->allowvisiblecoursesinhiddencategories) || (! $course->visible)) && !has_capability('moodle/course:viewhiddencourses', $context)) {
+        error(get_string('coursehidden'), $CFG->wwwroot .'/'); 
+    }  
+    
     print_header(get_string("summaryof", "", $course->fullname));
 
     print_heading(format_string($course->fullname) . '<br />(' . format_string($course->shortname) . ')');
@@ -50,12 +55,13 @@
 
     echo filter_text(text_to_html($course->summary),$course->id);
 
-    $context = get_context_instance(CONTEXT_COURSE, $course->id);
+    
     if ($managerroles = get_config('', 'coursemanager')) {
         $coursemanagerroles = split(',', $managerroles);
         foreach ($coursemanagerroles as $roleid) {
             $role = get_record('role','id',$roleid);
             $canseehidden = has_capability('moodle/role:viewhiddenassigns', $context);
+            $roleid = (int) $roleid;
             if ($users = get_role_users($roleid, $context, true, '', 'u.lastname ASC', $canseehidden)) {
                 foreach ($users as $teacher) {
                     $fullname = fullname($teacher, has_capability('moodle/site:viewfullnames', $context)); 

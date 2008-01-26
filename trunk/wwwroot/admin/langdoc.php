@@ -1,4 +1,4 @@
-<?php // $Id: langdoc.php,v 1.20 2007/04/30 17:08:38 skodak Exp $
+<?php // $Id: langdoc.php,v 1.20.4.2 2007/11/21 02:56:58 mudrd8mz Exp $
 
 /**
  * This script enables Moodle translators to edit /docs and /help language
@@ -22,7 +22,7 @@
     $filemissingmark = ' (***)';    // mark to add to non-existing filenames in selection form
     $fileoldmark = ' (old?)';       // mark to add to filenames in selection form id english version is newer
                                     // or to filenames with filesize() == 0
-    $filetemplate = '';             // template for new files, i.e. '$Id: langdoc.php,v 1.20 2007/04/30 17:08:38 skodak Exp $';
+    $filetemplate = '';             // template for new files, i.e. '$Id: langdoc.php,v 1.20.4.2 2007/11/21 02:56:58 mudrd8mz Exp $';
 
     $currentfile = optional_param('currentfile', 'docs/README.txt', PARAM_PATH); 
 
@@ -32,6 +32,9 @@
     $stredithelpdocs = get_string('edithelpdocs', 'admin');
 
     admin_externalpage_print_header();
+
+    notify('NOTICE: This interface is obsolete now and will be removed. You should use 
+        improved <a href="lang.php?mode=helpfiles">lang.php</a> interface.');
 
     $currentlang = current_language();
     $langdir = "$CFG->dataroot/lang/$currentlang";
@@ -243,7 +246,7 @@ function langdoc_preview_url($currentfile) {
         $currentfile = substr($currentfile, 5);
         $currentpathexp = explode('/', $currentfile);
         if (count($currentpathexp) > 1) {
-            $url = '/help.php?module='.$currentpathexp[0].'&amp;file='.$currentpathexp[1];
+            $url = '/help.php?module='.implode('/',array_slice($currentpathexp,0,count($currentpathexp)-1)).'&amp;file='.end($currentpathexp); 
         } else {
             $url = '/help.php?module=moodle&amp;file='.$currentfile;
         }

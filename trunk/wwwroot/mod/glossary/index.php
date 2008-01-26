@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.24 2007/07/05 04:55:30 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.24.3 2008/01/21 10:42:17 kowy Exp $
 
 /// This page lists all the instances of glossary in a particular course
 /// Replace glossary with the name of your module
@@ -31,12 +31,14 @@
     $navlinks[] = array('name' => $strglossarys, 'link' => "index.php?id=$course->id", 'type' => 'activity');
     $navigation = build_navigation($navlinks);
     
-    print_header_simple("$strglossarys", "", $navigation, "", "", true, "", navmenu($course));
+    print_header_simple("$strglossarys", "", $navigation, "", "", true, "", 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Get all the appropriate data
 
     if (! $glossarys = get_all_instances_in_course("glossary", $course)) {
-        notice("There are no glossaries", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strglossarys), "../../course/view.php?id=$course->id");
         die;
     }
 

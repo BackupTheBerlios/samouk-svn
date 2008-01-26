@@ -1,4 +1,4 @@
-<?php  // $Id: edit_form.php,v 1.8 2007/09/03 09:13:56 moodler Exp $
+<?php  // $Id: edit_form.php,v 1.8.2.1 2007/11/26 04:42:23 scyrma Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -30,7 +30,7 @@ class blog_edit_form extends moodleform {
         $mform->addElement('file', 'attachment', get_string('attachment', 'forum'));
 
         $mform->addElement('select', 'publishstate', get_string('publishto', 'blog'), blog_applicable_publish_states());
-        $mform->setHelpButton('publishstate', array('publish_state', get_string('helppublish', 'blog'), 'blog'));
+        $mform->setHelpButton('publishstate', array('publish_state', get_string('publishto', 'blog'), 'blog'));
 
 
         if (!empty($CFG->usetags)) {

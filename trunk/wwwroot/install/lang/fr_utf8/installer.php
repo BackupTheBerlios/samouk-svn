@@ -31,11 +31,11 @@ $string['compatibilitysettingshead'] = 'Vérification de votre configuration PHP
 $string['compatibilitysettingssub'] = 'Votre serveur doit passer tous ces tests pour que Moodle fonctionne correctement.';
 $string['componentisuptodate'] = 'Le composant est à jour.';
 $string['configfilenotwritten'] = 'Le programme d\'installation n\'a pas pu créer automatiquement le fichier de configuration «&nbsp;config.php&nbsp;» contenant vos réglages, vraisemblablement parce que le dossier principal de Moodle n\'est pas accessible en écriture. Vous pouvez copier le code ci-dessous dans un fichier appelé «&nbsp;config.php&nbsp;», que vous placerez à l\'intérieur du dossier principal de Moodle (là où se trouve un fichier «&nbsp;config-dist.php&nbsp;»).';
-$string['configfilewritten'] = 'Le fichier «&nbsp;config.php&nbsp;» a été créé avec succès';
+$string['configfilewritten'] = 'Le fichier «&nbsp;config.php&nbsp;» a été créé correctement';
 $string['configurationcompletehead'] = 'Configuration terminée';
 $string['configurationcompletesub'] = 'Moodle a tenté d\'enregistrer votre configuration dans un fichier à la racine de votre installation de Moodle.';
 $string['continue'] = 'Continuer';
-$string['curlrecommended'] = 'L\'installation de la bibliothèque optionnelle Curl est vivement recommandée, afin de pouvoir utiliser la fonctionnalité Réseau Moodle.';
+$string['curlrecommended'] = 'L\'installation de la bibliothèque optionnelle cURL est vivement recommandée, afin de pouvoir utiliser la fonctionnalité Réseau Moodle.';
 $string['customcheck'] = 'Autres contrôles';
 $string['database'] = 'Base de données';
 $string['databasecreationsettingshead'] = 'La base de données dans laquelle sont enregistrées la plupart des données utilisées par Moodle doit maintenant être configurée. Cette base de données sera créée automatiquement par l\'installeur Moodle4Windows avec les options spécifiées ci-dessous.';
@@ -94,6 +94,7 @@ $string['databasesettingssub_postgres7'] = '<strong>Type&nbsp;:</strong> Postgre
 <strong>Utilisateur&nbsp;:</strong> le nom d\'utilisateur de la base de données<br />
 <strong>Mot de passe&nbsp;:</strong> le mot de passe de la base de données<br />
 <strong>Préfixe des tables&nbsp;:</strong> le préfixe à utiliser pour les noms de toutes les tables (requis)';
+$string['databasesettingswillbecreated'] = '<b>Remarque&nbsp;:</b> l\'installeur va essayer de créer automatiquement la base de données, si elle n\'existe pas encore.';
 $string['dataroot'] = 'Dossier de données';
 $string['datarooterror'] = 'Le dossier de données indiqué n\'a pas pu être trouvé ou créé. Veuillez corriger le paramètre ou créer manuellement le dossier.';
 $string['dbconnectionerror'] = 'Moodle n\'a pas pu se connecter à la base de données indiquée. Veuillez vérifier les paramètres de votre base de données';
@@ -120,10 +121,10 @@ $string['downloadlanguagesub'] = 'Vous avez maintenant la possibilité de télé
 $string['environmenterrortodo'] = 'Vous devez résoudre tous les problèmes liés à l\'environnement (erreurs) décrits ci-dessus avant de continuer l\'installation de cette version de Moodle&nbsp;!';
 $string['environmenthead'] = 'Vérification de l\'environnement...';
 $string['environmentrecommendcustomcheck'] = 'l\'échec de ce test indique un problème potentiel';
-$string['environmentrecommendinstall'] = 'est recommandée&nbsp;; veuillez l\'installer ou l\'activer';
+$string['environmentrecommendinstall'] = 'devrait être installé et activé pour une fonctionnalité optimale';
 $string['environmentrecommendversion'] = 'la version $a->needed est recommandée&nbsp;; vous utilisez actuellement la version $a->current';
 $string['environmentrequirecustomcheck'] = 'ce test doit réussir';
-$string['environmentrequireinstall'] = 'est obligatoire&nbsp;; veuillez l\'installer ou l\'activer';
+$string['environmentrequireinstall'] = 'doit être installé et activé';
 $string['environmentrequireversion'] = 'la version $a->needed est requise&nbsp;; vous utilisez actuellement la version $a->current';
 $string['environmentsub'] = 'Les divers composants de votre système doivent satisfaire les exigences nécessaires à Moodle. Une vérification de votre environnement est en cours.';
 $string['environmentxmlerror'] = 'Erreur lors de la lecture des données d\'environnement ($a->error_code)';
@@ -139,6 +140,7 @@ $string['globalsquoteserror'] = 'Veuillez corriger vos réglages PHP&nbsp;: dés
 $string['help'] = 'Aide';
 $string['iconvrecommended'] = 'Bien que la bibliothèque ICONV soit facultative, il est vivement recommandé de l\'installer sur le serveur pour de meilleures performance, notamment si votre site supporte des caractères non latins.';
 $string['info'] = 'Information';
+$string['installation'] = 'Installation';
 $string['installation'] = 'Installation';
 $string['invalidmd5'] = 'Code md5 non valide';
 $string['langdownloaderror'] = 'La langue $a n\'a pas été installée. La suite de l\'installation se déroulera en anglais. Vous pourrez télécharger et installer d\'autres langues à la fin de l\'installation';
@@ -185,6 +187,7 @@ $string['postgres7'] = 'PostgreSQL (postgres7)';
 $string['previous'] = 'Précédent';
 $string['qtyperqpwillberemoved'] = 'Au cours de cette mise à jour, le type de question RQP sera supprimé. Vous n\'utilisiez pas ce type de question, et ne souffrirez donc d\'aucun problème.';
 $string['qtyperqpwillberemovedanyway'] = 'Au cours de cette mise à jour, le type de question RQP sera supprimé. Votre base de données comporte des questions RQP, qui ne fonctionneront plus, à moins que vous ne réinstalliez le code disponible sur http://moodle.org/mod/data/view.php?d=13&amp;rid=797 avant de continuer la mise à jour.';
+$string['remotedownloaderror'] = 'Le téléchargement de composants sur votre serveur a échoué. Veuillez vérifier less réglages de proxy. L\'extension cURL de PHP est vivement recommandée.<br /><br />Vous devez télécharger manuellement le fichier <a href=\"$a->url\">$a->url</a>, le copier sur votre serveur à l\'emplacement «&nbsp;$a->dest&nbsp;» et le décompresser à cet endroit.';
 $string['remotedownloadnotallowed'] = 'Le téléchargement de composants sur votre serveur n\'est pas autorisé (l\'option allow_url_fopen est désactivée).<br /><br />Vous devez télécharger manuellement le fichier <a href=\"$a->url\">$a->url</a>, le copier vers «&nbsp;$a->dest&nbsp;» dans votre serveur et le décompresser.';
 $string['report'] = 'Rapport';
 $string['restricted'] = 'Interdit';

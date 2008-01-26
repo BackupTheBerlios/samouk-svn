@@ -1,4 +1,4 @@
-<?php // $Id: category.php,v 1.24 2007/08/15 11:36:02 jamiesensei Exp $
+<?php // $Id: category.php,v 1.24.2.1 2007/11/02 16:20:24 tjhunt Exp $
 /**
  * Allows a teacher to create, edit and delete categories
  *

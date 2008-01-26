@@ -1,15 +1,14 @@
-<?php  // $Id: attempt.php,v 1.131 2007/09/26 18:15:31 tjhunt Exp $
+<?php  // $Id: attempt.php,v 1.131.2.6 2007/12/17 16:56:17 tjhunt Exp $
 /**
-* This page prints a particular instance of quiz
-*
-* @version $Id: attempt.php,v 1.131 2007/09/26 18:15:31 tjhunt Exp $
-* @author Martin Dougiamas and many others. This has recently been completely
-*         rewritten by Alex Smith, Julian Sedding and Gustav Delius as part of
-*         the Serving Mathematics project
-*         {@link http://maths.york.ac.uk/serving_maths}
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * This page prints a particular instance of quiz
+ *
+ * @author Martin Dougiamas and many others. This has recently been completely
+ *         rewritten by Alex Smith, Julian Sedding and Gustav Delius as part of
+ *         the Serving Mathematics project
+ *         {@link http://maths.york.ac.uk/serving_maths}
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
 
     require_once("../../config.php");
     require_once("locallib.php");
@@ -80,6 +79,9 @@
     $strquizzes = get_string("modulenameplural", "quiz");
     $popup = $quiz->popup && !$ispreviewing; // Controls whether this is shown in a javascript-protected window.
 
+/// We intentionally do not check open and close times here. Instead we do it lower down.
+/// This is to deal with what happens when someone submits close to the exact moment when the quiz closes.
+
 /// Check number of attempts
     $numberofpreviousattempts = count_records_select('quiz_attempts', "quiz = '{$quiz->id}' AND " .
         "userid = '{$USER->id}' AND timefinish > 0 AND preview != 1");
@@ -88,12 +90,8 @@
     }
 
 /// Check subnet access
-    if ($quiz->subnet and !address_in_subnet(getremoteaddr(), $quiz->subnet)) {
-        if ($ispreviewing) {
-            notify(get_string('subnetnotice', 'quiz'));
-        } else {
-            error(get_string("subneterror", "quiz"), "view.php?id=$cm->id");
-        }
+    if (!$ispreviewing && $quiz->subnet && !address_in_subnet(getremoteaddr(), $quiz->subnet)) {
+        error(get_string("subneterror", "quiz"), "view.php?id=$cm->id");
     }
 
 /// Check password access
@@ -375,20 +373,16 @@
         quiz_send_notification_emails($course, $quiz, $attempt, $context, $cm);
     }
 
-/// Check access to quiz page
-
-    // check the quiz times
-    if ($timestamp < $quiz->timeopen || ($quiz->timeclose and $timestamp > $quiz->timeclose)) {
-        if ($ispreviewing) {
-            notify(get_string('notavailabletostudents', 'quiz'));
-        } else {
-            notice(get_string('notavailable', 'quiz'), "view.php?id={$cm->id}");
+    if ($finishattempt) {
+        if (!empty($SESSION->passwordcheckedquizzes[$quiz->id])) {
+            unset($SESSION->passwordcheckedquizzes[$quiz->id]);
         }
+        redirect($CFG->wwwroot . '/mod/quiz/review.php?attempt='.$attempt->id, 0);
     }
 
-    if ($finishattempt) {
-        unset($SESSION->passwordcheckedquizzes[$quiz->id]);
-        redirect($CFG->wwwroot . '/mod/quiz/review.php?attempt='.$attempt->id, 0);
+// Now is the right time to check the open and close times.
+    if (!$ispreviewing && ($timestamp < $quiz->timeopen || ($quiz->timeclose && $timestamp > $quiz->timeclose))) {
+        error(get_string('notavailable', 'quiz'), "view.php?id={$cm->id}");
     }
 
 /// Print the quiz page ////////////////////////////////////////////////////////
@@ -405,13 +399,7 @@
         $strupdatemodule = has_capability('moodle/course:manageactivities', $coursecontext)
                     ? update_module_button($cm->id, $course->id, get_string('modulename', 'quiz'))
                     : "";
-        $navlinks = array();
-        $navlinks[] = array('name' => $strquizzes, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($quiz->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => $strattemptnum, 'link' => '', 'type' => 'title');
-
-        $navigation = build_navigation($navlinks);
-
+        $navigation = build_navigation($strattemptnum, $cm);
         print_header_simple(format_string($quiz->name), "", $navigation, "", $headtags, true, $strupdatemodule);
     }
 
@@ -426,9 +414,18 @@
         unset($buttonoptions);
         $buttonoptions['q'] = $quiz->id;
         $buttonoptions['forcenew'] = true;
+        echo '<div class="controls">';
         print_single_button($CFG->wwwroot.'/mod/quiz/attempt.php', $buttonoptions, get_string('startagain', 'quiz'));
+        echo '</div>';
+    /// Notices about restrictions that would affect students.
         if ($quiz->popup) {
             notify(get_string('popupnotice', 'quiz'));
+        }
+        if ($timestamp < $quiz->timeopen || ($quiz->timeclose && $timestamp > $quiz->timeclose)) {
+            notify(get_string('notavailabletostudents', 'quiz'));
+        }
+        if ($quiz->subnet && !address_in_subnet(getremoteaddr(), $quiz->subnet)) {
+            notify(get_string('subnetnotice', 'quiz'));
         }
     } else {
         if ($quiz->attempts != 1) {

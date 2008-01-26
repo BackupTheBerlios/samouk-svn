@@ -1,4 +1,4 @@
-<?php //$Id: lib.php,v 1.21 2007/08/20 08:30:40 ikawhero Exp $
+<?php //$Id: lib.php,v 1.23.2.2 2007/12/05 14:29:55 poltawski Exp $
 
 /// Some constants
 
@@ -162,6 +162,16 @@ class profile_field_base {
         }
     }
 
+    /**
+     * Check if the field data should be loaded into the user object
+     * By default it is, but for field types where the data may be potentially
+     * large, the child class should override this and return false
+     * @return boolean
+     */
+    function is_user_object_data() {
+        return true;
+    }
+
 
 /***** The following methods generally should not be overwritten by child classes *****/
    
@@ -319,7 +329,7 @@ function profile_definition_after_data(&$mform) {
     }*/
 }
 
-function profile_validation($usernew) {
+function profile_validation($usernew, $files) {
     global $CFG;
 
     $err = array();
@@ -328,7 +338,7 @@ function profile_validation($usernew) {
             require_once($CFG->dirroot.'/user/profile/field/'.$field->datatype.'/field.class.php');
             $newfield = 'profile_field_'.$field->datatype;
             $formfield = new $newfield($field->id, $usernew->id);
-            $err += $formfield->edit_validate_field($usernew);
+            $err += $formfield->edit_validate_field($usernew, $files);
         }
     }
     return $err;
@@ -374,7 +384,7 @@ function profile_display_fields($userid) {
 function profile_signup_fields(&$mform) {
     global $CFG;
     
-    if ($fields = get_records('user_info_field', 'signup', 1)) {
+    if ($fields = get_records('user_info_field', 'signup', 1, 'sortorder ASC')) {
         foreach ($fields as $field) {
             require_once($CFG->dirroot.'/user/profile/field/'.$field->datatype.'/field.class.php');
             $newfield = 'profile_field_'.$field->datatype;
@@ -383,5 +393,28 @@ function profile_signup_fields(&$mform) {
         }
     }
 }
+
+/**
+ * Returns an object with the custom profile fields set for the given user
+ * @param  integer  userid
+ * @return  object
+ */
+function profile_user_record($userid) {
+    global $CFG;
+
+    $user = new object();
+
+    if ($fields = get_records_select('user_info_field')) {
+        foreach ($fields as $field) {
+            require_once($CFG->dirroot.'/user/profile/field/'.$field->datatype.'/field.class.php');
+            $newfield = 'profile_field_'.$field->datatype;
+            $formfield = new $newfield($field->id, $userid);
+            if ($formfield->is_user_object_data()) $user->{$field->shortname} = $formfield->data;
+        }
+    }
+
+    return $user;
+}
+
 
 ?>

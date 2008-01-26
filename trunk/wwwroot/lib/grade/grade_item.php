@@ -1,4 +1,4 @@
-<?php // $Id: grade_item.php,v 1.127 2007/10/07 18:15:59 skodak Exp $
+<?php // $Id: grade_item.php,v 1.130.2.11 2007/12/13 14:17:29 tjhunt Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-2003  Martin Dougiamas  http://dougiamas.com       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com     //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -239,12 +239,20 @@ class grade_item extends grade_object {
     var $needsupdate = 1;
 
     /**
+     * Cached dependson array
+     */
+    var $dependson_cache = null;
+
+    /**
      * In addition to update() as defined in grade_object, handle the grade_outcome and grade_scale objects.
      * Force regrading if necessary
      * @param string $source from where was the object inserted (mod/forum, manual, etc.)
      * @return boolean success
      */
     function update($source=null) {
+        // reset caches
+        $this->dependson_cache = null;
+
         // Retrieve scale and infer grademax/min from it if needed
         $this->load_scale();
 
@@ -256,6 +264,8 @@ class grade_item extends grade_object {
         if ($this->qualifies_for_regrading()) {
             $this->force_regrading();
         }
+
+        $this->timemodified = time();
 
         return parent::update($source);
     }
@@ -321,6 +331,16 @@ class grade_item extends grade_object {
      * @return boolean success
      */
     function delete($source=null) {
+        $this->delete_all_grades($source);
+        return parent::delete($source);
+    }
+
+    /**
+     * Delete all grades
+     * @param string $source from where was the object deleted (mod/forum, manual, etc.)
+     * @return boolean success
+     */
+    function delete_all_grades($source=null) {
         if (!$this->is_course_item()) {
             $this->force_regrading();
         }
@@ -331,7 +351,7 @@ class grade_item extends grade_object {
             }
         }
 
-        return parent::delete($source);
+        return true;
     }
 
     /**
@@ -375,6 +395,8 @@ class grade_item extends grade_object {
         if (empty($this->outcomeid)) {
             $this->outcomeid = null;
         }
+
+        $this->timecreated = $this->timemodified = time();
 
         if (parent::insert($source)) {
             // force regrading of items if needed
@@ -538,6 +560,14 @@ class grade_item extends grade_object {
     }
 
     /**
+     * Check grade hidden status. Uses data from both grade item and grade.
+     * @return boolean true if hiddenuntil, false if not
+     */
+    function is_hiddenuntil() {
+        return $this->hidden > 1;
+    }
+
+    /**
      * Check grade item hidden status.
      * @return int 0 means visible, 1 hidden always, timestamp hidden until
      */
@@ -564,7 +594,7 @@ class grade_item extends grade_object {
             }
         }
     }
-    
+
     /**
      * Returns the number of grades that are hidden.
      * @param return int Number of hidden grades
@@ -643,21 +673,19 @@ class grade_item extends grade_object {
             $rs = get_recordset('grade_grades', 'itemid', $this->id, '', $fields);
         }
         if ($rs) {
-            if ($rs->RecordCount() > 0) {
-                while ($grade_record = rs_fetch_next_record($rs)) {
-                    $grade = new grade_grade($grade_record, false);
+            while ($grade_record = rs_fetch_next_record($rs)) {
+                $grade = new grade_grade($grade_record, false);
 
-                    if (!empty($grade_record->locked) or !empty($grade_record->overridden)) {
-                        // this grade is locked - final grade must be ok
-                        continue;
-                    }
+                if (!empty($grade_record->locked) or !empty($grade_record->overridden)) {
+                    // this grade is locked - final grade must be ok
+                    continue;
+                }
 
-                    $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
+                $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
 
-                    if ($grade_record->finalgrade !== $grade->finalgrade) {
-                        if (!$grade->update('system')) {
-                            $result = "Internal error updating final grade";
-                        }
+                if ($grade_record->finalgrade !== $grade->finalgrade) {
+                    if (!$grade->update('system')) {
+                        $result = "Internal error updating final grade";
                     }
                 }
             }
@@ -868,11 +896,19 @@ class grade_item extends grade_object {
     }
 
     /**
-     * Is the grade item normal - associated with module, plugin or something else?
+     * Is the grade item external - associated with module, plugin or something else?
      * @return boolean
      */
-    function is_normal_item() {
-        return ($this->itemtype != 'course' and $this->itemtype != 'category' and $this->itemtype != 'manual');
+    function is_external_item() {
+        return ($this->itemtype == 'mod');
+    }
+
+    /**
+     * Is the grade item overridable
+     * @return boolean
+     */
+    function is_overridable_item() {
+        return !$this->is_outcome_item() and ($this->is_external_item() or $this->is_calculated() or $this->is_course_item() or $this->is_category_item());
     }
 
     /**
@@ -880,7 +916,7 @@ class grade_item extends grade_object {
      * @return boolean
      */
     function is_raw_used() {
-        return ($this->is_normal_item() and !$this->is_calculated() and !$this->is_outcome_item());
+        return ($this->is_external_item() and !$this->is_calculated() and !$this->is_outcome_item());
     }
 
     /**
@@ -1151,38 +1187,41 @@ class grade_item extends grade_object {
 
     /**
      * Finds out on which other items does this depend directly when doing calculation or category agregation
+     * @param bool $reset_cache
      * @return array of grade_item ids this one depends on
      */
-    function depends_on() {
+    function depends_on($reset_cache=false) {
         global $CFG;
+
+        if ($reset_cache) {
+            $this->dependson_cache = null;
+        } else if (isset($this->dependson_cache)) {
+            return $this->dependson_cache;
+        }
 
         if ($this->is_locked()) {
             // locked items do not need to be regraded
-            return array();
+            $this->dependson_cache = array();
+            return $this->dependson_cache;
         }
 
         if ($this->is_calculated()) {
             if (preg_match_all('/##gi(\d+)##/', $this->calculation, $matches)) {
-                return array_unique($matches[1]); // remove duplicates
+                $this->dependson_cache = array_unique($matches[1]); // remove duplicates
+                return $this->dependson_cache;
             } else {
-                return array();
+                $this->dependson_cache = array();
+                return $this->dependson_cache;
             }
 
         } else if ($grade_category = $this->load_item_category()) {
             //only items with numeric or scale values can be aggregated
             if ($this->gradetype != GRADE_TYPE_VALUE and $this->gradetype != GRADE_TYPE_SCALE) {
-                return array();
+                $this->dependson_cache = array();
+                return $this->dependson_cache;
             }
 
-            // If global aggregateoutcomes is set, override category value
-            if ($CFG->grade_aggregateoutcomes != -1) {
-                $grade_category->aggregateoutcomes = $CFG->grade_aggregateoutcomes;
-            }
-
-            // If global aggregatesubcats is set, override category value
-            if ($CFG->grade_aggregatesubcats != -1) {
-                $grade_category->aggregatesubcats = $CFG->grade_aggregatesubcats;
-            }
+            $grade_category->apply_forced_settings();
 
             if (empty($CFG->enableoutcomes) or $grade_category->aggregateoutcomes) {
                 $outcomes_sql = "";
@@ -1219,18 +1258,21 @@ class grade_item extends grade_object {
             }
 
             if ($children = get_records_sql($sql)) {
-                return array_keys($children);
+                $this->dependson_cache = array_keys($children);
+                return $this->dependson_cache;
             } else {
-                return array();
+                $this->dependson_cache = array();
+                return $this->dependson_cache;
             }
 
         } else {
-            return array();
+            $this->dependson_cache = array();
+            return $this->dependson_cache;
         }
     }
 
     /**
-     * Refetch grades from moudles, plugins.
+     * Refetch grades from modules, plugins.
      * @param int $userid optional, one user only
      */
     function refresh_grades($userid=0) {
@@ -1241,12 +1283,12 @@ class grade_item extends grade_object {
             }
 
             if (!$activity = get_record($this->itemmodule, 'id', $this->iteminstance)) {
-                debugging('Can not find activity');
+                debugging("Can not find $this->itemmodule activity with id $this->iteminstance");
                 return;
             }
 
-            if (! $cm = get_coursemodule_from_instance($this->itemmodule, $activity->id, $this->courseid)) {
-                debuggin('Can not find course module');
+            if (!$cm = get_coursemodule_from_instance($this->itemmodule, $activity->id, $this->courseid)) {
+                debugging('Can not find course module');
                 return;
             }
 
@@ -1271,12 +1313,8 @@ class grade_item extends grade_object {
      * @param int $feedbackformat
      * @return boolean success
      */
-    function update_final_grade($userid, $finalgrade=false, $source=NULL, $note=NULL, $feedback=false, $feedbackformat=FORMAT_MOODLE, $usermodified=null) {
+    function update_final_grade($userid, $finalgrade=false, $source=NULL, $feedback=false, $feedbackformat=FORMAT_MOODLE, $usermodified=null) {
         global $USER, $CFG;
-
-        if (empty($usermodified)) {
-            $usermodified = $USER->id;
-        }
 
         $result = true;
 
@@ -1288,7 +1326,11 @@ class grade_item extends grade_object {
         $grade = new grade_grade(array('itemid'=>$this->id, 'userid'=>$userid));
         $grade->grade_item =& $this; // prevent db fetching of this grade_item
 
-        $grade->usermodified = $usermodified;
+        if (empty($usermodified)) {
+            $grade->usermodified = $USER->id;
+        } else {
+            $grade->usermodified = $usermodified;
+        }
 
         if ($grade->is_locked()) {
             // do not update locked grades at all
@@ -1302,44 +1344,56 @@ class grade_item extends grade_object {
             return false;
         }
 
+        // we need proper floats here for !== comparison later
+        if (!is_null($grade->finalgrade)) {
+            $grade->finalgrade = (float)$grade->finalgrade;
+        }
+
         $oldgrade = new object();
         $oldgrade->finalgrade     = $grade->finalgrade;
         $oldgrade->overridden     = $grade->overridden;
         $oldgrade->feedback       = $grade->feedback;
         $oldgrade->feedbackformat = $grade->feedbackformat;
 
-        if ($finalgrade !== false or $feedback !== false) {
-            if (($this->is_outcome_item() or $this->is_manual_item()) and !$this->is_calculated()) {
-                // final grades updated only by user - no need for overriding
-                $grade->overridden = 0;
-
-            } else {
+        // changed grade?
+        if ($finalgrade !== false) {
+            if ($this->is_overridable_item()) {
                 $grade->overridden = time();
-            }
-        }
-
-        if ($finalgrade !== false)  {
-            if (!is_null($finalgrade)) {
-                $finalgrade = bounded_number($this->grademin, $finalgrade, $this->grademax);
             } else {
-                $finalgrade = $finalgrade;
+                $grade->overridden = 0;
             }
-            $grade->finalgrade = $finalgrade;
+
+            if (is_null($finalgrade)) {
+                $grade->finalgrade = null;
+            } else {
+                $grade->finalgrade = (float)bounded_number($this->grademin, $finalgrade, $this->grademax);
+            }
         }
 
         // do we have comment from teacher?
         if ($feedback !== false) {
+            if ($this->is_external_item()) {
+                // external items (modules, plugins) may have own feedback
+                $grade->overridden = time();
+            }
+
             $grade->feedback       = $feedback;
             $grade->feedbackformat = $feedbackformat;
         }
 
         if (empty($grade->id)) {
+            $grade->timecreated  = null;   // no submission yet
+            $grade->timemodified = time(); // overridden flag might take over, but anyway
             $result = (boolean)$grade->insert($source);
 
         } else if ($grade->finalgrade     !== $oldgrade->finalgrade
                 or $grade->feedback       !== $oldgrade->feedback
                 or $grade->feedbackformat !== $oldgrade->feedbackformat) {
+            $grade->timemodified = time(); // overridden flag might take over, but anyway
             $result = $grade->update($source);
+        } else {
+            // no grade change
+            return $result;
         }
 
         if (!$result) {
@@ -1377,27 +1431,39 @@ class grade_item extends grade_object {
      * @param string $note optional note
      * @param mixed $feedback teachers feedback as string - false means do not change
      * @param int $feedbackformat
+     * @param int $usermodified - user which did the grading
+     * @param int $dategraded
+     * @param int $datesubmitted
      * @return boolean success
      */
-    function update_raw_grade($userid, $rawgrade=false, $source=NULL, $note=NULL, $feedback=false, $feedbackformat=FORMAT_MOODLE, $usermodified=null) {
+    function update_raw_grade($userid, $rawgrade=false, $source=NULL, $feedback=false, $feedbackformat=FORMAT_MOODLE, $usermodified=null, $dategraded=null, $datesubmitted=null) {
         global $USER;
-
-        if (empty($usermodified)) {
-            $usermodified = $USER->id;
-        }
 
         $result = true;
 
         // calculated grades can not be updated; course and category can not be updated  because they are aggregated
-        if ($this->is_calculated() or $this->is_outcome_item() or !$this->is_normal_item()
-         or $this->gradetype == GRADE_TYPE_NONE or $this->is_locked()) {
+        if (!$this->is_raw_used() or $this->gradetype == GRADE_TYPE_NONE or $this->is_locked()) {
             return false;
         }
 
         $grade = new grade_grade(array('itemid'=>$this->id, 'userid'=>$userid));
         $grade->grade_item =& $this; // prevent db fetching of this grade_item
 
-        $grade->usermodified = $usermodified;
+        if (empty($usermodified)) {
+            $grade->usermodified = $USER->id;
+        } else {
+            $grade->usermodified = $usermodified;
+        }
+
+        // TODO: hack alert - create new fields for these
+
+        $grade->timecreated  = $datesubmitted;
+
+        if (empty($dategraded)) {
+            $grade->timemodified = time();
+        } else {
+            $grade->timemodified = $dategraded;
+        }
 
         if ($grade->is_locked()) {
             // do not update locked grades at all
@@ -1409,6 +1475,11 @@ class grade_item extends grade_object {
             // do not update grades that should be already locked and force regrade
             $this->force_regrading();
             return false;
+        }
+
+        // we need proper floats here for !== comparison later
+        if (!is_null($grade->rawgrade)) {
+            $grade->rawgrade = (float)$grade->rawgrade;
         }
 
         $oldgrade = new object();
@@ -1436,6 +1507,10 @@ class grade_item extends grade_object {
             $grade->feedbackformat = $feedbackformat;
         }
 
+        if (is_null($grade->rawgrade)) {
+            $grade->timemodified = null; // dategraded hack - not graded if no grade present, comments do not count here as grading
+        }
+
         if (empty($grade->id)) {
             $result = (boolean)$grade->insert($source);
 
@@ -1446,7 +1521,6 @@ class grade_item extends grade_object {
                 or $grade->rawscaleid     !== $oldgrade->rawscaleid
                 or $grade->feedback       !== $oldgrade->feedback
                 or $grade->feedbackformat !== $oldgrade->feedbackformat) {
-
             $result = $grade->update($source);
         }
 
@@ -1515,30 +1589,28 @@ class grade_item extends grade_object {
 
         // group the grades by userid and use formula on the group
         if ($rs = get_recordset_sql($sql)) {
-            if ($rs->RecordCount() > 0) {
-                $prevuser = 0;
-                $grade_records   = array();
-                $oldgrade    = null;
-                while ($used = rs_fetch_next_record($rs)) {
-                    if ($used->userid != $prevuser) {
-                        if (!$this->use_formula($prevuser, $grade_records, $useditems, $oldgrade)) {
-                            $return = false;
-                        }
-                        $prevuser = $used->userid;
-                        $grade_records   = array();
-                        $oldgrade    = null;
+            $prevuser = 0;
+            $grade_records   = array();
+            $oldgrade    = null;
+            while ($used = rs_fetch_next_record($rs)) {
+                if ($used->userid != $prevuser) {
+                    if (!$this->use_formula($prevuser, $grade_records, $useditems, $oldgrade)) {
+                        $return = false;
                     }
-                    if ($used->itemid == $this->id) {
-                        $oldgrade = $used;
-                    }
-                    $grade_records['gi'.$used->itemid] = $used->finalgrade;
+                    $prevuser = $used->userid;
+                    $grade_records   = array();
+                    $oldgrade    = null;
                 }
-                if (!$this->use_formula($prevuser, $grade_records, $useditems, $oldgrade)) {
-                    $return = false;
+                if ($used->itemid == $this->id) {
+                    $oldgrade = $used;
                 }
+                $grade_records['gi'.$used->itemid] = $used->finalgrade;
             }
-            rs_close($rs);
+            if (!$this->use_formula($prevuser, $grade_records, $useditems, $oldgrade)) {
+                $return = false;
+            }
         }
+        rs_close($rs);
 
         return $return;
     }
@@ -1566,17 +1638,20 @@ class grade_item extends grade_object {
 
         // insert final grade - will be needed later anyway
         if ($oldgrade) {
+            if (is_null($oldgrade->finalgrade)) {
+                $oldfinalgrade = null;
+            } else {
+                // we need proper floats here for !== comparison later
+                $oldfinalgrade = (float)$oldgrade->finalgrade;
+            }
             $grade = new grade_grade($oldgrade, false); // fetching from db is not needed
             $grade->grade_item =& $this;
 
         } else {
             $grade = new grade_grade(array('itemid'=>$this->id, 'userid'=>$userid), false);
-            $grade->insert('system');
             $grade->grade_item =& $this;
-
-            $oldgrade = new object();
-            $oldgrade->finalgrade  = $grade->finalgrade;
-            $oldgrade->rawgrade    = $grade->rawgrade;
+            $grade->insert('system');
+            $oldfinalgrade = null;
         }
 
         // no need to recalculate locked or overridden grades
@@ -1588,10 +1663,6 @@ class grade_item extends grade_object {
         $this->formula->set_params($params);
         $result = $this->formula->evaluate();
 
-        // no raw grade for calculated grades - only final
-        $grade->rawgrade = null;
-
-
         if ($result === false) {
             $grade->finalgrade = null;
 
@@ -1601,14 +1672,12 @@ class grade_item extends grade_object {
             if ($this->gradetype == GRADE_TYPE_SCALE) {
                 $result = round($result+0.00001); // round scales upwards
             }
-            $grade->finalgrade = $result;
+            $grade->finalgrade = (float)$result;
         }
 
         // update in db if changed
-        if (   $grade->finalgrade  !== $oldgrade->finalgrade
-            or $grade->rawgrade    !== $oldgrade->rawgrade) {
-
-            $grade->update('system');
+        if ($grade->finalgrade !== $oldfinalgrade) {
+            $grade->update('compute');
         }
 
         if ($result !== false) {
@@ -1649,8 +1718,12 @@ class grade_item extends grade_object {
             $useditems = array();
         }
 
+        // MDL-11902
+        // unset the value if formula is trying to reference to itself
+        // but array keys does not match itemid
         if (!empty($this->id)) {
-            unset($useditems[$this->id]);
+            $useditems = array_diff($useditems, array($this->id));
+            //unset($useditems[$this->id]);
         }
 
         // prepare formula and init maths library
@@ -1698,26 +1771,14 @@ class grade_item extends grade_object {
     }
 
     /**
-     * Returns the value of the display type. It can be set at 3 levels: grade_item, course and site. The lowest level overrides the higher ones.
+     * Returns the value of the display type. It can be set at 3 levels: grade_item, course setting and site. The lowest level overrides the higher ones.
      * @return int Display type
      */
     function get_displaytype() {
         global $CFG;
-        static $cache = array();
 
         if ($this->display == GRADE_DISPLAY_TYPE_DEFAULT) {
-            if (array_key_exists($this->courseid, $cache)) {
-                return $cache[$this->courseid];
-            } else if (count($cache) > 100) {
-                $cache = array(); // cache size limit
-            }
-
-            $gradedisplaytype = get_field('grade_items', 'display', 'courseid', $this->courseid, 'itemtype', 'course');
-            if ($gradedisplaytype == GRADE_DISPLAY_TYPE_DEFAULT) {
-                $gradedisplaytype = $CFG->grade_displaytype;
-            }
-            $cache[$this->courseid] = $gradedisplaytype;
-            return $gradedisplaytype;
+            return grade_get_setting($this->courseid, 'displaytype', $CFG->grade_displaytype);
 
         } else {
             return $this->display;
@@ -1725,25 +1786,14 @@ class grade_item extends grade_object {
     }
 
     /**
-     * Returns the value of the decimals field. It can be set at 3 levels: grade_item, course and site. The lowest level overrides the higher ones.
+     * Returns the value of the decimals field. It can be set at 3 levels: grade_item, course setting and site. The lowest level overrides the higher ones.
      * @return int Decimals (0 - 5)
      */
     function get_decimals() {
         global $CFG;
-        static $cache = array();
 
         if (is_null($this->decimals)) {
-            if (array_key_exists($this->courseid, $cache)) {
-                return $cache[$this->courseid];
-            } else if (count($cache) > 100) {
-                $cache = array(); // cache size limit
-            }
-            $gradedecimals = get_field('grade_items', 'decimals', 'courseid', $this->courseid, 'itemtype', 'course');
-            if (is_null($gradedecimals)) {
-                $gradedecimals = $CFG->grade_decimalpoints;
-            }
-            $cache[$this->courseid] = $gradedecimals;
-            return $gradedecimals;
+            return grade_get_setting($this->courseid, 'decimalpoints', $CFG->grade_decimalpoints);
 
         } else {
             return $this->decimals;

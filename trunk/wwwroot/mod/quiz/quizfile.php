@@ -1,4 +1,4 @@
-<?PHP // $Id: quizfile.php,v 1.16 2006/09/23 09:38:40 skodak Exp $
+<?PHP // $Id: quizfile.php,v 1.16.10.1 2007/11/02 16:20:00 tjhunt Exp $
       // This function fetches files from the data directory
       // Syntax:   quizfile.php/quiz id/question id/dir/.../dir/filename.ext
       // It is supposed to be used by the quiz module only

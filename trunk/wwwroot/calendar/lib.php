@@ -1,4 +1,4 @@
-<?php // $Id: lib.php,v 1.204 2007/09/20 03:04:53 toyomoyo Exp $
+<?php // $Id: lib.php,v 1.206.2.8 2007/11/26 14:43:07 dwoolhead Exp $
 
 /////////////////////////////////////////////////////////////////////////////
 //                                                                         //
@@ -61,8 +61,6 @@ define ('CALENDAR_WEEKEND', isset($CFG->calendar_weekend) ? intval($CFG->calenda
 define ('CALENDAR_URL', $CFG->wwwroot.'/calendar/');
 define ('CALENDAR_TF_24', '%H:%M');
 define ('CALENDAR_TF_12', '%I:%M %p');
-
-define ('CALENDAR_MAXCOURSES', 3);
 
 $CALENDARDAYS = array('sunday','monday','tuesday','wednesday','thursday','friday','saturday');
 
@@ -138,24 +136,14 @@ function calendar_get_mini($courses, $groups, $users, $cal_month = false, $cal_y
 
 
     // Get the events matching our criteria. Don't forget to offset the timestamps for the user's TZ!
-    $whereclause = calendar_sql_where(
+    $events = calendar_get_events(
         usertime($display->tstart) - dst_offset_on($display->tstart),
         usertime($display->tend) - dst_offset_on($display->tend),
         $users, $groups, $courses);
 
-    if($whereclause === false) {
-        $events = array();
-    }
-    else {
-        $events = get_records_select('event', $whereclause, 'timestart');
-    }
-
     // Set event course class for course events
     if (!empty($events)) {
         foreach ($events as $eventid => $event) {
-            if($event->courseid != 0 && $event->courseid != SITEID && $event->groupid == 0) {
-                $event->class = 'event_course'.array_search($event->courseid, $courses) % CALENDAR_MAXCOURSES;
-            }
             if (!empty($event->modulename)) {
                 $cm = get_coursemodule_from_instance($event->modulename, $event->instance);
                 if (!groups_course_module_visible($cm)) {
@@ -326,7 +314,7 @@ function calendar_get_mini($courses, $groups, $users, $cal_month = false, $cal_y
                 $popup = calendar_get_popup(true, false);
                 $cell = '<a href="#" '.$popup.'>'.$day.'</a>';
             }
-            $cell = '<span class="accesshide">'.$today.' </span>'.$cell;
+            $cell = get_accesshide($today.' ').$cell;
         }
 
         // Just display it
@@ -401,12 +389,7 @@ function calendar_get_upcoming($courses, $groups, $users, $daysinfuture, $maxeve
     $display->tend = usergetmidnight($display->tstart + DAYSECS * $display->range + 3 * HOURSECS) - 1;
 
     // Get the events matching our criteria
-    $whereclause = calendar_sql_where($display->tstart, $display->tend, $users, $groups, $courses);
-    if ($whereclause === false) {
-        $events = false;
-    } else {
-        $events = get_records_select('event', $whereclause, 'timestart');
-    }
+    $events = calendar_get_events($display->tstart, $display->tend, $users, $groups, $courses);
 
     // This is either a genius idea or an idiot idea: in order to not complicate things, we use this rule: if, after
     // possibly removing SITEID from $courses, there is only one course left, then clicking on a day in the month
@@ -424,10 +407,35 @@ function calendar_get_upcoming($courses, $groups, $users, $daysinfuture, $maxeve
     if($events !== false) {
 
         foreach($events as $event) {
+
             if(!empty($event->modulename)) {
                 $mod = get_coursemodule_from_instance($event->modulename, $event->instance);
                 if (!groups_course_module_visible($mod)) {
                     continue;
+                }
+            }
+            
+           
+            if ($event->modulename == 'assignment'){
+                if(!calendar_edit_event_allowed($event)){ // cannot manage entries, eg. student  
+                    if(!$assignment = get_record('assignment','id',$event->instance)){
+                        // error("assignment ID was incorrect");
+                        continue;
+                    }
+                    // assign assignment to assignment object to use hidden_is_hidden method
+                    require_once($CFG->dirroot.'/mod/assignment/lib.php');
+                        
+                    if (!file_exists($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/assignment.class.php')) {
+                        continue;
+                    }
+                    require_once ($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/assignment.class.php');
+                       
+                    $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+                    $assignmentinstance = new $assignmentclass($mod->id,$assignment);
+                        
+                    if ($assignmentinstance->description_is_hidden()){//force not to show description before availability
+                        $event->description = get_string('notavailableyet', 'assignment');
+                    }
                 }
             }
 
@@ -519,20 +527,11 @@ function calendar_print_event($event) {
 
     echo '</td></tr>';
     echo '<tr><td class="side">&nbsp;</td>';
-
-    // If event has a class set then add it to the event <td> tag
-    $eventclass='';
-    if (!empty($event->class)) {
-        $eventclass = ' '.$event->class;
-    }
-
     if (isset($event->cssclass)) {
-        $eclass = $event->cssclass.$eventclass;
+        echo '<td class="description '.$event->cssclass.'">';
     } else {
-        $eclass = $eventclass;
+        echo '<td class="description">'; 
     }
-
-    echo '<td class="description '.$eclass.'">';
     echo format_text($event->description, FORMAT_HTML);
     if (calendar_edit_event_allowed($event)) {
         echo '<div class="commands">';
@@ -559,11 +558,23 @@ function calendar_print_event($event) {
 
 }
 
-function calendar_sql_where($tstart, $tend, $users, $groups, $courses, $withduration=true, $ignorehidden=true) {
+/**
+ * Get calendar events
+ * @param int $tstart Start time of time range for events
+ * @param int $tend   End time of time range for events
+ * @param array/int/boolean $users array of users, user id or boolean for all/no user events
+ * @param array/int/boolean $groups array of groups, group id or boolean for all/no group events
+ * @param array/int/boolean $courses array of courses, course id or boolean for all/no course events
+ * @param boolean $withduration whether only events starting within time range selected
+ *                              or events in progress/already started selected as well
+ * @param boolean $ignorehidden whether to select only visible events or all events
+ * @return array of selected events or an empty array if there aren't any (or there was an error)
+ */
+function calendar_get_events($tstart, $tend, $users, $groups, $courses, $withduration=true, $ignorehidden=true) {
     $whereclause = '';
     // Quick test
     if(is_bool($users) && is_bool($groups) && is_bool($courses)) {
-        return false;
+        return array();
     }
 
     if(is_array($users) && !empty($users)) {
@@ -631,7 +642,7 @@ function calendar_sql_where($tstart, $tend, $users, $groups, $courses, $withdura
     // events no matter what. Allowing the code to proceed might return a completely
     // valid query with only time constraints, thus selecting ALL events in that time frame!
     if(empty($whereclause)) {
-        return false;
+        return array();
     }
 
     if($withduration) {
@@ -653,7 +664,11 @@ function calendar_sql_where($tstart, $tend, $users, $groups, $courses, $withdura
         $whereclause .= ' AND visible = 1';
     }
 
-    return $whereclause;
+    $events = get_records_select('event', $whereclause, 'timestart');
+    if ($events === false) {
+        $events = array();
+    }
+    return $events;
 }
 
 function calendar_top_controls($type, $data) {
@@ -788,20 +803,24 @@ function calendar_filter_controls($type, $vars = NULL, $course = NULL, $courses 
     if($SESSION->cal_show_global) {
         $content .= '<td class="eventskey event_global" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hideglobal', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showglobal'.$getvars."'".'" /></td>';
         $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showglobal'.$getvars.'" title="'.get_string('tt_hideglobal', 'calendar').'">'.get_string('global', 'calendar').'</a></td>'."\n";
-    }
-    else {
+    } else {
         $content .= '<td style="width: 11px;"><img src="'.$CFG->pixpath.'/t/show.gif" class="iconsmall" alt="'.get_string('show').'" title="'.get_string('tt_showglobal', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showglobal'.$getvars."'".'" /></td>';
         $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showglobal'.$getvars.'" title="'.get_string('tt_showglobal', 'calendar').'">'.get_string('global', 'calendar').'</a></td>'."\n";
     }
-    $tr = '';
+    if($SESSION->cal_show_course) {
+        $content .= '<td class="eventskey event_course" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hidecourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
+        $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_hidecourse', 'calendar').'">'.get_string('course', 'calendar').'</a></td>'."\n";
+    } else {
+        $content .= '<td style="width: 11px;"><img src="'.$CFG->pixpath.'/t/show.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_showcourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
+        $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_showcourse', 'calendar').'">'.get_string('course', 'calendar').'</a></td>'."\n";
+    
+    }
+
 
     if(!empty($USER->id) && !isguest()) {
-
-        $content .= $tr;
-        $tr = $tr ? '' : "</tr>\n<tr>";
+        $content .= "</tr>\n<tr>";
 
         if($groupevents) {
-
             // This course MIGHT have group events defined, so show the filter
             if($SESSION->cal_show_groups) {
                 $content .= '<td class="eventskey event_group" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hidegroups', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showgroups'.$getvars."'".'" /></td>';
@@ -811,84 +830,15 @@ function calendar_filter_controls($type, $vars = NULL, $course = NULL, $courses 
                 $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showgroups'.$getvars.'" title="'.get_string('tt_showgroups', 'calendar').'">'.get_string('group', 'calendar').'</a></td>'."\n";
             }
         } else {
-
             // This course CANNOT have group events, so lose the filter
             $content .= '<td style="width: 11px;"></td><td>&nbsp;</td>'."\n";
         }
-
-        $content .= $tr;
-        $tr = $tr ? '' : "</tr>\n<tr>";
-
-        if ($SESSION->cal_show_user) {
+        if($SESSION->cal_show_user) {
             $content .= '<td class="eventskey event_user" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hideuser', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showuser'.$getvars."'".'" /></td>';
             $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showuser'.$getvars.'" title="'.get_string('tt_hideuser', 'calendar').'">'.get_string('user', 'calendar').'</a></td>'."\n";
         } else {
             $content .= '<td style="width: 11px;"><img src="'.$CFG->pixpath.'/t/show.gif" class="iconsmall" alt="'.get_string('show').'" title="'.get_string('tt_showuser', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showuser'.$getvars."'".'" /></td>';
             $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showuser'.$getvars.'" title="'.get_string('tt_showuser', 'calendar').'">'.get_string('user', 'calendar').'</a></td>'."\n";
-        }
-    }
-
-    // Remove global SITE ID from courses array as do not want to display this
-    if (!empty($courses)) {
-        $key = array_search(SITEID, $courses);
-        if ($key !== false) {
-            unset($courses[$key]);
-        }
-    }
-
-    if (empty($courses) || count($courses) == 1) {
-
-        // If not multiple courses then just display default single course colour highlighting
-        $content .= $tr;
-        $tr = $tr ? '' : "</tr>\n<tr>";
-
-        if($SESSION->cal_show_course) {
-            $content .= '<td class="eventskey event_course" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hidecourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
-            $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_hidecourse', 'calendar').'">'.get_string('course', 'calendar').'</a></td>'."\n";
-        }
-        else {
-            $content .= '<td style="width: 11px;"><img src="'.$CFG->pixpath.'/t/show.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_showcourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
-            $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_showcourse', 'calendar').'">'.get_string('course', 'calendar').'</a></td>'."\n";
-        }
-    } else {
-
-        // Otherwise display list of course shortnames and relevant colours
-        // Get list of course shortnames (Limit to 12 for now - who would have more than that?)
-        $select = 'id in ('.implode(',', $courses).')';
-        $sort = 'id';
-        $fields = 'id, shortname';
-        $courseshortnames = get_records_select('course', $select, $sort, $fields, 0, 12);
-
-        for ($i = 0; $i < CALENDAR_MAXCOURSES; $i++) {
-
-            // Concatenate shortnames if there are more than 3 courses
-            $strshortnames = '';
-            $n = 0;
-            for ($j = $i; $j < count($courses); $j += CALENDAR_MAXCOURSES) {
-                $strshortnames .= ', <a title="" href="'.$CFG->wwwroot.'/course/view.php?id='.$courses[$j].'">'.(!empty($courseshortnames[$courses[$j]]->shortname) ? $courseshortnames[$courses[$j]]->shortname : $courses[$j]).'</a>';
-                $n++;
-            }
-
-            if ($n) {
-
-                $content .= $tr;
-                $tr = $tr ? '' : "</tr>\n<tr>";
-
-                if ($n < 2) {
-                    $strcourse = get_string('course', 'calendar');
-                } else {
-                    $strcourse = get_string('courses', 'calendar');
-                }
-
-                if($SESSION->cal_show_course) {
-                    $content .= '<td class="eventskey event_course'.$i.'" style="width: 11px;"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_hidecourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
-                    $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_hidecourse', 'calendar').'">'.$strcourse.'</a>: '.substr($strshortnames, 2).'</td>'."\n";
-                }
-                else {
-                    $content .= '<td style="width: 11px;"><img src="'.$CFG->pixpath.'/t/show.gif" class="iconsmall" alt="'.get_string('hide').'" title="'.get_string('tt_showcourse', 'calendar').'" style="cursor:pointer" onclick="location.href='."'".CALENDAR_URL.'set.php?var=showcourses'.$getvars."'".'" /></td>';
-                    $content .= '<td><a href="'.CALENDAR_URL.'set.php?var=showcourses'.$getvars.'" title="'.get_string('tt_showcourse', 'calendar').'">'.$strcourse.'</a>: '.substr($strshortnames, 2).'</td>'."\n";
-                }
-            }
         }
     }
     $content .= "</tr>\n</table>\n";
@@ -1103,7 +1053,7 @@ function calendar_events_by_day($events, $month, $year, &$eventsbyday, &$duratio
             else if($event->courseid != 0 && $event->courseid != SITEID && $event->groupid == 0) {
                 $typesbyday[$eventdaystart]['startcourse'] = true;
                 // Set event class for course event
-                $events[$event->id]->class = 'event_course'.array_search($event->courseid, $courses) % CALENDAR_MAXCOURSES;
+                $events[$event->id]->class = 'event_course';
             }
             else if($event->groupid) {
                 $typesbyday[$eventdaystart]['startgroup'] = true;
@@ -1242,10 +1192,25 @@ function calendar_set_filters(&$courses, &$group, &$user, $courseeventsfrom = NU
     if(is_string($SESSION->cal_courses_shown)) {
         $SESSION->cal_courses_shown = intval($SESSION->cal_courses_shown);
     }
-
     if($courseeventsfrom === NULL) {
-        $courseeventsfrom = $SESSION->cal_courses_shown;
+        $courseeventsfrom = $SESSION->cal_courses_shown;    
     }
+    
+    // MDL-9059, $courseeventsfrom can be an int, or an array of ints, or an array of course objects
+    // convert all to array of objects
+    // we probably should do some clean up and make sure that session is set to use the proper form
+    if (is_int($courseeventsfrom)) { // case of an int, e.g. calendar view page
+        $c = array();
+        $c[$courseeventsfrom] = get_record('course', 'id', $courseeventsfrom);
+        $courseeventsfrom = $c;
+    } else if (is_array($courseeventsfrom)) { // case of an array of ints, e.g. course home page
+        foreach ($courseeventsfrom as $i=>$courseid) {
+            if (is_int($courseid)) {
+                $courseeventsfrom[$i] = get_record('course', 'id', $courseid);
+            } 
+        }    
+    }
+
     if($groupeventsfrom === NULL) {
         $groupeventsfrom = $SESSION->cal_courses_shown;
     }
@@ -1355,12 +1320,14 @@ function calendar_set_filters(&$courses, &$group, &$user, $courseeventsfrom = NU
             }
 
             if (!empty($groupids)) {
-                $sql = "SELECT id
+                $sql = "SELECT *
                         FROM {$CFG->prefix}groups
                         WHERE courseid IN (".implode(',', $groupids).')';
 
                 if ($grouprecords= get_records_sql($sql)) {
-                    $grouparray = array_merge($grouparray, array_keys($grouprecords));
+                    foreach ($grouprecords as $grouprecord) {
+                        $grouparray[] = $grouprecord->id;
+                    }
                 }
             }
 
@@ -1395,16 +1362,14 @@ function calendar_edit_event_allowed($event) {
 
     // if groupid is set, it's definitely a group event
     if ($event->groupid) {
-        //TODO:check.
-        if (! groups_group_exists($event->groupid)) {
-            return false;
-        }
-
-        // this is ok because if you have this capability at course level, you should be able
-        // to edit group calendar too
-        // there is no need to check membership, because if you have this capability
-        // you will have a role in this group context
-        return has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_GROUP, $event->groupid));
+        // Allow users to add/edit group events if:
+        // 1) They have manageentries (= entries for whole course)
+        // 2) They have managegroupentries AND are in the group
+        $group = get_record('groups', 'id', $event->groupid);
+        return $group && (
+            has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_COURSE, $group->courseid)) ||
+            (has_capability('moodle/calendar:managegroupentries', get_context_instance(CONTEXT_COURSE, $group->courseid))
+                && groups_is_member($event->groupid)));
     } else if ($event->courseid) {
     // if groupid is not set, but course is set,
     // it's definiely a course event
@@ -1591,13 +1556,20 @@ function calendar_get_allowed_types(&$allowed) {
     $allowed->courses = false; // This may change just below
     $allowed->site = has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_COURSE, SITEID));
 
-    if(!empty($SESSION->cal_course_referer) && $SESSION->cal_course_referer != SITEID && has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_COURSE, $SESSION->cal_course_referer))) {
+    if(!empty($SESSION->cal_course_referer) && $SESSION->cal_course_referer != SITEID) {
         $course = get_record('course', 'id', $SESSION->cal_course_referer);
+        $coursecontext = get_context_instance(CONTEXT_COURSE, $SESSION->cal_course_referer);
 
-        $allowed->courses = array($course->id => 1);
-
-        if($course->groupmode != NOGROUPS || !$course->groupmodeforce) {
-            $allowed->groups = groups_get_all_groups($SESSION->cal_course_referer);
+        if(has_capability('moodle/calendar:manageentries', $coursecontext)) {
+            $allowed->courses = array($course->id => 1);
+    
+            if($course->groupmode != NOGROUPS || !$course->groupmodeforce) {
+                $allowed->groups = groups_get_all_groups($SESSION->cal_course_referer);
+            }
+        } else if(has_capability('moodle/calendar:managegroupentries', $coursecontext)) {
+            if($course->groupmode != NOGROUPS || !$course->groupmodeforce) {
+                $allowed->groups = groups_get_all_groups($SESSION->cal_course_referer, $USER->id);
+            }
         }
     }
 }

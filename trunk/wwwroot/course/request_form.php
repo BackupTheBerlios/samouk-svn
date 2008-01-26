@@ -1,4 +1,4 @@
-<?php  // $Id: request_form.php,v 1.11 2007/08/09 12:26:43 stronk7 Exp $
+<?php  // $Id: request_form.php,v 1.11.2.1 2007/11/23 22:12:35 skodak Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -31,8 +31,8 @@ class course_request_form extends moodleform {
         $this->add_action_buttons();
     }
 
-    function validation($data) {
-        $errors = array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
         $foundcourses = null;
         $foundreqcourses = null;
 
@@ -67,12 +67,8 @@ class course_request_form extends moodleform {
                 }
             }
         }
-        if (0 == count($errors)){
-            return true;
-        } else {
-            return $errors;
-        }
 
+        return $errors;
     }
 
 }

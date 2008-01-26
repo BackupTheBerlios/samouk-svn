@@ -1,4 +1,4 @@
-<?php // $Id: postgres7.php,v 1.24 2007/08/29 14:50:41 stronk7 Exp $
+<?php // $Id: postgres7.php,v 1.24.2.1 2007/10/15 05:42:23 nicolasconnault Exp $
 
 // THIS FILE IS DEPRECATED!  PLEASE DO NOT MAKE CHANGES TO IT!
 //
@@ -60,7 +60,7 @@ function assignment_upgrade($oldversion) {
         notify("Moving location of assignment files...");
 
         $basedir = opendir("$CFG->dataroot");
-        while ($dir = readdir($basedir)) {
+        while (false !== ($dir = readdir($basedir))) {
             if ($dir == "." || $dir == ".." || $dir == "users") {
                 continue;
             }

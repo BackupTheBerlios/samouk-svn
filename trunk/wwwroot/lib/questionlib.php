@@ -1,4 +1,4 @@
-<?php  // $Id: questionlib.php,v 1.119 2007/09/19 10:56:25 tjhunt Exp $
+<?php  // $Id: questionlib.php,v 1.119.2.4 2007/12/17 15:29:43 tjhunt Exp $
 /**
  * Code for handling and processing questions
  *
@@ -688,6 +688,7 @@ function get_question_states(&$questions, $cmoptions, $attempt, $lastattemptid =
                 // Restore the state so that the responses will be restored
                 restore_question_state($questions[$i], $laststate);
                 $states[$i] = clone($laststate);
+                unset($states[$i]->id);
             } else {
                 // create a new empty state
                 $states[$i] = new object;
@@ -1891,8 +1892,7 @@ function default_export_filename($course,$category) {
     $export_name .= moodle_strtolower($export_categoryname)."-";
     //The date format
     $export_name .= userdate(time(),$export_date_format,99,false);
-    //The extension - no extension, supplied by format
-    // $export_name .= ".txt";
+    //Extension is supplied by format later.
 
     return $export_name;
 }
@@ -1964,7 +1964,7 @@ function question_has_capability_on($question, $cap, $cachecat = -1){
     if (!is_object($question)){
         if (!isset($questions[$question])){
             if (!$questions[$question] = get_record('question', 'id', $question)){
-                print_error('invalidcategory', 'quiz');
+                print_error('questiondoesnotexist', 'question');
             }
         }
         $question = $questions[$question];

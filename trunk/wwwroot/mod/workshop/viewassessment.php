@@ -1,4 +1,4 @@
-<?php  // $Id: viewassessment.php,v 1.17 2007/07/05 04:55:38 mattc-catalyst Exp $
+<?php  // $Id: viewassessment.php,v 1.18.2.1 2007/10/12 16:09:46 tjhunt Exp $
 
     require("../../config.php");
     require("lib.php");
@@ -58,13 +58,7 @@
     /// top frame with the navigation bar and the assessment form
 
     if ($frameset == "top") {
-        $navlinks = array();
-        $navlinks[] = array('name' => $strworkshops, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($workshop->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => $strassess, 'link' => '', 'type' => 'title');
-        $navigation = build_navigation($navlinks);
-        
-        // removed <base target="_parent" /> as it does not validate
+        $navigation = build_navigation($strassess, $cm);
         print_header_simple(format_string($workshop->name), "", $navigation,
                       "", '', true);
 
@@ -92,4 +86,3 @@
     print_footer('none');
 
 ?>
-

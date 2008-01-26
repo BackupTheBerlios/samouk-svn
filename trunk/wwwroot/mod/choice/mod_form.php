@@ -49,7 +49,7 @@ class mod_choice_mod_form extends moodleform_mod {
         $mform->setType('limit', PARAM_INT);
 
         $repeateloptions['option']['helpbutton'] = array('options', get_string('modulenameplural', 'choice'), 'choice');
-        $mform->setType('option', PARAM_TEXT);
+        $mform->setType('option', PARAM_CLEAN);
 
         $mform->setType('optionid', PARAM_INT);
 
@@ -118,11 +118,8 @@ class mod_choice_mod_form extends moodleform_mod {
 
     }
 
-    function validation($data){
-        $errors = parent::validation($data);
-        if ($errors === true) {
-            $errors = array();
-        }
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         $choices = 0;
         foreach ($data['option'] as $option){
@@ -139,12 +136,7 @@ class mod_choice_mod_form extends moodleform_mod {
            $errors['option[1]'] = get_string('fillinatleastoneoption', 'choice');
         }
 
-        if (count($errors) == 0) {
-            return true;
-        } else {
-            return $errors;
-        }
-
+        return $errors;
     }
 
 }

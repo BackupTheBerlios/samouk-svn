@@ -1,4 +1,4 @@
-<?php  //$Id: override.php,v 1.36 2007/09/19 07:10:52 martinlanghoff Exp $
+<?php  //$Id: override.php,v 1.36.2.7 2008/01/10 10:58:09 tjhunt Exp $
 
     require_once('../../config.php');
 
@@ -34,6 +34,7 @@
     } else {
         $course = clone($SITE);
         $courseid = SITEID;
+        $coursecontext = $context;
     }
 
     require_login($course);
@@ -57,10 +58,8 @@
 /// Get some language strings
 
     $strroletooverride = get_string('roletooverride', 'role');
-    $stroverrideusers  = get_string('overrideusers', 'role');
     $straction         = get_string('overrideroles', 'role');
     $strcurrentrole    = get_string('currentrole', 'role');
-    $strcurrentcontext = get_string('currentcontext', 'role');
     $strparticipants   = get_string('participants');
 
 /// Make sure this user can override that role
@@ -115,7 +114,8 @@
 
         // force accessinfo refresh for users visiting this context...
         mark_context_dirty($context->path);
-
+        $rolename = get_field('role', 'name', 'id', $roleid);
+        add_to_log($course->id, 'role', 'override', 'admin/roles/override.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
         redirect($baseurl);
     }
 
@@ -126,8 +126,9 @@
         $navlinks = array();
         /// course header
         if ($course->id != SITEID) {
-            $navlinks[] = array('name' => $course->shortname, 'link' => "$CFG->wwwroot/course/view.php?id=$course->id", 'type' => 'course');
-            $navlinks[] = array('name' => $strparticipants, 'link' => "$CFG->wwwroot/user/index.php?id=$course->id", 'type' => 'misc');
+            if (has_capability('moodle/course:viewparticipants', get_context_instance(CONTEXT_COURSE, $course->id))) {
+                $navlinks[] = array('name' => $strparticipants, 'link' => "$CFG->wwwroot/user/index.php?id=$course->id", 'type' => 'misc');
+            }
             $navlinks[] = array('name' => $fullname, 'link' => "$CFG->wwwroot/user/view.php?id=$userid&amp;course=$courseid", 'type' => 'misc');
             $navlinks[] = array('name' => $straction, 'link' => null, 'type' => 'misc');
             $navigation = build_navigation($navlinks);
@@ -147,12 +148,10 @@
         require_once($CFG->libdir.'/adminlib.php');
         admin_externalpage_setup('frontpageroles');
         admin_externalpage_print_header();
-        $currenttab = '';
-        $tabsmode = 'override';
+        $currenttab = 'override';
         include_once('tabs.php');
     } else {
-        $currenttab = '';
-        $tabsmode = 'override';
+        $currenttab = 'override';
         include_once('tabs.php');
     }
 
@@ -168,12 +167,11 @@
     }
 
 
-    print_heading_with_help(get_string('overrides', 'role'), 'overrides');
+    print_heading_with_help(get_string('overridepermissionsin', 'role', print_context_name($context)), 'overrides');
 
     if ($roleid) {
     /// prints a form to swap roles
         echo '<div class="selector">';
-        echo $strcurrentcontext.': '.print_context_name($context).'<br/>';
         $overridableroles = array('0'=>get_string('listallroles', 'role').'...') + $overridableroles;
         popup_form("$CFG->wwwroot/$CFG->admin/roles/override.php?userid=$userid&amp;courseid=$courseid&amp;contextid=$contextid&amp;roleid=",
             $overridableroles, 'switchrole', $roleid, '', '', '', false, 'self', $strroletooverride);

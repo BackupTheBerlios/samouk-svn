@@ -1,4 +1,4 @@
-<?php //$Id: backup_scheduled.php,v 1.38 2007/09/08 22:49:13 stronk7 Exp $
+<?php //$Id: backup_scheduled.php,v 1.38.2.1 2007/12/19 17:38:45 skodak Exp $
     //This file contains all the code needed to execute scheduled backups
 
 //This function is executed via moodle cron
@@ -177,7 +177,7 @@ function schedule_backup_cron() {
         //Reference
         if ($count_error != 0 || $count_unfinished != 0) {
             $message .= "  ".get_string('backupfailed')."\n\n";
-            $dest_url = $CFG->wwwroot.'/admin/report/backups/index.php';
+            $dest_url = "$CFG->wwwroot/$CFG->admin/report/backups/index.php";
             $message .= "  ".get_string('backuptakealook','',$dest_url)."\n\n";
             //Set message priority
             $admin->priority = 1;

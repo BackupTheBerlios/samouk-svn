@@ -12,7 +12,7 @@
  *
  * Last Editor: $Author: skodak $
  * @author Richard Tango-Lowy & Dan Cech
- * @version $Revision: 1.16 $
+ * @version $Revision: 1.16.4.1 $
  *
  * @package axmls
  * @tutorial getting_started.pkg
@@ -1209,7 +1209,7 @@ class dbQuerySet extends dbObject {
 * @tutorial getting_started.pkg
 *
 * @author Richard Tango-Lowy & Dan Cech
-* @version $Revision: 1.16 $
+* @version $Revision: 1.16.4.1 $
 *
 * @package axmls
 */

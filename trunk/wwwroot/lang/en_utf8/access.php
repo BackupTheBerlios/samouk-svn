@@ -1,4 +1,4 @@
-<?PHP // $Id: access.php,v 1.8 2007/09/26 10:57:46 nfreear Exp $ 
+<?PHP // $Id: access.php,v 1.8.2.2 2007/12/18 17:26:00 nfreear Exp $ 
       // access.php - created with Moodle 1.7 beta + (2006101003)
       // Accessibility, usability and navigation language file.
 
@@ -14,14 +14,15 @@ $string['currentweek'] = 'This week ';
 $string['currenttopic'] = 'This topic ';
 $string['monthnext'] = 'Next month';
 $string['monthprev'] = 'Previous month';
-$string['showhideblock'] = 'Show or hide block';
+$string['showblocka'] = 'Show $a block';
+$string['hideblocka'] = 'Hide $a block';
 $string['sitemap'] = 'Site map';
 $string['skipa'] = 'Skip $a';
 $string['skipblock'] = 'Skip block';
 $string['skipnavigation'] = 'Skip navigation';
 $string['tabledata'] = 'Data table, $a';
 $string['tablelayout'] = 'Layout table, $a';
-$string['tocontent'] = 'Go to main content';
+$string['tocontent'] = 'Skip to main content';
 $string['tonavigation'] = 'Go to navigation';
 $string['youarehere'] = 'You are here';
 

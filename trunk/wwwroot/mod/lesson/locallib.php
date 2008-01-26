@@ -1,9 +1,9 @@
-<?php // $Id: locallib.php,v 1.71 2007/07/05 04:55:32 mattc-catalyst Exp $
+<?php // $Id: locallib.php,v 1.71.3 2008/01/21 02:34:14 kowy Exp $
 /**
  * Local library file for Lesson.  These are non-standard functions that are used
  * only by Lesson.
  *
- * @version $Id: locallib.php,v 1.71 2007/07/05 04:55:32 mattc-catalyst Exp $
+ * @version $Id: locallib.php,v 1.71.2.2 2007/10/13 02:34:14 mark-nielsen Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -226,9 +226,8 @@ if (!defined("LESSON_RESPONSE_EDITOR")) {
 function lesson_print_header($cm, $course, $lesson, $currenttab = '') {
     global $CFG, $USER;
 
-    $strlessons = get_string('modulenameplural', 'lesson');
-    $strlesson  = get_string('modulename', 'lesson');
-    $strname    = format_string($lesson->name, true);
+    $strlesson = get_string('modulename', 'lesson');
+    $strname   = format_string($lesson->name, true, $course->id);
 
     $context = get_context_instance(CONTEXT_MODULE, $cm->id);
 
@@ -239,24 +238,22 @@ function lesson_print_header($cm, $course, $lesson, $currenttab = '') {
     }
 
 /// Header setup
-    $navlinks = array();
-    $navlinks[] = array('name' => $strlessons, 'link' => "$CFG->wwwroot/mod/lesson/index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => $strname, 'link' => '', 'type' => 'activityinstance');
-    
-    $navigation = build_navigation($navlinks);
+    $navigation = build_navigation('', $cm);
     
 /// Print header, heading, tabs and messages
     print_header("$course->shortname: $strname", $course->fullname, $navigation,
-                  '', '', true, $button, navmenu($course, $cm));
+				'', '', true, $button, 
+   				// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     if (has_capability('mod/lesson:manage', $context)) {
-        print_heading_with_help(format_string($lesson->name, true), "overview", "lesson");
+        print_heading_with_help($strname, "overview", "lesson");
 
         if (!empty($currenttab)) {
             include($CFG->dirroot.'/mod/lesson/tabs.php');
         }
     } else {
-        print_heading(format_string($lesson->name, true));
+        print_heading($strname);
     }
 
     lesson_print_messages();

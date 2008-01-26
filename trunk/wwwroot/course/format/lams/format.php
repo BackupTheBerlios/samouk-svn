@@ -1,4 +1,4 @@
-<?php // $Id: format.php,v 1.25 2007/09/25 12:05:36 nfreear Exp $
+<?php // $Id: format.php,v 1.25.2.1 2007/10/22 06:54:40 nfreear Exp $
 // In fact, this is very similar to the "topics" format. 
 // The main difference is that news forum is replaced by LAMS learner
 // interface.
@@ -75,7 +75,7 @@ if (blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $editing) {
 }
 
 /// Start main column
-echo '<td id="middle-column"><a name="startofcontent"></a>';
+echo '<td id="middle-column">'. skip_main_destination();
 
 print_heading_block(get_string('lamsoutline','lams'), 'outline');
 

@@ -1,4 +1,4 @@
-<?PHP  // $Id: lib.php,v 1.78 2007/10/04 05:32:27 gbateson Exp $
+<?PHP  // $Id: lib.php,v 1.79.2.4 2007/12/25 20:50:43 skodak Exp $
 
 //////////////////////////////////
 /// CONFIGURATION settings
@@ -472,7 +472,7 @@ function hotpot_add_chain(&$hotpot) {
 
         // get list of hotpot files in this folder
         if ($dh = @opendir($xml_quiz->filepath)) {
-            while ($file = @readdir($dh)) {
+            while (false !== ($file = @readdir($dh))) {
                 if (preg_match('/\.(jbc|jcl|jcw|jmt|jmx|jqz|htm|html)$/', $file)) {
                     $hotpot->references[] = "$xml_quiz->reference/$file";
                 }
@@ -1230,24 +1230,24 @@ function hotpot_update_grades($hotpot=null, $userid=0, $nullifnone=true) {
     }
     if ($hotpot) {
         if ($grades = hotpot_get_user_grades($hotpot, $userid)) {
-            grade_update('mod/hotpot', $hotpot->course, 'mod', 'hotpot', $hotpot->id, 0, $grades);
+            hotpot_grade_item_update($hotpot, $grades);
 
         } else if ($userid && $nullifnone) {
             $grade = new object();
             $grade->userid   = $userid;
             $grade->rawgrade = null;
-            grade_update('mod/hotpot', $hotpot->course, 'mod', 'hotpot', $hotpot->id, 0, $grade);
+            hotpot_grade_item_update($hotpot, $grade);
+
+        } else {
+            hotpot_grade_item_update($hotpot);            
         }
     } else {
         $sql = "SELECT h.*, cm.idnumber as cmidnumber
                   FROM {$CFG->prefix}hotpot h, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
                  WHERE m.name='hotpot' AND m.id=cm.module AND cm.instance=s.id";
         if ($rs = get_recordset_sql($sql)) {
-            if ($rs->RecordCount() > 0) {
-                while ($hotpot = rs_fetch_next_record($rs)) {
-                    hotpot_grade_item_update($hotpot);
-                    hotpot_update_grades($hotpot, 0, false);
-                }
+            while ($hotpot = rs_fetch_next_record($rs)) {
+                hotpot_update_grades($hotpot, 0, false);
             }
             rs_close($rs);
         }
@@ -1257,9 +1257,10 @@ function hotpot_update_grades($hotpot=null, $userid=0, $nullifnone=true) {
  * Update/create grade item for given hotpot
  *
  * @param object $hotpot object with extra cmidnumber
+ * @param mixed optional array/object of grade(s); 'reset' means reset grades in gradebook
  * @return object grade_item
  */
-function hotpot_grade_item_update($hotpot) {
+function hotpot_grade_item_update($hotpot, $grades=NULL) {
     global $CFG;
     if (!function_exists('grade_update')) { //workaround for buggy PHP versions
         require_once($CFG->libdir.'/gradelib.php');
@@ -1280,7 +1281,7 @@ function hotpot_grade_item_update($hotpot) {
         $params['gradetype'] = GRADE_TYPE_NONE;
     }
 
-    return grade_update('mod/hotpot', $hotpot->course, 'mod', 'hotpot', $hotpot->id, 0, NULL, $params);
+    return grade_update('mod/hotpot', $hotpot->course, 'mod', 'hotpot', $hotpot->id, 0, $grades, $params);
 }
 /**
  * Delete grade item for given hotpot
@@ -1836,7 +1837,8 @@ class hotpot_xml_quiz extends hotpot_xml_tree {
 
             // make sure the Moodle media plugin is available
             global $CFG;
-            include_once "$CFG->dirroot/filter/mediaplugin/filter.php";
+            //include_once "$CFG->dirroot/filter/mediaplugin/filter.php";
+            include_once "$CFG->dirroot/mod/hotpot/mediaplayers/moodle/filter.php";
 
             // exclude swf files from the filter
             //$CFG->filter_mediaplugin_ignore_swf = true;
@@ -1863,7 +1865,7 @@ class hotpot_xml_quiz extends hotpot_xml_tree {
             $link_url = "/{$tagopen}a{$space}href=$quote($filepath)$quote.*?$tagclose.*?$tagreopen\/A$tagclose/is";
 
             // extract <object> tags
-            preg_match_all("/{$tagopen}object\s.*?{$tagclose}(.*?){$tagreopen}\/object{$tagclose}/is", $this->html, $objects);
+            preg_match_all("/{$tagopen}object\s.*?{$tagclose}(.*?)(?:{$tagreopen}\/object{$tagclose})+/is", $this->html, $objects);
 
             $i_max = count($objects[0]);
             for ($i=0; $i<$i_max; $i++) {
@@ -1882,7 +1884,7 @@ class hotpot_xml_quiz extends hotpot_xml_tree {
                     $url = preg_replace('/^[^?]*\?([^=]+=[^&]*&)*[^=]+=([^&]*)$/', '$2', $url, 1);
                     $link = '<a href="'.$url.'">'.$txt.'</a>';
 
-                    $new_object = mediaplugin_filter($this->filedir, $link);
+                    $new_object = hotpot_mediaplayer_moodle($this, $link);
                     $new_object = str_replace($link, '', $new_object);
                     $new_object = str_replace('&amp;', '&', $new_object);
 
@@ -2553,7 +2555,7 @@ END_OF_SCRIPT;
         $html .= $spacer
         .   '<a href="'
         .           $CFG->wwwroot.'/mod/hotpot/show.php'
-        .           '?course='.$course.'&location='.$location.'&reference='.urlencode($reference).'&action='.$action
+        .           '?course='.$course.'&amp;location='.$location.'&amp;reference='.urlencode($reference).'&amp;action='.$action
         .       '"'
         .       ' onclick="return setLink(this);"'
         .       ($new_window ? ' target="_blank"' : '')

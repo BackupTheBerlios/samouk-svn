@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.19 2007/09/21 18:28:45 tjhunt Exp $
+<?php  // $Id: questiontype.php,v 1.20.2.5 2007/12/13 17:24:51 tjhunt Exp $
 
 ///////////////////
 /// SHORTANSWER ///
@@ -32,7 +32,7 @@ class question_shortanswer_qtype extends default_questiontype {
 
         if (!$question->options->answers = get_records('question_answers', 'question',
                 $question->id, 'id ASC')) {
-            notify('Error: Missing question answers!');
+            notify('Error: Missing question answers for shortanswer question ' . $question->id . '!');
             return false;
         }
         return true;
@@ -142,7 +142,7 @@ class question_shortanswer_qtype extends default_questiontype {
 
         /// Print input controls
 
-        if (isset($state->responses[''])) {
+        if (isset($state->responses['']) && $state->responses[''] != '') {
             $value = ' value="'.s($state->responses[''], true).'" ';
         } else {
             $value = ' value="" ';
@@ -212,9 +212,12 @@ class question_shortanswer_qtype extends default_questiontype {
         // Break the string on non-escaped asterisks.
         $bits = preg_split('/(?<!\\\\)\*/', $pattern);
         // Escape regexp special characters in the bits.
-        $bits = array_map('preg_quote', $bits);
+        $excapedbits = array();
+        foreach ($bits as $bit) {
+            $excapedbits[] = preg_quote(str_replace('\*', '*', $bit));
+        }
         // Put it back together to make the regexp.
-        $regexp = '|^' . implode('.*', $bits) . '$|u';
+        $regexp = '|^' . implode('.*', $excapedbits) . '$|u';
 
         // Make the match insensitive if requested to.
         if ($ignorecase) {
@@ -222,6 +225,17 @@ class question_shortanswer_qtype extends default_questiontype {
         }
 
         return preg_match($regexp, trim($string));
+    }
+
+    /*
+     * Override the parent class method, to remove escaping from asterisks.
+     */
+    function get_correct_responses(&$question, &$state) {
+        $response = parent::get_correct_responses($question, $state);
+        if (is_array($response)) {
+            $response[''] = addslashes(str_replace('\*', '*', stripslashes($response[''])));
+        }
+        return $response;
     }
 
     /// BACKUP FUNCTIONS ////////////////////////////
@@ -344,10 +358,10 @@ class question_shortanswer_qtype extends default_questiontype {
         maximum grade available and a warning if a penalty was applied for the
         attempt and displays the overall grade obtained counting all previous
         responses (and penalties) */
-
+        global $QTYPES ;
         // MDL-7496 show correct answer after "Incorrect"
         $correctanswer = '';
-        if ($correctanswers = $this->get_correct_responses($question, $state)) {
+        if ($correctanswers =  $QTYPES[$question->qtype]->get_correct_responses($question, $state)) {
             if ($options->readonly && $options->correct_responses) {
                 $delimiter = '';
                 if ($correctanswers) {

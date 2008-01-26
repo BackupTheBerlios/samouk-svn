@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.9 2007/08/17 19:09:22 nicolasconnault Exp $
+<?php  // $Id: view.php,v 1.9.2.1 2007/10/12 16:09:41 tjhunt Exp $
 
 /// This page prints a particular instance of lams
 /// (Replace lams with the name of your module)
@@ -27,14 +27,7 @@ $context = get_context_instance(CONTEXT_MODULE, $cm->id);
 add_to_log($course->id, "lams", "view", "view.php?id=$cm->id", "$lams->id");
 
 /// Print the page header
-
-//if ($course->id != SITEID) {
-//    $navigation = "<A HREF=\"../../course/view.php?id=$course->id\">$course->shortname</A> ->";
-//}
-$navlinks = array();
-$navlinks[] = array('name' => $strchoices, 'link' => "index.php?id=$course->id", 'type' => 'misc');
-$navlinks[] = array('name' => format_string($lams->name), 'link' => null, 'type' => 'misc');
-$navigation = build_navigation($navlinks);
+$navigation = build_navigation('', $cm);
 print_header_simple(format_string($lams->name), "", $navigation, "", "", true,
         update_module_button($cm->id, $course->id, get_string("lesson","lams")), navmenu($course, $cm));
 

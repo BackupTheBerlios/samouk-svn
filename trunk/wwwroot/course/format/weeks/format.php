@@ -1,12 +1,8 @@
-<?php // $Id: format.php,v 1.74 2007/09/25 12:00:51 nfreear Exp $
+<?php // $Id: format.php,v 1.74.2.3 2007/12/11 15:17:55 nfreear Exp $
       // Display the whole course as "weeks" made of of modules
       // Included from "view.php"
 
     require_once($CFG->libdir.'/ajax/ajaxlib.php');
-    
-    if (!empty($THEME->customcorners)) {
-        require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-    }
 
     $week = optional_param('week', -1, PARAM_INT);
 
@@ -67,9 +63,9 @@
     if (blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $editing) {
         echo '<td style="width:'.$preferred_width_left.'px" id="left-column">';
 
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
 
         echo '</td>';
     }
@@ -78,9 +74,9 @@
 /// Start main column
     echo '<td id="middle-column">';
 
-    if (!empty($THEME->customcorners)) print_custom_corners_start();
+    print_container_start();
         
-    echo '<a name="startofcontent"></a>';
+    echo skip_main_destination();
 
     print_heading_block(get_string('weeklyoutline'), 'outline');
 
@@ -197,10 +193,10 @@
 
             echo '<td class="content">';
             if (!has_capability('moodle/course:viewhiddensections', $context) and !$thissection->visible) {   // Hidden for students
-                echo '<div class="weekdates">'.$weekperiod.' ('.get_string('notavailable').')</div>';
+                print_heading($weekperiod.' ('.get_string('notavailable').')', null, 3, 'weekdates');
 
             } else {
-                echo '<div class="weekdates">'.$weekperiod.'</div>';
+                print_heading($weekperiod, null, 3, 'weekdates');
 
                 echo '<div class="summary">';
                 $summaryformatoptions->noclean = true;
@@ -266,7 +262,7 @@
         echo '</div>';
     }
 
-    if (!empty($THEME->customcorners)) print_custom_corners_end();
+    print_container_end();
 
     echo '</td>';
 
@@ -276,9 +272,9 @@
     if (blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $editing) {
         echo '<td style="width: '.$preferred_width_right.'px;" id="right-column">';
 
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
 
         echo '</td>';
     }

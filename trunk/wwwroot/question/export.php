@@ -1,4 +1,4 @@
-<?php // $Id: export.php,v 1.42 2007/08/15 11:36:05 jamiesensei Exp $
+<?php // $Id: export.php,v 1.43.2.1 2007/11/02 16:20:19 tjhunt Exp $
 /**
  * Export quiz questions into the given category
  *
@@ -141,4 +141,3 @@
 
     print_footer($COURSE);
 ?>
-

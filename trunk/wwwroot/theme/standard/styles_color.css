@@ -152,7 +152,8 @@ table.formtable tbody th {
   background-color:#FFFFFF;
 }
 
-.dimmed_text {
+.dimmed_text,
+.dimmed_text a {
   color:#AAAAAA;
 }
 
@@ -200,12 +201,6 @@ table.formtable tbody th {
 
 .breadcrumb .sep, #admin-report-simpletest-index .sep {
   color:#aaa;
-}
-
-.headerskip a:link,
-.headerskip a:visited,
-.headerskip a:hover {
-  color: #FFF;
 }
 
 .navigation select {
@@ -323,19 +318,54 @@ table.flexible .r1 {
   background-color: green;
 }
 
+/* Admin settings */
+
 #adminsettings fieldset {
     background-color: #EEE;
     border-color: #BBB;
     color: #000;
 }
 
+#adminsettings fieldset.error {
+  border: 1px solid red;
+}
+
+#adminsettings fieldset.error legend {
+  color: red;
+}
+
 #adminsettings .form-shortname {
     color: #888;
+}
+
+#adminsettings .form-overridden {
+    background-color: #ff6;
+}
+
+#adminsettings .form-warning {
+    background-color: #f88;
+}
+
+#adminsettings .form-defaultinfo {
+    color: #888;
+}
+
+#adminsettings .form-item .pathok {
+    color: green;
+}
+
+#adminsettings .form-item .patherror {
+    color: red;
 }
 
 .block_admin_tree.sideblock .link.current {
   background-color:#EEEEEE;
 }
+
+.block_admin_tree.sideblock .link.hidden {
+  color:#999999;
+}
+
 
 #admin-lang .translator {
   border-color: #dddddd;
@@ -378,6 +408,18 @@ table.flexible .r1 {
     background-color : lime;
 }
 
+#admin-uploaduser .uuinfo {
+    background-color: #8e8;
+}
+
+#admin-uploaduser .uuwarning {
+    background-color: #ee8;
+}
+
+#admin-uploaduser .uuerror {
+    background-color: #e99;
+}
+
 /***
  *** Blocks
  ***/
@@ -400,15 +442,6 @@ table.flexible .r1 {
 {
   border-bottom-color: #dddddd;
 }
-
-.sideblock .header .hide-show img.hide-show-image {
-  background: url('../../pix/t/switch_minus.gif') no-repeat bottom;
-}
-
-.sideblock.hidden .header .hide-show img.hide-show-image {
-  background: url('../../pix/t/switch_plus.gif') no-repeat bottom;
-}
-
 
 
 /***
@@ -479,26 +512,6 @@ table.minicalendar {
   background-color:#FFD3BD;
 }
 
-#calendar .event_course0,
-.minicalendar .event_course0,
-.block_calendar_month .event_course0 {
-  border-color:#FFD3BD !important; /* #EEC2AC */
-  background-color:#FFD3BD;
-}
-
-#calendar .event_course1,
-.minicalendar .event_course1,
-.block_calendar_month .event_course1 {
-  border-color:#99CCFF !important; /* #EEC2AC */
-  background-color:#99CCFF;
-}
-
-#calendar .event_course2,
-.minicalendar .event_course2,
-.block_calendar_month .event_course2 {
-  border-color:#FFFFCC !important; /* #EEC2AC */
-  background-color:#FFFFCC;
-}
 
 #calendar .event_group,
 .minicalendar .event_group,
@@ -705,29 +718,12 @@ body#grade-index .grades .r1 {
   background-color: #f0f0f0;
 }
 
-/* new grades css*/
+/* grade edit */
 
-.grade-report-grader .catlevel1 {
-  background-color: #ffffff;
-}
-.grade-report-grader .catlevel2 {
-  background-color: #eeeeee;
-}
-.grade-report-grader .catlevel3 {
-  background-color: #dddddd;
+.grade-edit-tree .moving {
+  background-color: #E8EEF7;
 }
 
-.grade-report-grader td.overridden {
-  background-color: #dddddd;
-}
-
-.grade-report-grader .gradestable tr.avg td.cell {
-	background-color: #efefff;
-}
-
-.grade-report-grader .gradestable tr.groupavg td.cell {
-	background-color: #efffef;
-}
 /***
  *** Login
  ***/
@@ -778,6 +774,9 @@ table.message_search_results td {
 .calculated .answer,
 .numerical .answer,
 .shortanswer .answer {
+    background-color: #EEE;
+}
+.essay .answerreview {
     background-color: #EEE;
 }
 .que .feedback {
@@ -1096,9 +1095,4 @@ form.mform .fdescription.required {
 }
 form.mform .required .fgroup span label {
   color:#000;
-}
-
-/* Accessibility: for Windows High Contrast, partial fix MDL-7493. */
-.sideblock .hide-show a {
-  border:1px solid white;
 }

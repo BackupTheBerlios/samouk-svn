@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.24 2007/07/05 04:55:35 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.24.3 2008/01/21 10:42:18 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -26,10 +26,12 @@
     $navigation = build_navigation($navlinks);
     
     print_header_simple("$strsurveys", "", $navigation, 
-                 "", "", true, "", navmenu($course));
+					"", "", true, "", 
+    				// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     if (! $surveys = get_all_instances_in_course("survey", $course)) {
-        notice("There are no surveys.", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strsurveys), "../../course/view.php?id=$course->id");
     }
     
     if ($course->format == "weeks") {

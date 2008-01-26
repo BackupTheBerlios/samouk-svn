@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.71 2007/08/16 17:38:50 nicolasconnault Exp $
+<?php // $Id: resource.class.php,v 1.71.3 2008/01/21 11:58:41 kowy Exp $
 
 /**
 * Extend the base resource class for file resources
@@ -324,10 +324,11 @@ class resource_file extends resource_base {
             if ($inpopup) {
                 print_header($pagetitle, $course->fullname);
             } else {
-                $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-                $this->navigation = build_navigation($this->navlinks);
-                print_header($pagetitle, $course->fullname, $this->navigation,
-                        "", "", true, update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+                $navigation = build_navigation($this->navlinks, $cm);
+                print_header($pagetitle, $course->fullname, $navigation,
+                        "", "", true, update_module_button($cm->id, $course->id, $this->strresource), 
+                		// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
             }
             notify(get_string('notallowedlocalfileaccess', 'resource', ''));
             if ($inpopup) {
@@ -340,12 +341,11 @@ class resource_file extends resource_base {
 
         /// Check whether this is supposed to be a popup, but was called directly
         if ($resource->popup and !$inpopup) {    /// Make a page and a pop-up window
-            $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-            $this->navigation = build_navigation($this->navlinks);
-
-            print_header($pagetitle, $course->fullname, $this->navigation,
-                    "", "", true, update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
-
+            $navigation = build_navigation($this->navlinks, $cm);
+            print_header($pagetitle, $course->fullname, $navigation,
+                    "", "", true, update_module_button($cm->id, $course->id, $this->strresource), 
+            		// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
             echo "\n<script type=\"text/javascript\">";
             echo "\n<!--\n";
@@ -366,7 +366,6 @@ class resource_file extends resource_base {
             echo '<br />';
             print_string('popupresourcelink', 'resource', $link);
             echo '</div>';
-
             print_footer($course);
             exit;
         }
@@ -405,10 +404,11 @@ class resource_file extends resource_base {
         /// If we are in a frameset, just print the top of it
 
         if (!empty( $frameset ) and ($frameset == "top") ) {
-            $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-            $this->navigation = build_navigation($this->navlinks);
-            print_header($pagetitle, $course->fullname, $this->navigation,
-                    "", "", true, update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm, "parent"));
+            $navigation = build_navigation($this->navlinks, $cm);
+            print_header($pagetitle, $course->fullname, $navigation,
+                    "", "", true, update_module_button($cm->id, $course->id, $this->strresource), 
+            		// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm, "parent"));
 
             $options = new object();
             $options->para = false;
@@ -419,7 +419,7 @@ class resource_file extends resource_base {
                         get_string('localfilehelp','resource'), 400, 500, get_string('localfilehelp', 'resource'));
                 echo '</div>';
             }
-            echo '</div></div></body></html>';
+            print_footer('empty');
             exit;
         }
 
@@ -431,12 +431,11 @@ class resource_file extends resource_base {
             if ($inpopup) {
                 print_header($pagetitle);
             } else {
-                $this->navlinks[] = array('name' => format_string($resource->name, true),
-                                          'link' => $fullurl,
-                                          'type' => 'misc');
-                $this->navigation = build_navigation($this->navlinks);
-                print_header_simple($pagetitle, '', $this->navigation, "", "", true,
-                    update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm, "self"));
+                $navigation = build_navigation($this->navlinks, $cm);
+                print_header_simple($pagetitle, '', $navigation, "", "", true,
+                    update_module_button($cm->id, $course->id, $this->strresource), 
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm, "self"));
 
             }
 
@@ -553,15 +552,6 @@ class resource_file extends resource_base {
                 echo '</div>';
 
             } else if ($resourcetype == "quicktime") {
-                echo '<style type="text/css">';
-                echo '/* class to hide nested objects in IE */';
-                echo '/* hides the second object from all versions of IE */';
-                echo '* html object.hiddenObjectForIE { display: none; }';
-                echo '/* display the second object only for IE5 Mac */';
-                echo '/* IE Mac \*//*/';
-                echo '* html object.hiddenObjectForIE { display: inline; }';
-                echo '/**/';
-                echo '</style>';
                 echo '<div class="resourcecontent resourceqt">';
 
                 echo '<object classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"';
@@ -572,13 +562,17 @@ class resource_file extends resource_base {
                 echo '<param name="controller" value="true" />';
                 echo '<param name="scale" value="aspect" />';
 
-                echo "<object class=\"hiddenObjectForIE\" type=\"video/quicktime\" data=\"$fullurl\">";
+                echo '<!--[if !IE]>-->';
+                echo "<object type=\"video/quicktime\" data=\"$fullurl\">";
                 echo '<param name="controller" value="true" />';
                 echo '<param name="autoplay" value="true" />';
                 echo '<param name="loop" value="true" />';
                 echo '<param name="scale" value="aspect" />';
-                echo '</object>';
+                echo '<!--<![endif]-->';
                 echo '<a href="' . $fullurl . '">' . $fullurl . '</a>';
+                echo '<!--[if !IE]>-->';
+                echo '</object>';
+                echo '<!--<![endif]-->';
                 echo '</object>';
                 echo '</div>';
             }  else if ($resourcetype == "flash") {
@@ -622,6 +616,8 @@ class resource_file extends resource_base {
 
             if ($inpopup) {
                 echo "<div class=\"popupnotice\">(<a href=\"$fullurl\">$strdirectlink</a>)</div>";
+                echo "</div>"; // MDL-12098
+                print_footer($course); // MDL-12098
             } else {
                 print_spacer(20,20);
                 print_footer($course);
@@ -688,7 +684,7 @@ class resource_file extends resource_base {
     }
 
     function setup_elements(&$mform) {
-        global $USER, $CFG, $RESOURCE_WINDOW_OPTIONS;
+        global $CFG, $RESOURCE_WINDOW_OPTIONS;
 
         $this->set_parameters(); // set the parameter array for the form
 
@@ -696,14 +692,13 @@ class resource_file extends resource_base {
         $mform->setDefault('reference', $CFG->resource_defaulturl);
         $mform->addRule('name', null, 'required', null, 'client');
 
-        // kowy - this is absolutly ridiculous
-//        if (!empty($CFG->resource_websearch)) {
-//            $searchbutton = $mform->addElement('button', 'searchbutton', get_string('searchweb', 'resource').'...');
-//            $buttonattributes = array('title'=>get_string('localfilechoose', 'resource'), 'onclick'=>"return window.open('"
-//                              . "$CFG->resource_websearch', 'websearch', 'menubar=1,location=1,directories=1,toolbar=1,"
-//                              . "scrollbars,resizable,width=800,height=600');");
-//            $searchbutton->updateAttributes($buttonattributes);
-//        }
+        if (!empty($CFG->resource_websearch)) {
+            $searchbutton = $mform->addElement('button', 'searchbutton', get_string('searchweb', 'resource').'...');
+            $buttonattributes = array('title'=>get_string('searchweb', 'resource'), 'onclick'=>"return window.open('"
+                              . "$CFG->resource_websearch', 'websearch', 'menubar=1,location=1,directories=1,toolbar=1,"
+                              . "scrollbars,resizable,width=800,height=600');");
+            $searchbutton->updateAttributes($buttonattributes);
+        }
 
         if (!empty($CFG->resource_allowlocalfiles)) {
             $lfbutton = $mform->addElement('button', 'localfilesbutton', get_string('localfilechoose', 'resource').'...');
@@ -714,64 +709,59 @@ class resource_file extends resource_base {
             $lfbutton->updateAttributes($buttonattributes);
         }
 
-        // kowy - no popup windows
-//        $mform->addElement('header', 'displaysettings', get_string('display', 'resource'));
-//
-//        $woptions = array(0 => get_string('pagewindow', 'resource'), 1 => get_string('newwindow', 'resource'));
-//        $mform->addElement('select', 'windowpopup', get_string('display', 'resource'), $woptions);
-//        $mform->setDefault('windowpopup', !empty($CFG->resource_popup));
-//
-//        $mform->addElement('checkbox', 'framepage', get_string('keepnavigationvisible', 'resource'));
-//
-//        $mform->setHelpButton('framepage', array('frameifpossible', get_string('keepnavigationvisible', 'resource'), 'resource'));
-//        $mform->setDefault('framepage', 0);
-//        $mform->disabledIf('framepage', 'windowpopup', 'eq', 1);
-//        $mform->setAdvanced('framepage');
-//        
-//        foreach ($RESOURCE_WINDOW_OPTIONS as $option) {
-//            if ($option == 'height' or $option == 'width') {
-//                $mform->addElement('text', $option, get_string('new'.$option, 'resource'), array('size'=>'4'));
-//                $mform->setDefault($option, $CFG->{'resource_popup'.$option});
-//                $mform->disabledIf($option, 'windowpopup', 'eq', 0);
-//            } else {
-//                $mform->addElement('checkbox', $option, get_string('new'.$option, 'resource'));
-//                $mform->setDefault($option, $CFG->{'resource_popup'.$option});
-//                $mform->disabledIf($option, 'windowpopup', 'eq', 0);
-//            }
-//            $mform->setAdvanced($option);
-//        }
+        $mform->addElement('header', 'displaysettings', get_string('display', 'resource'));
 
-        if ($USER->su_isadvanced) {
-            // advanced users can add parameters to URL
-	        $mform->addElement('header', 'parameters', get_string('parameters', 'resource'));
-	
-	        $options = array();
-	        $options['-'] = get_string('chooseparameter', 'resource').'...';
-	        $optgroup = '';
-	        foreach ($this->parameters as $pname=>$param) {
-	            if ($param['value']=='/optgroup') {
-	                $optgroup = '';
-	                continue;
-	            }
-	            if ($param['value']=='optgroup') {
-	                $optgroup = $param['langstr'];
-	                continue;
-	            }
-	            $options[$pname] = $optgroup.' - '.$param['langstr'];
-	        }
-	
-	        for ($i = 0; $i < $this->maxparameters; $i++) {
-	            $parametername = "parameter$i";
-	            $parsename = "parse$i";
-	            $group = array();
-	            $group[] =& $mform->createElement('text', $parsename, '', array('size'=>'12'));//TODO: accessiblity
-	            $group[] =& $mform->createElement('select', $parametername, '', $options);//TODO: accessiblity
-	            $mform->addGroup($group, 'pargroup'.$i, get_string('variablename', 'resource').'='.get_string('parameter', 'resource'), ' ', false);
-	            // if user is advanced, he will se it
-	            //$mform->setAdvanced('pargroup'.$i);
-	
-	            $mform->setDefault($parametername, '-');
-	        }
+        $woptions = array(0 => get_string('pagewindow', 'resource'), 1 => get_string('newwindow', 'resource'));
+        $mform->addElement('select', 'windowpopup', get_string('display', 'resource'), $woptions);
+        $mform->setDefault('windowpopup', !empty($CFG->resource_popup));
+
+        $mform->addElement('checkbox', 'framepage', get_string('keepnavigationvisible', 'resource'));
+
+        $mform->setHelpButton('framepage', array('frameifpossible', get_string('keepnavigationvisible', 'resource'), 'resource'));
+        $mform->setDefault('framepage', 0);
+        $mform->disabledIf('framepage', 'windowpopup', 'eq', 1);
+        $mform->setAdvanced('framepage');
+
+        foreach ($RESOURCE_WINDOW_OPTIONS as $option) {
+            if ($option == 'height' or $option == 'width') {
+                $mform->addElement('text', $option, get_string('new'.$option, 'resource'), array('size'=>'4'));
+                $mform->setDefault($option, $CFG->{'resource_popup'.$option});
+                $mform->disabledIf($option, 'windowpopup', 'eq', 0);
+            } else {
+                $mform->addElement('checkbox', $option, get_string('new'.$option, 'resource'));
+                $mform->setDefault($option, $CFG->{'resource_popup'.$option});
+                $mform->disabledIf($option, 'windowpopup', 'eq', 0);
+            }
+            $mform->setAdvanced($option);
+        }
+
+        $mform->addElement('header', 'parameters', get_string('parameters', 'resource'));
+
+        $options = array();
+        $options['-'] = get_string('chooseparameter', 'resource').'...';
+        $optgroup = '';
+        foreach ($this->parameters as $pname=>$param) {
+            if ($param['value']=='/optgroup') {
+                $optgroup = '';
+                continue;
+            }
+            if ($param['value']=='optgroup') {
+                $optgroup = $param['langstr'];
+                continue;
+            }
+            $options[$pname] = $optgroup.' - '.$param['langstr'];
+        }
+
+        for ($i = 0; $i < $this->maxparameters; $i++) {
+            $parametername = "parameter$i";
+            $parsename = "parse$i";
+            $group = array();
+            $group[] =& $mform->createElement('text', $parsename, '', array('size'=>'12'));//TODO: accessiblity
+            $group[] =& $mform->createElement('select', $parametername, '', $options);//TODO: accessiblity
+            $mform->addGroup($group, 'pargroup'.$i, get_string('variablename', 'resource').'='.get_string('parameter', 'resource'), ' ', false);
+            $mform->setAdvanced('pargroup'.$i);
+
+            $mform->setDefault($parametername, '-');
         }
     }
 

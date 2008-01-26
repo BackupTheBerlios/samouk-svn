@@ -1,4 +1,4 @@
-<?php  // $Id: index.php,v 1.15 2007/07/23 15:52:19 stronk7 Exp $
+<?php  // $Id: index.php,v 1.16.2.1 2007/11/23 16:41:15 skodak Exp $
 
     // this is the 'my moodle' page
 
@@ -42,22 +42,29 @@
 
     $PAGE->print_header($mymoodlestr);
 
-    echo '<table border="0" cellpadding="3" cellspacing="0" width="100%" id="layout-table">';
+    echo '<table id="layout-table">';
     echo '<tr valign="top">';
 
+    $lt = (empty($THEME->layouttable)) ? array('left', 'middle', 'right') : $THEME->layouttable;
+    foreach ($lt as $column) {
+        switch ($column) {
+            case 'left':
 
     $blocks_preferred_width = bounded_number(180, blocks_preferred_width($pageblocks[BLOCK_POS_LEFT]), 210);
 
     if(blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing()) {
         echo '<td style="vertical-align: top; width: '.$blocks_preferred_width.'px;" id="left-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
     }
-
+    
+            break;
+            case 'middle':
+    
     echo '<td valign="top" id="middle-column">';
-    if (!empty($THEME->customcorners)) print_custom_corners_start(TRUE);
+    print_container_start(TRUE);
 
 /// The main overview in the middle of the page
     
@@ -89,19 +96,24 @@
         echo '<br />...';  
     }
     
-    if (!empty($THEME->customcorners)) print_custom_corners_end();
+    print_container_end();
     echo '</td>';
-
+    
+            break;
+            case 'right':
+            
     $blocks_preferred_width = bounded_number(180, blocks_preferred_width($pageblocks[BLOCK_POS_RIGHT]), 210);
 
     if (blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $PAGE->user_is_editing()) {
         echo '<td style="vertical-align: top; width: '.$blocks_preferred_width.'px;" id="right-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
     }
-
+            break;
+        }
+    }
 
     /// Finish the page
     echo '</tr></table>';

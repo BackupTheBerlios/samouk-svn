@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.17 2007/09/20 15:57:02 tjhunt Exp $
+<?php  // $Id: questiontype.php,v 1.17.2.2 2007/12/13 17:24:51 tjhunt Exp $
 
 /////////////////
 /// TRUEFALSE ///
@@ -107,7 +107,7 @@ class question_truefalse_qtype extends default_questiontype {
         }
         // Load the answers
         if (!$question->options->answers = get_records('question_answers', 'question', $question->id, 'id ASC')) {
-           notify('Error: Missing question answers!');
+           notify('Error: Missing question answers for truefalse question ' . $question->id . '!');
            return false;
         }
 

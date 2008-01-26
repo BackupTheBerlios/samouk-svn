@@ -1,4 +1,4 @@
-<?php  // $Id: lib.php,v 1.538 2007/10/05 04:24:42 nicolasconnault Exp $
+<?php  // $Id: lib.php,v 1.538.2.13 2008/01/10 15:43:21 jmg324 Exp $
    // Library of useful functions
 
 
@@ -13,11 +13,11 @@ define('COURSE_MAX_RECENT_PERIOD', 172800);     // Two days, in seconds
 define('COURSE_MAX_SUMMARIES_PER_PAGE', 10);    // courses
 define('COURSE_MAX_COURSES_PER_DROPDOWN',1000); //  max courses in log dropdown before switching to optional
 define('COURSE_MAX_USERS_PER_DROPDOWN',1000);   //  max users in log dropdown before switching to optional
-define('FRONTPAGENEWS', 0);
-define('FRONTPAGECOURSELIST',     1);
-define('FRONTPAGECATEGORYNAMES',  2);
-define('FRONTPAGETOPICONLY',      3);
-define('FRONTPAGECATEGORYCOMBO',  4);
+define('FRONTPAGENEWS',           '0');
+define('FRONTPAGECOURSELIST',     '1');
+define('FRONTPAGECATEGORYNAMES',  '2');
+define('FRONTPAGETOPICONLY',      '3');
+define('FRONTPAGECATEGORYCOMBO',  '4');
 define('FRONTPAGECOURSELIMIT',    200);         // maximum number of courses displayed on the frontpage
 define('EXCELROWS', 65535);
 define('FIRSTUSEDEXCELROW', 3);
@@ -249,7 +249,6 @@ function make_log_url($module, $url) {
         case 'login':
         case 'lib':
         case 'admin':
-        case 'message':
         case 'calendar':
         case 'mnet course':
             return "/course/$url";
@@ -263,6 +262,9 @@ function make_log_url($module, $url) {
         case 'library':
         case '':
             return '/';
+            break;
+        case 'message':
+            return "/message/$url";
             break;
         default:
             return "/mod/$module/$url";
@@ -529,14 +531,14 @@ function print_log($course, $user=0, $date=0, $order="l.time ASC", $page=0, $per
         echo "<td class=\"cell c1\" align=\"right\">".userdate($log->time, '%a').
              ' '.userdate($log->time, $strftimedatetime)."</td>\n";
         echo "<td class=\"cell c2\">\n";
-        link_to_popup_window("/iplookup/index.php?ip=$log->ip&amp;user=$log->userid", 'iplookup',$log->ip, 400, 700);
+        link_to_popup_window("/iplookup/index.php?ip=$log->ip&amp;user=$log->userid", 'iplookup',$log->ip, 440, 700);
         echo "</td>\n";
         $fullname = fullname($log, has_capability('moodle/site:viewfullnames', get_context_instance(CONTEXT_COURSE, $course->id)));
         echo "<td class=\"cell c3\">\n";
         echo "    <a href=\"$CFG->wwwroot/user/view.php?id={$log->userid}&amp;course={$log->course}\">$fullname</a>\n";
         echo "</td>\n";
         echo "<td class=\"cell c4\">\n";
-        link_to_popup_window( make_log_url($log->module,$log->url), 'fromloglive',"$log->module $log->action", 400, 600);
+        link_to_popup_window( make_log_url($log->module,$log->url), 'fromloglive',"$log->module $log->action", 440, 700);
         echo "</td>\n";;
         echo "<td class=\"cell c5\">{$log->info}</td>\n";
         echo "</tr>\n";
@@ -1130,23 +1132,27 @@ function print_recent_activity($course) {
     $viewfullnames = has_capability('moodle/site:viewfullnames', $context);
 
     foreach ($mods as $mod) {      // Each module gets it's own logs and prints them
-        include_once($CFG->dirroot.'/mod/'.$mod->name.'/lib.php');
-        $print_recent_activity = $mod->name.'_print_recent_activity';
-        if (function_exists($print_recent_activity)) {
-            //
-            // NOTE:
-            //   $isteacher (second parameter below) is to be deprecated!
-            //
-            // TODO:
-            //   1) Make sure that all _print_recent_activity functions are
-            //      not using the $isteacher value.
-            //   2) Eventually, remove the $isteacher parameter from the
-            //      function calls.
-            //
-            $modcontent = $print_recent_activity($course, $viewfullnames, $timestart);
-            if ($modcontent) {
-                $content = true;
+        if (file_exists($CFG->dirroot.'/mod/'.$mod->name.'/lib.php')) {
+            include_once($CFG->dirroot.'/mod/'.$mod->name.'/lib.php');
+            $print_recent_activity = $mod->name.'_print_recent_activity';
+            if (function_exists($print_recent_activity)) {
+                //
+                // NOTE:
+                //   $isteacher (second parameter below) is to be deprecated!
+                //
+                // TODO:
+                //   1) Make sure that all _print_recent_activity functions are
+                //      not using the $isteacher value.
+                //   2) Eventually, remove the $isteacher parameter from the
+                //      function calls.
+                //
+                $modcontent = $print_recent_activity($course, $viewfullnames, $timestart);
+                if ($modcontent) {
+                    $content = true;
+                }
             }
+        } else {
+            /// Really need to indicate an error here to admins. Is there a way to do this?
         }
     }
 
@@ -1233,7 +1239,7 @@ function get_all_mods($courseid, &$mods, &$modnames, &$modnamesplural, &$modname
                 $modnamesplural[$mod->name] = get_string("modulenameplural", "$mod->name");
             }
         }
-        asort($modnames);
+        asort($modnames, SORT_LOCALE_STRING);
     } else {
         error("No modules are installed!");
     }
@@ -1254,7 +1260,7 @@ function get_all_mods($courseid, &$mods, &$modnames, &$modnamesplural, &$modname
             }
         }
         if ($modnamesused) {
-            asort($modnamesused);
+            asort($modnamesused, SORT_LOCALE_STRING);
         }
     }
 }
@@ -1495,7 +1501,7 @@ function print_section_add_menus($course, $section, $modnames, $vertical=false, 
     
     // TODO predelat na nejakou rozumejsi konfiguraci
     $samouk_res = array("resource&amp;type=text","resource&amp;type=textandvideo","resource&amp;type=file","quiz","workshop");
-    $samouk_act = array('resource&amp;type=html','assignment&amp;type=upload','label','resource&amp;type=directory');
+    $samouk_act = array('resource&amp;type=html','assignment&amp;type=upload','label','resource&amp;type=directory','dimdim');
     $samouk_hw = array(/*'assignment_group_start',*/'assignment&amp;type=upload','assignment&amp;type=online','assignment&amp;type=uploadsingle','assignment&amp;type=offline'/*,'assignment_group_end'*/);
 
     static $resources = false;
@@ -1603,6 +1609,32 @@ function rebuild_course_cache($courseid=0) {
 }
 
 
+function get_child_categories($parent) {
+/// Returns an array of the children categories for the given category
+/// ID by caching all of the categories in a static hash
+
+    static $allcategories = null;
+
+    // only fill in this variable the first time
+    if (null == $allcategories) {
+        $allcategories = array();
+
+        $categories = get_categories();
+        foreach ($categories as $category) {
+            if (empty($allcategories[$category->parent])) {
+                $allcategories[$category->parent] = array();
+            }
+            $allcategories[$category->parent][] = $category;
+        }
+    }
+
+    if (empty($allcategories[$parent])) {
+        return array();
+    } else {
+        return $allcategories[$parent];
+    }
+}
+
 
 function make_categories_list(&$list, &$parents, $category=NULL, $path="") {
 /// Given an empty array, this function recursively travels the
@@ -1628,7 +1660,7 @@ function make_categories_list(&$list, &$parents, $category=NULL, $path="") {
         $category->id = 0;
     }
 
-    if ($categories = get_categories($category->id)) {   // Print all the children recursively
+    if ($categories = get_child_categories($category->id)) {   // Print all the children recursively
         foreach ($categories as $cat) {
             if (!empty($category->id)) {
                 if (isset($parents[$category->id])) {
@@ -1666,7 +1698,7 @@ function print_whole_category_list($category=NULL, $displaylist=NULL, $parentsli
         $category->id = "0";
     }
 
-    if ($categories = get_categories($category->id)) {   // Print all the children recursively
+    if ($categories = get_child_categories($category->id)) {   // Print all the children recursively
         $countcats = count($categories);
         $count = 0;
         $first = true;
@@ -1725,8 +1757,8 @@ function print_category_info($category, $depth, $files = false) {
 
     echo "\n\n".'<table class="categorylist">';
 
+    $courses = get_courses($category->id, 'c.sortorder ASC', 'c.id,c.sortorder,c.visible,c.fullname,c.shortname,c.password,c.summary,c.guest,c.cost,c.currency');
     if ($files and $coursecount) {
-        $courses = get_courses($category->id, 'c.sortorder ASC', 'c.id,c.sortorder,c.visible,c.fullname,c.shortname,c.password,c.summary,c.guest,c.cost,c.currency');
 
         echo '<tr>';
 
@@ -1789,8 +1821,8 @@ function print_category_info($category, $depth, $files = false) {
         echo '<a '.$catlinkcss.' href="'.$CFG->wwwroot.'/course/category.php?id='.$category->id.'">'. format_string($category->name).'</a>';
         echo '</td>';
         echo '<td valign="top" class="category number">';
-        if ($category->coursecount) {
-            echo $category->coursecount;
+        if (count($courses)) {
+           echo count($courses);
         }
         echo '</td></tr>';
     }
@@ -1809,32 +1841,38 @@ function print_courses($category, $hidesitecourse = false) {
     global $CFG;
 
     if (!is_object($category) && $category==0) {
-        $categories = get_categories(0);  // Parent = 0   ie top-level categories only
+        $categories = get_child_categories(0);  // Parent = 0   ie top-level categories only
         if (is_array($categories) && count($categories) == 1) {
             $category   = array_shift($categories);
             $courses    = get_courses_wmanagers($category->id, 
                                                 'c.sortorder ASC', 
+            									// kowy - 2007-01-12 - added timecreated and enrolperiod attribute
                                                 array('password','summary','currency','timecreated','enrolperiod'));
         } else {
             $courses    = get_courses_wmanagers('all', 
-                                                'c.sortorder ASC', 
+                                                'c.sortorder ASC',
+            									// kowy - 2007-01-12 - added timecreated and enrolperiod attribute 
                                                 array('password','summary','currency','timecreated','enrolperiod'));
         }
         unset($categories);
     } else {
         $courses    = get_courses_wmanagers($category->id, 
-                                            'c.sortorder ASC', 
+                                            'c.sortorder ASC',
+									    	// kowy - 2007-01-12 - added timecreated and enrolperiod attribute 
                                             array('password','summary','currency','timecreated','enrolperiod'));
     }
 
     if ($courses) {
+        echo '<ul class="unlist">';
         foreach ($courses as $course) {
-            // 
-            //if ($course->visible == 1
-            //    || has_capability('moodle/course:viewhidden',$course->context)) {
+            if ($course->visible == 1
+                || has_capability('moodle/course:viewhiddencourses',$course->context)) {
+                echo '<li>';
                 print_course($course);
-            //}
+                echo "</li>\n";
+            }
         }
+        echo "</ul>\n";
     } else {
         print_heading(get_string("nocoursesyet"));
         $context = get_context_instance(CONTEXT_SYSTEM, SITEID);
@@ -1953,8 +1991,9 @@ function print_course($course) {
          $linkcss.' href="'.$CFG->wwwroot.'/course/view.php?id='.$course->id.'">'.
          format_string($course->fullname).'</a></div>';
     
-    require_once("$CFG->dirroot/enrol/enrol.class.php");
-    $enrol = enrolment_factory::factory($course->enrol);
+    // kowy - 2007-01-21 - not only one enrolment possibility will be used
+    //require_once("$CFG->dirroot/enrol/enrol.class.php");
+    //$enrol = enrolment_factory::factory($course->enrol);
     //echo $enrol->get_access_icons($course);
 
     echo '<div class="summary">';
@@ -2002,6 +2041,7 @@ function print_my_moodle() {
         error("It shouldn't be possible to see My Moodle without being logged in.");
     }
 
+    // kowy - 2008/01/17 - added timecreated attribute
     $courses  = get_my_courses($USER->id, 'visible DESC,sortorder ASC', array('summary','timecreated','enrolperiod','currency'));
     $rhosts   = array();
     $rcourses = array();
@@ -2076,21 +2116,21 @@ function print_course_search($value="", $return=false, $format="plain") {
         $output  = '<form id="'.$id.'" action="'.$CFG->wwwroot.'/course/search.php" method="get">';
         $output .= '<fieldset class="coursesearchbox invisiblefieldset">';
         $output .= '<label for="coursesearchbox">'.$strsearchcourses.': </label>';
-        $output .= '<input type="text" id="coursesearchbox" size="30" name="search" alt="'.s($strsearchcourses).'" value="'.s($value, true).'" />';
+        $output .= '<input type="text" id="coursesearchbox" size="30" name="search" value="'.s($value, true).'" />';
         $output .= '<input type="submit" value="'.get_string('go').'" />';
         $output .= '</fieldset></form>';
     } else if ($format == 'short') {
         $output  = '<form id="'.$id.'" action="'.$CFG->wwwroot.'/course/search.php" method="get">';
         $output .= '<fieldset class="coursesearchbox invisiblefieldset">';
         $output .= '<label for="coursesearchbox">'.$strsearchcourses.': </label>';
-        $output .= '<input type="text" id="coursesearchbox" size="12" name="search" alt="'.s($strsearchcourses).'" value="'.s($value, true).'" />';
+        $output .= '<input type="text" id="coursesearchbox" size="12" name="search" value="'.s($value, true).'" />';
         $output .= '<input type="submit" value="'.get_string('go').'" />';
         $output .= '</fieldset></form>';
     } else if ($format == 'navbar') {
         $output  = '<form id="coursesearchnavbar" action="'.$CFG->wwwroot.'/course/search.php" method="get">';
         $output .= '<fieldset class="coursesearchbox invisiblefieldset">';
         $output .= '<label for="coursesearchbox">'.$strsearchcourses.': </label>';
-        $output .= '<input type="text" id="coursesearchbox" size="20" name="search" alt="'.s($strsearchcourses).'" value="'.s($value, true).'" />';
+        $output .= '<input type="text" id="coursesearchbox" size="20" name="search" value="'.s($value, true).'" />';
         $output .= '<input type="submit" value="'.get_string('go').'" />';
         $output .= '</fieldset></form>';
     }
@@ -2109,7 +2149,7 @@ function print_remote_course($course, $width="100%") {
 
     $url = "{$CFG->wwwroot}/auth/mnet/jump.php?hostid={$course->hostid}&amp;wantsurl=/course/view.php?id={$course->remoteid}";
 
-    echo '<div class="coursebox remotecoursebox">';
+    echo '<div class="coursebox remotecoursebox clearfix">';
     echo '<div class="info">';
     echo '<div class="name"><a title="'.get_string('entercourse').'"'.
          $linkcss.' href="'.$url.'">'
@@ -2124,7 +2164,6 @@ function print_remote_course($course, $width="100%") {
     echo format_text($course->summary, FORMAT_MOODLE, $options);
     echo '</div>';
     echo '</div>';
-    echo '<div class="clearer"></div>';
 }
 
 function print_remote_host($host, $width="100%") {
@@ -2133,7 +2172,7 @@ function print_remote_host($host, $width="100%") {
 
     $linkcss = '';
 
-    echo '<div class="coursebox">';
+    echo '<div class="coursebox clearfix">';
     echo '<div class="info">';
     echo '<div class="name">';
     echo '<img src="'.$CFG->pixpath.'/i/mnethost.gif" class="icon" alt="'.get_string('course').'" />';
@@ -2143,7 +2182,6 @@ function print_remote_host($host, $width="100%") {
     echo '</div>';
     echo '</div>';
     echo '</div>';
-    echo '<div class="clearer"></div>';
 }
 
 

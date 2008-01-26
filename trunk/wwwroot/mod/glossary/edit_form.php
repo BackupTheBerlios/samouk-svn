@@ -1,4 +1,4 @@
-<?php // $Id: edit_form.php,v 1.7 2007/08/06 18:29:56 stronk7 Exp $
+<?php // $Id: edit_form.php,v 1.7.2.1 2007/11/23 22:12:38 skodak Exp $
 require_once ($CFG->dirroot.'/lib/formslib.php');
 
 class mod_glossary_entry_form extends moodleform {
@@ -94,9 +94,9 @@ class mod_glossary_entry_form extends moodleform {
         $this->add_action_buttons();
     }
 
-    function validation($data){
+    function validation($data, $files) {
         global $CFG, $USER;
-        $errors = array();
+        $errors = parent::validation($data, $files);
         $e = $this->_customdata['e'];
         $glossary = $this->_customdata['glossary'];
         $context = $this->_customdata['context'];

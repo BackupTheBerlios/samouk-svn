@@ -1,4 +1,4 @@
-<?php // $Id: unenrol.php,v 1.31 2007/09/19 07:17:23 martinlanghoff Exp $
+<?php // $Id: unenrol.php,v 1.32.2.1 2007/12/23 16:17:13 poltawski Exp $
 
 //  Remove oneself or someone else from a course, unassigning all
 //  roles one might have
@@ -13,6 +13,12 @@
     $id      = required_param('id', PARAM_INT);               //course
     $userid  = optional_param('user', 0, PARAM_INT);          //course
     $confirm = optional_param('confirm', 0, PARAM_BOOL);
+    if($userid == $USER->id){
+        // the rest of this code assumes $userid=0 means 
+        // you are unassigning yourself, so set this for the
+        // correct capabiliy checks & language later
+        $userid = 0;
+    }
 
     if (! $course = get_record('course', 'id', $id) ) {
         error('Invalid course id');

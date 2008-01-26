@@ -1,4 +1,27 @@
-<?php  //$Id: outcomeitem.php,v 1.14 2007/10/04 08:48:04 skodak Exp $
+<?php  //$Id: outcomeitem.php,v 1.15.3 2007/11/26 17:44:46 kowy Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once '../../../config.php';
 require_once $CFG->dirroot.'/grade/lib.php';
@@ -27,15 +50,25 @@ if ($mform->is_cancelled() || empty($CFG->enableoutcomes)) {
     redirect($returnurl);
 }
 
-if ($item = get_record('grade_items', 'id', $id, 'courseid', $course->id)) {
-    $item = new grade_item($item, false);
-
+if ($grade_item = grade_item::fetch(array('id'=>$id, 'courseid'=>$courseid))) {
     // redirect if outcomeid present
     if (empty($item->outcomeid)) {
         $url = $CFG->wwwroot.'/grade/edit/tree/item.php?id='.$id.'&amp;courseid='.$courseid;
         redirect($gpr->add_url_params($url));
     }
-    $item->calculation = grade_item::denormalize_formula($item->calculation, $course->id);
+    $item = $grade_item->get_record_data();
+
+    if ($grade_item->is_course_item()) {
+        $item->parentcategory = 0;
+    } else if ($grade_item->is_category_item()) {
+        $parent_category = $grade_item->get_parent_category();
+        $parent_category = $parent_category->get_parent_category();
+        $item->parentcategory = $parent_category->id;
+    } else {
+        $parent_category = $grade_item->get_parent_category();
+        $item->parentcategory = $parent_category->id;
+    }
+
     if ($item->itemtype == 'mod') {
         $cm = get_coursemodule_from_instance($item->itemmodule, $item->iteminstance, $item->courseid);
         $item->cmid = $cm->id;
@@ -44,11 +77,14 @@ if ($item = get_record('grade_items', 'id', $id, 'courseid', $course->id)) {
     }
 
 } else {
-    $item = new grade_item(array('courseid'=>$courseid, 'itemtype'=>'manual'));
+    $grade_item = new grade_item(array('courseid'=>$courseid, 'itemtype'=>'manual'), false);
+    $item = $grade_item->get_record_data();
     $item->cmid = 0;
+    $parent_category = grade_category::fetch_course_category($courseid);
+    $item->parentcategory = $parent_category->id;
 }
 
-$decimalpoints = $item->get_decimals();
+$decimalpoints = $grade_item->get_decimals();
 
 if ($item->hidden > 1) {
     $item->hiddenuntil = $item->hidden;
@@ -141,6 +177,11 @@ if ($data = $mform->get_data(false)) {
                 $grade_item->set_parent($item->categoryid);
                 $grade_item->move_after_sortorder($item->sortorder);
             }
+        } else {
+            // set parent if needed
+            if (isset($data->parentcategory)) {
+                $grade_item->set_parent($data->parentcategory, 'gradebook');
+            }
         }
 
     } else {
@@ -167,7 +208,9 @@ $stroutcome      = get_string('outcomeitem', 'grades');
 
 $navigation = grade_build_nav(__FILE__, $stroutcome, array('courseid' => $courseid));
 
-print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $stroutcomesedit, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $stroutcomesedit, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 $mform->display();
 

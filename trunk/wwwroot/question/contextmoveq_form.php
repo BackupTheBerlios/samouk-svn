@@ -1,4 +1,4 @@
-<?php  //$Id$
+<?php  // $Id$
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -45,8 +45,8 @@ class question_context_move_question_form extends moodleform {
         $this->add_action_buttons(true, get_string('moveq', 'question'));
     }
 
-    function validation($data){
-        $errors = array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
         $tocoursefilesid = $this->_customdata['tocoursefilesid'];
         $fromcoursefilesid = $this->_customdata['fromcoursefilesid'];
         if (isset($data['urls'])  && (count($data['urls']))){

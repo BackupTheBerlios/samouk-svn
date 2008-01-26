@@ -3,67 +3,6 @@
  * Library functions for using AJAX with Moodle.
  */
 
-
-/**
- * Used to include JavaScript libraries.
- *
- * When the $lib parameter is given, the function will add $lib to an
- * internal list of libraries. When called without any parameters, it will
- * return the html that is needed to load the JavaScript libraries in that
- * list. Libraries that are included more than once will still only get loaded
- * once, so this works like require_once() in PHP.
- *
- * @param $lib - string or array of strings
- *               string(s) should be the shortname for the library or the
- *               full path to the library file.
- * @return string or false or nothing.
- */
-function require_js($lib='') {
-    global $CFG;
-    static $loadlibs = array();
-
-    if (!ajaxenabled()) {
-        //return false;
-    }
-
-    if (!empty($lib)) {
-        // Add the lib to the list of libs to be loaded, if it isn't already
-        // in the list.
-        if (is_array($lib)) {
-            array_map('require_js', $lib);
-        } else {
-            $libpath = ajax_get_lib($lib);
-            if (array_search($libpath, $loadlibs) === false) {
-                $loadlibs[] = $libpath;
-                // If this is called after header, then we print it right away
-                // as otherwise nothing will ever happen!
-                if (defined('HEADER_PRINTED')) {
-                    $realloadlibs=$loadlibs;            
-                    $loadlibs=array($libpath);
-                    print require_js();
-                    $loadlibs=$realloadlibs;
-                }
-            }
-        }
-    } else {
-        // Return the html needed to load the JavaScript files defined in
-        // our list of libs to be loaded.
-        $output = '';
-
-        foreach ($loadlibs as $loadlib) {
-            $output .= '<script type="text/javascript" ';
-            $output .= " src=\"$loadlib\"></script>\n";
-            if ($loadlib == $CFG->wwwroot.'/lib/yui/logger/logger-min.js') {
-                // Special case, we need the CSS too.
-                $output .= '<link type="text/css" rel="stylesheet" ';
-                $output .= " href=\"{$CFG->wwwroot}/lib/yui/logger/assets/logger.css\" />\n";
-            }
-        }
-        return $output;
-    }
-}
-
-
 /**
  * Get the path to a JavaScript library.
  * @param $libname - the name of the library whose path we need.
@@ -195,7 +134,14 @@ class jsportal {
         $output .= "    main.portal.blocks = new Array(".$blocksoutput.");\n";
         $output .= "    main.portal.strings['wwwroot']='".$CFG->wwwroot."';\n";
         $output .= "    main.portal.strings['pixpath']='".$CFG->pixpath."';\n";
+        $output .= "    main.portal.strings['marker']='".get_string('markthistopic', '', '_var_')."';\n";
+        $output .= "    main.portal.strings['marked']='".get_string('markedthistopic', '', '_var_')."';\n";
+        $output .= "    main.portal.strings['hide']='".get_string('hide')."';\n";
+        $output .= "    main.portal.strings['hidesection']='".get_string('hidesection', '', '_var_')."';\n";
+        $output .= "    main.portal.strings['show']='".get_string('show')."';\n";
+        $output .= "    main.portal.strings['delete']='".get_string('delete')."';\n";
         $output .= "    main.portal.strings['move']='".get_string('move')."';\n";
+        $output .= "    main.portal.strings['movesection']='".get_string('movesection', '', '_var_')."';\n";
         $output .= "    main.portal.strings['moveleft']='".get_string('moveleft')."';\n";
         $output .= "    main.portal.strings['moveright']='".get_string('moveright')."';\n";
         $output .= "    main.portal.strings['update']='".get_string('update')."';\n";

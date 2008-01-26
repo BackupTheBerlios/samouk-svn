@@ -1,5 +1,5 @@
 <?php
-// $Id: preset_class.php,v 1.2 2007/04/03 03:32:47 nicolasconnault Exp $
+// $Id: preset_class.php,v 1.2.2.1 2007/11/26 04:42:24 scyrma Exp $
 
 /**
  * This object is a representation of a file-based preset for database activities
@@ -380,12 +380,10 @@ class Data_Preset
         }
 
         $strblank = get_string('blank', 'data');
-        $strnofields = get_string('nofields', 'data');
         $strcontinue = get_string('continue');
         $strwarning = get_string('mappingwarning', 'data');
         $strfieldmappings = get_string('fieldmappings', 'data');
         $strnew = get_string('new');
-        $strold = get_string('old');
 
         $sesskey = sesskey();
 

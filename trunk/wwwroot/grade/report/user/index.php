@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.26 2007/08/01 07:41:14 nicolasconnault Exp $
+<?php // $Id: index.php,v 1.9 2007/12/18 11:59:52 kowy Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 // NOTICE OF COPYRIGHT                                                   //
@@ -41,7 +41,7 @@ if (!$user = get_complete_user_data('id', $userid)) {
 }
 
 $context     = get_context_instance(CONTEXT_COURSE, $course->id);
-$usercontext = get_context_instance(CONTEXT_PERSONAL, $user->id);
+$usercontext = get_context_instance(CONTEXT_USER, $user->id);
 require_capability('gradereport/user:view', $context);
 
 $access = true;
@@ -51,11 +51,11 @@ if (has_capability('moodle/grade:viewall', $context)) {
 } else if ($user->id == $USER->id and has_capability('moodle/grade:view', $context) and $course->showgrades) {
     //ok - can view own grades
 
-} else if (has_capability('moodle/grade:view', $usercontext) and $course->showgrades) {
+} else if (has_capability('moodle/grade:viewall', $usercontext) and $course->showgrades) {
     // ok - can view grades of this user- parent most probably
 
 } else {
-    $acces = false;
+    $access = false;
 }
 
 /// return tracking object
@@ -75,7 +75,9 @@ $navigation = grade_build_nav(__FILE__, $reportname, $courseid);
 
 /// Print header
 print_header_simple($strgrades.': '.$reportname, ': '.$strgrades, $navigation,
-                    '', '', true, '', navmenu($course));
+                    '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Print the plugin selector at the top
 print_grade_plugin_selector($courseid, 'report', 'user');
@@ -87,9 +89,6 @@ if ($access) {
 
     // Create a report instance
     $report = new grade_report_user($courseid, $gpr, $context, $userid);
-
-    $gradetotal = 0;
-    $gradesum = 0;
 
     // print the page
     print_heading(get_string('modulename', 'gradereport_user'). ' - '.fullname($report->user));

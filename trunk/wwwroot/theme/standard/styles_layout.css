@@ -1,4 +1,3 @@
-/* @override http://moodle18.userver.lan/theme/standard/styles_layout.css */
 /*******************************************************************
  styles_layout.css
 
@@ -155,6 +154,10 @@ div.groupselector {
   display:inline;
 }
 
+.box {
+  clear: both;
+}
+
 .generalbox {
   border-width:1px;
   border-style:solid;
@@ -254,6 +257,14 @@ div.groupselector {
 }
 
 .feedback {
+}
+
+.rsslink {
+  padding:  0 0 0 0.3em;
+}
+
+.printicon {
+  padding:  0 0 0 0.3em;
 }
 
 .generaltable {
@@ -427,42 +438,6 @@ form.popupform label {
   width: 14em;
 }
 
-
-#grouping-groups-overview {
-  margin: auto;
-  width: 90%;
-}
-
-#grouping-groups-overview ul {
-  list-style: none;
-  padding-left: 0;
-  margin-left: 0px;
-  font-weight: bold;
-}
-
-/* First level list items i.e. groupings */
-#grouping-groups-overview ul li {
-  padding-bottom: 1.8em;
-}
-
-/* Second level list items i.e. groups */
-#grouping-groups-overview ul li ul li {
-  font-style: italic;
-  font-weight: normal;
-  background-color: #ffffff;
-  border: 1px solid #DDDDDD;
-  padding: 1.1em;
-  margin: 0.1em; 
-}
-
-/* Third level list items i.e. group members */
-#grouping-groups-overview ul li ul li ul li {
-  font-style: normal;
-  border: none;
-  padding: 0;
-}
-
-
 img.icon {
   vertical-align:middle;
   margin-right:4px;
@@ -496,7 +471,7 @@ img.iconkbhelp {
 /*Accessibility: text 'seen' by screen readers but not visual users. Fixed for RTL languages, example Farsi. */
 .accesshide {
   position:absolute;
-  top:-1000px;
+  top:-100000px;
   left:10px;
   font-weight:normal;
   font-size:1em;
@@ -590,7 +565,8 @@ fieldset.fdate_selector label {
 .mform input, .mform select {
   width: auto;
 }
-.mform ftextarea {
+.mform .ftextarea #id_alltext {
+    width: 100%;
 }
 .mform br {
   clear: left;
@@ -621,18 +597,13 @@ fieldset.fdate_selector label {
   margin-right:3px;
 }
 
-form#adminsettings div.htmlarea {
-  clear: left;
-  padding-top: 5px;
-}
-
 .mform label .req, .mform label .adv {
   cursor: help;
 }
 
 /* form frozen */
 div.mform div.fitem div.fstatic{
- border-color : lightgrey;
+ border-color : #D3D3D3;
  border-style : dashed;
  border-width : thin;
 }
@@ -667,12 +638,6 @@ div.phpinfo .center th {
 /***
  *** Header
  ***/
-
-.headerskip {
-  position:absolute;
-  right:20em;
-  font-size:0.8em;
-}
 
 #header-home {
 }
@@ -963,8 +928,10 @@ body#admin-modules table.generaltable td.c0
 }
 
 #admin-roles-manage .selector,
+#admin-roles-assign .selector,
 #admin-roles-override .selector {
   text-align:center;
+  margin-bottom:1em;
 }
 
 #admin-roles-manage table.roledesc,
@@ -992,6 +959,7 @@ body#admin-modules table.generaltable td.c0
 }
 
 #admin-roles-override .cell.c1,
+#admin-roles-assign .cell.c3,
 #admin-roles-assign .cell.c1 {
   padding-top: 0.75em;
 }
@@ -1028,6 +996,44 @@ body#admin-modules table.generaltable td.c0
   margin:20px;
 }
 
+/* Admin settings */
+#adminsettings div.form-item {
+  clear: both;
+  margin: 1em 0 2em 0;
+}
+
+#adminsettings .form-label {
+  display: block;
+  float: left;
+  width: 12.5em;
+  text-align: right;
+}
+
+#adminsettings .form-shortname {
+  display: block;
+}
+
+#adminsettings .form-setting {
+  display: block;
+  margin-left: 13em;
+  text-align: left;
+}
+
+#adminsettings .form-defaultinfo {
+  display: inline;
+}
+
+#adminsettings .defaultsnext {
+  margin-right: 0.5em;
+  display: inline;
+}
+
+#adminsettings .form-description {
+  display: block;
+  margin: 0.5em 0 0em 13em;
+  text-align: left;
+}
+
 #adminsettings fieldset {
   margin-top: 1em;
   padding: 1em 0.5em;
@@ -1037,68 +1043,48 @@ body#admin-modules table.generaltable td.c0
   display: none;
 }
 
-#adminsettings .form-group {
-  float: left;
+#adminsettings fieldset.error {
+  margin: 0.2em 0 0.5em 0;
+  padding: 0.5em 0 0 0;
 }
 
-#adminsettings .form-item {
-  margin: 0;
-}
-
-#adminsettings label {
-  display: block;
-  float: left;
-  width: 150px;
-  text-align: right;
-}
-
-#adminsettings .form-shortname {
+#adminsettings fieldset.error legend {
   display: block;
 }
 
-#adminsettings select,
-#adminsettings input {
-  float: left;
-  margin: 0 0 0 10px;
+#adminsettings .form-multicheckbox li {
+  list-style: none;
 }
 
-#adminsettings textarea {
-  float: left;
-  margin: 0 0 0 10px;
-  width: 65%;
+#adminsettings .form-multicheckbox ul {
+  padding:0;
+  margin:0;
 }
 
-#adminsettings .form-group select,
-#adminsettings .form-group input {
-  display: inline;
-  float: none;
+#adminsettings .form-text input {
+  width: 20em;
 }
 
-
-/* #adminsettings .admin-configtime .form-select {
-  display: inline;
-  float: none;
+#adminsettings .form-password input[type="text"],
+#adminsettings .form-password input[type="password"] {
+    width: 20em;
 }
 
-#adminsettings div.admin-frontpage div.form-group select.form-select {
-  display: inline;
-  float: none;
-} */
-
-#adminsettings .description {
-  clear: both;
-  margin: 0 1em 0 160px;
-  padding: 0.3em 0 1.5em 0;
+#adminsettings .form-text input.number {
+  width: 5em;
 }
 
-#adminsettings .form-item .unmask input {
-  margin-left:5px;
-  margin-right:3px;
+#adminsettings .form-file input {
+    width: 30em;
 }
 
-#adminsettings .form-item .unmask label {
-  width: auto;
-  text-align: left;
+#adminsettings .form-item .pathok,
+#adminsettings .form-item .patherror {
+  margin-left: 0.5em;
+}
+
+#adminsettings .form-htmlarea {
+  width:  640px;
 }
 
 .environmentbox {
@@ -1106,22 +1092,7 @@ body#admin-modules table.generaltable td.c0
 }
 
 .form-buttons {
-  margin: 10px 0 0 160px;
-}
-
-.form-text {
-  width: 20em;
-}
-.form-textarea { }
-.form-select { }
-.form-checkbox { }
-.form-radio { }
-.form-submit { }
-.form-reset { }
-
-.admin-frontpagedesc .htmlarea {
-  margin: 0 auto 10px auto;
-  width : 600px;
+  margin: 10px 0 0 13em;
 }
 
 .adminsearchform {
@@ -1130,6 +1101,22 @@ body#admin-modules table.generaltable td.c0
 
 .block_admin_tree .admintree {
   text-align:left;
+}
+
+.block_admin_tree .admintree .depth1 {
+  padding-left: 16px;
+}
+
+.block_admin_tree .admintree .depth2 {
+  padding-left: 32px;
+}
+
+.block_admin_tree .admintree .depth3 {
+  padding-left: 48px;
+}
+
+.block_admin_tree .admintree .depth4 {
+  padding-left: 64px;
 }
 
 #admin-lang .translator {
@@ -1174,21 +1161,34 @@ body#admin-modules table.generaltable td.c0
   display: block;
 }
 
+#admin-uploaduser table#uuresults {
+  margin-bottom: 2em;
+}
+
+#admin-uploaduser table#uupreview,
+#admin-uploaduser table#uuresults td.cell {
+  padding-left: 3px;
+  padding-right: 3px;
+}
+
 /***
  *** Blocks
  ***/
 
-/*Accessibility: Skip block link, for screen reader users. */
-a.skip-block, .skip-block {
-  display:block;
-  width:2em;
-  height:1px;
+/*Accessibility: Skip block link, for keyboard-only users. */
+a.skip-block, a.skip {
+  position: absolute;
+  top: -1000em;
+  font-size: 0.85em;
 }
-.sideblock .skip-block {
-  height:4px;
+a.skip-block:focus, a.skip-block:active,
+a.skip:focus, a.skip:active {
+  position: static;
+  display: block;
 }
-.skip-block-to {
-  font-size:1px;
+.skip-block-to, #maincontent {
+  display: block;
+  height: 1px;
 }
 
 .sideblock {
@@ -1210,11 +1210,8 @@ a.skip-block, .skip-block {
   padding:0;
 }
 
-.sideblock .header .hide-show {
+.sideblock .header .hide-show-image {
   float:right;
-}
-
-.sideblock .header .hide-show img.hide-show-image {
   height:11px;
   width:11px;
   margin-top:0.25em;
@@ -1308,8 +1305,8 @@ a.skip-block, .skip-block {
   clear: left;
 }
 
-.sideblock .content .inline-list li {
-  display:inline;
+.sideblock .content .inline-list li, .inline-list li {
+  display: inline;
 }
 
 .sideblock .content ul.list li.listentry {
@@ -1358,6 +1355,10 @@ a.skip-block, .skip-block {
   margin-right: auto;
 }
 
+.block_adminblock {
+  width: 180px;
+}
+
 .block_messages .content {
   text-align:left;
   font-size:0.75em;
@@ -1396,12 +1397,13 @@ a.skip-block, .skip-block {
 }
 
 .block_tag_youtube .youtube-thumb {
- width:75px;
- height:50px;
+  padding: 3px;
+  padding-bottom: 0.5em;
+  display: block;
+  float: left;
 }
-.block_tag_youtube .yt-video-entry{
- font-size:10px;
- line-height:11px;
+.block_tag_youtube .yt-video-entry li {
+  clear: left;
 }
 
 .block_tag_flickr .flickr-photos {
@@ -1438,6 +1440,9 @@ a.skip-block, .skip-block {
 #calendar h3
 {
   text-align: center;
+}
+#calendar .sideblock h2 {
+  text-align: left;
 }
 
 #calendar .maincalendar,
@@ -1621,16 +1626,10 @@ table.minicalendar th {
 
 #calendar .event_global,
 #calendar .event_course,
-#calendar .event_course0,
-#calendar .event_course1,
-#calendar .event_course2,
 #calendar .event_group,
 #calendar .event_user,
 .minicalendar .event_global,
 .minicalendar .event_course,
-.minicalendar .event_course0,
-.minicalendar .event_course1,
-.minicalendar .event_course2,
 .minicalendar .event_group,
 .minicalendar .event_user {
   border:2px solid !important;
@@ -1638,16 +1637,10 @@ table.minicalendar th {
 
 #calendar .duration_global,
 #calendar .duration_course,
-#calendar .duration_course0,
-#calendar .duration_course1,
-#calendar .duration_course2,
 #calendar .duration_group,
 #calendar .duration_user,
 .minicalendar .duration_global,
 .minicalendar .duration_course,
-.minicalendar .duration_course0,
-.minicalendar .duration_course1,
-.minicalendar .duration_course2,
 .minicalendar .duration_group,
 .minicalendar .duration_user
 {
@@ -1945,6 +1938,15 @@ body#course-category .addcategory {
   padding: 10px;
 }
 
+body#course-category .buttons .singlebutton {
+  display: inline;
+}
+
+body#course-category .buttons {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
 body#course-index #middle-column .editcourse {
   margin-left:auto;
   margin-right:auto;
@@ -1978,7 +1980,7 @@ body#course-info .generalbox.info {
 
 .coursebox {
   width: 100%;
-  float:left;
+  /* float:left; */
   margin-bottom: 15px;
   border-width:1px;
   border-style:solid;
@@ -2180,136 +2182,6 @@ body#doc-contents ul {
  *** Grades
  ***/
 
-.grade-report-grader table {
-  border-width:1px;
-  border-style:solid;
-  margin-top: 20px;
-}
-
-.grade-report-grader #overDiv table {
-  margin: 0;  
-}
-
-.grade-report-grader #overDiv table td.feedback {
-  border: 0px;
-}
-.grade-report-grader #overDiv .feedback {
-  background-color: #AABBFF;
-  color: #000000;
-  font-family: Verdana;
-  font-size: 70%;
-  font-weight: normal;  
-}
-
-.grade-report-grader #overDiv .caption {
-  background-color: #5566CC;
-  color: #CCCCFF;
-  font-family: Arial;
-  font-size: 70%;
-  font-weight: bold;
-}
-
-.grade-report-grader div.submit {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.grade-report-grader table td {
-  border-width:1px;
-  border-style:solid;
-}
-
-.grade-report-grader tr.heading {
-  border-width:0px 0px 0px 0px;
-  border-style:solid;
-}
-
-.grade-report-grader .heading td {
-  border-width:0px 0px 0px 0px;
-  border-style:solid;
-}
-
-.grade-report-grader th.category {
-  border-width:1px 1px 0px 1px;
-  border-style:solid;
-}
-
-.grade-report-grader th.user {
-  border-width:0px 0px 1px 0px;
-  border-style:solid;
-}
-
-.grade-report-grader th.categoryitem,
-.grade-report-grader th.courseitem,
-.grade-report-grader td.topleft {
-  border-width:0px 1px 0px 1px;
-  border-style:solid;
-}
-
-.grade-report-grader td.fillerfirst {
-  border-width:0px 0px 0px 1px;
-  border-style:solid;
-}
-
-.grade-report-grader td.fillerlast {
-  border-width:0px 1px 0px 0px;
-  border-style:solid;
-}
-
-.grade-report-grader th.item {
-  border-width:1px 1px 1px 1px;
-  border-style:solid;
-}
-
-.grade-report-grader div.gradertoggle {
-  display: inline;
-  margin-left: 20px;
-}
-
-.grade-report-grader table.gradestable {
-  margin-left:auto;
-  margin-right:auto;
-}
-
-.grade-report-grader .gradestable th.user {
-  text-align:left;
-}
-
-.grade-report-grader .gradestable td {
-  text-align:right;
-}
-
-.grade-report-grader th.range {
-  border-width:1px 1px 1px 1px;
-  border-style:solid;
-}
-
-.grade-report-grader .userpic {
-  display: inline;
-  margin-right: 10px;
-}
-
-.grade-report-grader .quickfeedback {
-  border: #000000 1px dashed;
-}
-
-.grade-report-user table#user-grade td.cell {
-  padding-right: 10px;
-}
-
-.popupfeedback {
-  background-color: #FFFFFF;
-  border: #000000 1px dashed;
-}
-
-.gradebook_feedback {
-  display: block;
-  color: yellow;
-}
-
-.gradebook_feedback_caption {
-  font-size: 2em;
-}
 /* scales edit */
 
 .grade-edit-scale .buttons {
@@ -2376,10 +2248,6 @@ body#doc-contents ul {
   margin-bottom: 6px;
 }
 
-.grade-edit-tree .moving {
-  background-color: #E8EEF7;
-}
-
 .grade-edit-tree .iconsmall {
   margin-left: 4px;
 }
@@ -2388,15 +2256,24 @@ body#doc-contents ul {
   text-align: center;
 }
 
-.grade-report-grader #siteconfiglink {
-  text-align: right;
-}
-
 .gradeexportlink {
   padding: 2em;
   text-align: center;
   margin-left: auto;
   margin-right: auto;
+}
+
+#grade-aggregation-help dt {
+    margin-top: 15px; 
+}
+
+#grade-aggregation-help dd.example {
+    margin-top: 7px;
+}
+
+#grade-aggregation-help code {
+    display: block;
+    margin-top: 7px;
 }
 
 /***
@@ -2678,6 +2555,10 @@ body.notes .notesgroup {
   margin-top: 0;
 }
 
+.questioncatategories h3 {
+  margin-top: 0;
+}
+
 .que {
   text-align: left;
   margin: 0 auto 1.8em auto;
@@ -2824,8 +2705,9 @@ body.notes .notesgroup {
 .tabrow0 {
   text-align: center;
   width:100%;
-  padding:0 0 1.75em 0;
   margin:0;
+  margin-top: 10px;
+  padding:0 0 1.75em 0;
   list-style:none;
   line-height:1.8em;
   font-size: 84%;
@@ -2874,7 +2756,9 @@ body.notes .notesgroup {
 }
 
 
-.tabrow0 .here a:link, .tabrow0 .here a:visited {
+.tabrow0 .here a:link, 
+.tabrow0 .here a:visited,
+.tabrow0 .here a.nolink {
   position:relative;
   z-index:102;
 }
@@ -2890,7 +2774,7 @@ body.notes .notesgroup {
 .tabrow0 ul {
   position: absolute;
   left: 0;
-  top: 2.0em;
+  top: 1.95em;
   width: 100%;
   margin: 0;
   padding: 0.25em 0;
@@ -3270,7 +3154,7 @@ body#tag-manage table#tag-management-list {
 }
 
 body#tag-manage table#tag-management-list td,
-body#tag-manage table#tag-management-list, th,
+body#tag-manage table#tag-management-list th,
 body#user-index table#participants td,
 body#user-index table#participants th {
   vertical-align: middle;
@@ -3314,6 +3198,14 @@ body#user-index .rolesform {
 #user-policy #policyframe {
   width:100%;
   height:100%;
+}
+
+.iplookup #map {
+  margin:auto;
+}
+
+.iplookup #note {
+  text-align:center;
 }
 
 /***
@@ -3589,7 +3481,19 @@ body#mod-forum-search .introcontent {
   white-space: nowrap;
 }
 
+#mod-forum-view .groupmenu {
+  float: left;
+  text-align:left;
+  white-space: nowrap;
+}
+
 #mod-forum-view .forumcontrol .subscription {
+  float: right;
+  text-align:right;
+  white-space: nowrap;
+}
+
+#mod-forum-view .subscription {
   float: right;
   text-align:right;
   white-space: nowrap;
@@ -3629,6 +3533,10 @@ body#mod-forum-search .introcontent {
   border-width: 0px 1px 0px 0px;
   border-style: solid;
   text-align:center;
+}
+
+#mod-forum-view .subscription {
+  margin: 5px 0;
 }
 
 /***
@@ -3773,6 +3681,7 @@ body#mod-forum-search .introcontent {
 .mod-glossary .glossarydisplay .tabs {
   margin-bottom: 0px;
 }
+
 .mod-glossary .glossarydisplay .tabs .side {
   border-style: none;
   border-width: 0px;
@@ -3792,6 +3701,7 @@ body#mod-forum-search .introcontent {
   float: right;
   text-align:right;
   white-space: nowrap;
+  margin: 5px 0;
 }
 
 /***
@@ -3857,6 +3767,25 @@ body#mod-forum-search .introcontent {
 {
   text-align: center;
 }
+#mod-quiz-view #page .quizattemptsummary td p {
+  margin-top: 0;
+}
+#mod-quiz-view .generalbox#feedback {
+  width:70%;
+  margin-left:auto;
+  margin-right:auto;
+  padding-bottom:15px;
+}
+#mod-quiz-view .generalbox#feedback h2 {
+  margin: 0 0;
+}
+body#mod-quiz-view .generalbox#feedback .overriddennotice {
+  text-align: center;
+  font-size: 0.7em;
+}
+#mod-quiz-view .generalbox#feedback h3 {
+  text-align: left;
+}
 
 .generalbox#passwordbox { /* Should probably match .generalbox#intro above */
   width:70%;
@@ -3872,6 +3801,19 @@ body#mod-forum-search .introcontent {
 #mod-quiz-attempt .pagingbar {
   margin: 1.5em auto;
 }
+#mod-quiz-attempt #page {
+    text-align: center;
+}
+
+#mod-quiz-attempt #timer .generalbox {
+  width:150px
+}
+
+#mod-quiz-attempt #timer {
+  position:absolute;
+  /*top:100px; is set by js*/
+  left:10px
+}
 
 body#question-preview .quemodname,
 body#question-preview .controls
@@ -3882,9 +3824,10 @@ body#question-preview .quemodname, body#question-preview .controls {
   text-align: center;
 }
 
+#mod-quiz-attempt #page .controls,
 #mod-quiz-review #page .controls {
   text-align: center;
-  margin: 1.5em auto;
+  margin: 8px auto;
 }
 #mod-quiz-review .pagingbar {
   margin: 1.5em auto;
@@ -3932,7 +3875,7 @@ table.quizreviewsummary td.cell {
 }
 
 #mod-quiz-edit #page .controls,
-#mod-quiz-edit #page .attemptsnotice
+#mod-quiz-edit #page .quizattemptcounts
 {
   text-align: center;
 }
@@ -3946,48 +3889,132 @@ table.quizreviewsummary td.cell {
   text-align: center;
 }
 
-body#mod-quiz-report table#attempts,
-body#mod-quiz-report table#commands,
-body#mod-quiz-report table#itemanalysis
+#mod-quiz-report table#attempts,
+#mod-quiz-report table#commands,
+#mod-quiz-report table#itemanalysis
 {
   width: 80%;
   margin: auto;
 }
-body#mod-quiz-report table#attempts,
-body#mod-quiz-report h2.main {
+#mod-quiz-report table#attempts,
+#mod-quiz-report h2.main {
   clear: both;
 }
-body#mod-quiz-report table#attempts {
+#mod-quiz-report table#attempts {
   margin: 20px auto;
 }
-body#mod-quiz-report table#attempts .header,
-body#mod-quiz-report table#attempts .cell
+#mod-quiz-report table#attempts .header,
+#mod-quiz-report table#attempts .cell
 {
   padding: 4px;
 }
-body#mod-quiz-report table#attempts .header .commands {
+#mod-quiz-report table#attempts .header .commands {
   display: inline;
 }
-body#mod-quiz-report table#attempts .picture {
+#mod-quiz-report table#attempts .picture {
   width: 40px;
 }
-body#mod-quiz-report table#attempts td {
+#mod-quiz-report table#attempts td {
   border-left-width: 1px;
   border-right-width: 1px;
   border-left-style: solid;
   border-right-style: solid;
   vertical-align: middle;
 }
-body#mod-quiz-report table#attempts .header {
+#mod-quiz-report table#attempts .header {
   text-align: left;
 }
-body#mod-quiz-report table#attempts .picture {
+#mod-quiz-report table#attempts .picture {
   text-align: center !important;
 }
-body#mod-quiz-report .controls {
+#mod-quiz-report .controls {
   text-align: center;
 }
 
+#mod-quiz-report table#itemanalysis {
+  margin: 20px auto;
+}
+#mod-quiz-report table#itemanalysis .header,
+#mod-quiz-report table#itemanalysis .cell
+{
+  padding: 4px;
+}
+#mod-quiz-report table#itemanalysis .header .commands {
+  display: inline;
+}
+#mod-quiz-report table#itemanalysis td {
+  border-width: 1px;
+  border-style: solid;
+}
+#mod-quiz-report table#itemanalysis .header {
+  text-align: left;
+}
+#mod-quiz-report table#itemanalysis .numcol {
+  text-align: center;
+  vertical-align : middle !important;
+}
+
+#mod-quiz-report table#itemanalysis .uncorrect {
+  color: red;
+}
+
+#mod-quiz-report table#itemanalysis .correct {
+  color: blue;
+  font-weight : bold;
+}
+
+#mod-quiz-report table#itemanalysis .partialcorrect {
+  color: green !important;
+}
+
+#mod-quiz-report table#itemanalysis .qname {
+  color: green !important;
+}
+
+/* manual grading */
+#mod-quiz-grading table#grading
+{
+  width: 80%;
+  margin: auto;
+}
+
+#mod-quiz-grading table#grading
+{
+  margin: 20px auto;
+}
+
+#mod-quiz-grading table#grading .header,
+#mod-quiz-grading table#grading .cell
+{
+  padding: 4px;
+}
+
+#mod-quiz-grading table#grading .header .commands 
+{
+  display: inline;
+}
+
+#mod-quiz-grading table#grading .picture 
+{
+  width: 40px;
+}
+
+#mod-quiz-grading table#grading td 
+{
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-left-style: solid;
+  border-right-style: solid;
+  vertical-align: bottom;
+}
+
+.mod-quiz .gradingdetails {
+  font-size: small;
+}
+.quizattemptcounts {
+  text-align: center;
+  margin: 6px 0;
+}
 /***
  *** Modules: Resource
  ***/
@@ -4105,34 +4132,35 @@ body#mod-quiz-report .controls {
 }
 
 .smalltext {
-  font-size:0.6em;
+  font-size: 0.75em;
 }
 
-.smalltextcell,
-.screenreadertext {
-  width:10%;
-  text-align:center;
+#surveyform th {
+  font-weight: normal;
+  text-align: left;
+}
+#surveyform th.hresponse {
+  text-align: center;
+  width: 9%;
+}
+
+.rblock label {
+  display: block;
+  text-align: center;
 }
 
 .foundthat,
 .preferthat {
-  width:10%;
   white-space: nowrap;
 }
 
-.qnumtopcell {
-  width:10px;
-  vertical-align:top;
-}
-
 .qnummiddlecell {
-  width:10px;
   vertical-align:middle;
 }
 
 .optioncell {
-  width:40%;
-  vertical-align:middle;
+  width: 50%;
+  vertical-align: top;
 }
 
 .buttoncell {

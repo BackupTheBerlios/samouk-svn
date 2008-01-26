@@ -1,4 +1,4 @@
-<?php  // $Id: abstractqtype.php,v 1.16 2007/08/09 21:53:12 jamiesensei Exp $
+<?php  // $Id: abstractqtype.php,v 1.16.2.1 2007/11/02 16:20:49 tjhunt Exp $
 
 ///////////////////////////////////////////////////////////////
 /// ABSTRACT SUPERCLASS FOR QUSTION TYPES THAT USE DATASETS ///

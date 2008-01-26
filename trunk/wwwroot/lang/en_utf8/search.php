@@ -1,4 +1,4 @@
-<?php  // $Id: search.php,v 1.1 2007/08/12 16:53:24 moodler Exp $
+<?php  // $Id: search.php,v 1.1.2.1 2007/11/20 04:09:41 toyomoyo Exp $
   
 $string['advancedsearch'] = 'Advanced search';
 $string['all'] = 'All';
@@ -51,7 +51,7 @@ $string['tofetchtheseresults'] = 'to fetch these results';
 $string['totalsize'] = 'Total Size ';
 $string['type'] = 'Type';
 $string['uncompleteindexingerror'] = 'Indexing was not successfully completed, please restart it.';
-$string['versiontoolow'] = 'Sorry, global search requires PHP 5.0.0 or later (currently using version '.$phpversion.')';
+$string['versiontoolow'] = 'Sorry, global search requires PHP 5.0.0 or later';
 $string['whichmodulestosearch?'] = 'Which modules to search?';
 $string['wordsintitle'] = 'Words in title';
 ?>

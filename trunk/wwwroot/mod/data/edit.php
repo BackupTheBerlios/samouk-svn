@@ -1,4 +1,4 @@
-<?php  // $Id: edit.php,v 1.32 2007/08/20 22:18:49 mattc-catalyst Exp $
+<?php  // $Id: edit.php,v 1.32.3 2008/01/21 16:09:45 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -68,12 +68,10 @@
     if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities', $context)) {
         $strdatabases = get_string("modulenameplural", "data");
 
-        $navlinks = array();
-        $navlinks[] = array('name' => $strdatabases, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-        $navigation = build_navigation($navlinks);
-
-        print_header_simple(format_string($data->name), "", $navigation, "", "", true, '', navmenu($course, $cm));
+        $navigation = build_navigation('', $cm);
+        print_header_simple(format_string($data->name), "", $navigation, "", "", true, '', 
+        					// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         notice(get_string("activityiscurrentlyhidden"));
     }
 
@@ -113,14 +111,11 @@
 /// Print the page header
     $strdata = get_string('modulenameplural','data');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strdata, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation('', $cm);
     print_header_simple($data->name, '', $navigation,
                         '', $meta, true, update_module_button($cm->id, $course->id, get_string('modulename', 'data')),
-                        navmenu($course, $cm), '', '');
+                        // kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm), '', '');
 
 /// Check to see if groups are being used here
     groups_print_activity_menu($cm, 'edit.php?d='.$data->id);

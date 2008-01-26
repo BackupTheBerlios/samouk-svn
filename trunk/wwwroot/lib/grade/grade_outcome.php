@@ -1,4 +1,4 @@
-<?php // $Id: grade_outcome.php,v 1.20 2007/09/27 08:41:20 skodak Exp $
+<?php // $Id: grade_outcome.php,v 1.21.2.1 2007/11/01 08:50:32 skodak Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-2003  Martin Dougiamas  http://dougiamas.com       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com       //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -105,6 +105,9 @@ class grade_outcome extends grade_object {
      * @return int PK ID if successful, false otherwise
      */
     function insert($source=null) {
+
+        $this->timecreated = $this->timemodified = time();
+
         if ($result = parent::insert($source)) {
             if (!empty($this->courseid)) {
                 $goc = new object();
@@ -122,6 +125,8 @@ class grade_outcome extends grade_object {
      * @return boolean success
      */
     function update($source=null) {
+        $this->timemodified = time();
+
         if ($result = parent::update($source)) {
             if (!empty($this->courseid)) {
                 if (!get_records('grade_outcomes_courses', 'courseid', $this->courseid, 'outcomeid', $this->id)) {

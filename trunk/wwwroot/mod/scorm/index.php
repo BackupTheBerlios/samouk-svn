@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.25 2007/08/28 02:54:38 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.25.2.1 2007/10/29 10:42:18 poltawski Exp $
 
     require_once("../../config.php");
     require_once("locallib.php");
@@ -40,7 +40,7 @@
     }
 
     if (! $scorms = get_all_instances_in_course("scorm", $course)) {
-        notice("There are no scorms", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strscorms), "../../course/view.php?id=$course->id");
         exit;
     }
 

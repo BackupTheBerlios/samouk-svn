@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.4 2007/03/19 22:23:55 pichetp Exp $
+<?php  // $Id: questiontype.php,v 1.4.4.1 2007/11/02 16:20:48 tjhunt Exp $
 
 /////////////////////
 /// RANDOMSAMATCH ///

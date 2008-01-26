@@ -1,4 +1,4 @@
-<?php // $Id: assignment.class.php,v 1.33 2007/08/06 13:28:41 poltawski Exp $
+<?php // $Id: assignment.class.php,v 1.33.2.1 2007/11/29 14:40:52 skodak Exp $
 
 /**
  * Extend the base assignment class for assignments where you upload a single file
@@ -41,7 +41,7 @@ class assignment_uploadsingle extends assignment_base {
 
     function assignment_uploadsingle($cmid='staticonly', $assignment=NULL, $cm=NULL, $course=NULL) {
         parent::assignment_base($cmid, $assignment, $cm, $course);
-
+        $this->type = 'uploadsingle';
     }
 
     function view() {

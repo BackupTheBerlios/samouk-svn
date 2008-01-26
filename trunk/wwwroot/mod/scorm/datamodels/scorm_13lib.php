@@ -1,4 +1,4 @@
-<?php // $Id: scorm_13lib.php,v 1.7 2007/05/27 16:21:13 bobopinna Exp $
+<?php // $Id: scorm_13lib.php,v 1.7.2.1 2007/11/15 08:01:51 bobopinna Exp $
 
 function scorm_get_toc($user,$scorm,$liststyle,$currentorg='',$scoid='',$mode='normal',$attempt='',$play=false) {
     global $CFG;
@@ -63,6 +63,7 @@ function scorm_get_toc($user,$scorm,$liststyle,$currentorg='',$scoid='',$mode='n
         $parents[$level]='/';
         foreach ($scoes as $sco) {
             $isvisible = false;
+            $sco->title = stripslashes($sco->title);
             if (isset($optionaldatas[$sco->identifier])) {
                 if (!isset($optionaldatas[$sco->identifier]->isvisible) || 
                    (isset($optionaldatas[$sco->identifier]->isvisible) && ($optionaldatas[$sco->identifier]->isvisible == 'true'))) {

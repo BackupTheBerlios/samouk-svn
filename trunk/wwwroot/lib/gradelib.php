@@ -1,4 +1,4 @@
-<?php // $Id: gradelib.php,v 1.117 2007/10/04 22:57:14 skodak Exp $
+<?php // $Id: gradelib.php,v 1.120.2.11 2008/01/09 18:19:12 skodak Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 // NOTICE OF COPYRIGHT                                                   //
@@ -23,10 +23,10 @@
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Library of functions for gradebook
+ * Library of functions for gradebook - both public and internal
  *
  * @author Moodle HQ developers
- * @version  $Id: gradelib.php,v 1.117 2007/10/04 22:57:14 skodak Exp $
+ * @version  $Id: gradelib.php,v 1.120.2.11 2008/01/09 18:19:12 skodak Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package moodlecore
  */
@@ -39,7 +39,9 @@ require_once($CFG->libdir . '/grade/grade_grade.php');
 require_once($CFG->libdir . '/grade/grade_scale.php');
 require_once($CFG->libdir . '/grade/grade_outcome.php');
 
-/***** PUBLIC GRADE API - only these functions should be used in modules *****/
+/////////////////////////////////////////////////////////////////////
+///// Start of public API for communication with modules/blocks /////
+/////////////////////////////////////////////////////////////////////
 
 /**
  * Submit new or update grade; update/create grade_item definition. Grade must have userid specified,
@@ -47,10 +49,10 @@ require_once($CFG->libdir . '/grade/grade_outcome.php');
  * or key means do not change existing.
  *
  * Only following grade item properties can be changed 'itemname', 'idnumber', 'gradetype', 'grademax',
- * 'grademin', 'scaleid', 'multfactor', 'plusfactor', 'deleted' and 'hidden'.
+ * 'grademin', 'scaleid', 'multfactor', 'plusfactor', 'deleted' and 'hidden'. 'reset' means delete all current grades including locked ones.
  *
  * Manual, course or category items can not be updated by this function.
-
+ * @public
  * @param string $source source of the grade such as 'mod/assignment'
  * @param int $courseid id of course
  * @param string $itemtype type of grade item - mod, block
@@ -153,6 +155,12 @@ function grade_update($source, $courseid, $itemtype, $itemmodule, $iteminstance,
         }
     }
 
+/// reset grades if requested
+    if (!empty($itemdetails['reset'])) {
+        $grade_item->delete_all_grades('reset');
+        return GRADE_UPDATE_OK;
+    }
+
 /// Some extra checks
     // do we use grading?
     if ($grade_item->gradetype == GRADE_TYPE_NONE) {
@@ -187,6 +195,9 @@ function grade_update($source, $courseid, $itemtype, $itemmodule, $iteminstance,
         $rawgrade       = false;
         $feedback       = false;
         $feedbackformat = FORMAT_MOODLE;
+        $usermodified   = $USER->id;
+        $datesubmitted  = null;
+        $dategraded     = null;
 
         if (array_key_exists('rawgrade', $grade)) {
             $rawgrade = $grade['rawgrade'];
@@ -202,12 +213,18 @@ function grade_update($source, $courseid, $itemtype, $itemmodule, $iteminstance,
 
         if (array_key_exists('usermodified', $grade)) {
             $usermodified = $grade['usermodified'];
-        } else {
-            $usermodified = $USER->id;
+        }
+
+        if (array_key_exists('datesubmitted', $grade)) {
+            $datesubmitted = $grade['datesubmitted'];
+        }
+
+        if (array_key_exists('dategraded', $grade)) {
+            $dategraded = $grade['dategraded'];
         }
 
         // update or insert the grade
-        if (!$grade_item->update_raw_grade($userid, $rawgrade, $source, null, $feedback, $feedbackformat, $usermodified)) {
+        if (!$grade_item->update_raw_grade($userid, $rawgrade, $source, $feedback, $feedbackformat, $usermodified, $dategraded, $datesubmitted)) {
             $failed = true;
         }
     }
@@ -222,6 +239,7 @@ function grade_update($source, $courseid, $itemtype, $itemmodule, $iteminstance,
 /**
  * Updates outcomes of user
  * Manual outcomes can not be updated.
+ * @public
  * @param string $source source of the grade such as 'mod/assignment'
  * @param int $courseid id of course
  * @param string $itemtype 'mod', 'block'
@@ -245,14 +263,15 @@ function grade_update_outcomes($source, $courseid, $itemtype, $itemmodule, $item
 /**
  * Returns grading information for given activity - optionally with users grades
  * Manual, course or category items can not be queried.
+ * @public
  * @param int $courseid id of course
  * @param string $itemtype 'mod', 'block'
  * @param string $itemmodule 'forum, 'quiz', etc.
  * @param int $iteminstance id of the item module
- * @param int $userid optional id of the graded user; if userid not used, returns only information about grade_item
+ * @param int $userid_or_ids optional id of the graded user or array of ids; if userid not used, returns only information about grade_item
  * @return array of grade information objects (scaleid, name, grade and locked status, etc.) indexed with itemnumbers
  */
-function grade_get_grades($courseid, $itemtype, $itemmodule, $iteminstance, $userid_or_ids=0) {
+function grade_get_grades($courseid, $itemtype, $itemmodule, $iteminstance, $userid_or_ids=null) {
     global $CFG;
 
     $return = new object();
@@ -324,6 +343,8 @@ function grade_get_grades($courseid, $itemtype, $itemmodule, $iteminstance, $use
                         $grade->feedback       = $grade_grades[$userid]->feedback;
                         $grade->feedbackformat = $grade_grades[$userid]->feedbackformat;
                         $grade->usermodified   = $grade_grades[$userid]->usermodified;
+                        $grade->datesubmitted  = $grade_grades[$userid]->get_datesubmitted();
+                        $grade->dategraded     = $grade_grades[$userid]->get_dategraded();
 
                         // create text representation of grade
                         if (in_array($grade_item->id, $needsupdate)) {
@@ -422,14 +443,102 @@ function grade_get_grades($courseid, $itemtype, $itemmodule, $iteminstance, $use
     return $return;
 }
 
-/***** END OF PUBLIC API *****/
+///////////////////////////////////////////////////////////////////
+///// End of public API for communication with modules/blocks /////
+///////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////
+///// Internal API: used by gradebook plugins and Moodle core /////
+///////////////////////////////////////////////////////////////////
+
+/**
+ * Returns course gradebook setting
+ * @param int $courseid
+ * @param string $name of setting, maybe null if reset only
+ * @param bool $resetcache force reset of internal static cache
+ * @return string value, NULL if no setting
+ */
+function grade_get_setting($courseid, $name, $default=null, $resetcache=false) {
+    static $cache = array();
+
+    if ($resetcache or !array_key_exists($courseid, $cache)) {
+        $cache[$courseid] = array();
+
+    } else if (is_null($name)) {
+        return null;
+
+    } else if (array_key_exists($name, $cache[$courseid])) {
+        return $cache[$courseid][$name];
+    }
+
+    if (!$data = get_record('grade_settings', 'courseid', $courseid, 'name', addslashes($name))) {
+        $result = null;
+    } else {
+        $result = $data->value;
+    }
+
+    if (is_null($result)) {
+        $result = $default;
+    }
+
+    $cache[$courseid][$name] = $result;
+    return $result;
+}
+
+/**
+ * Returns all course gradebook settings as object properties
+ * @param int $courseid
+ * @return object
+ */
+function grade_get_settings($courseid) {
+     $settings = new object();
+     $settings->id = $courseid;
+
+    if ($records = get_records('grade_settings', 'courseid', $courseid)) {
+        foreach ($records as $record) {
+            $settings->{$record->name} = $record->value;
+        }
+    }
+
+    return $settings;
+}
+
+/**
+ * Add/update course gradebook setting
+ * @param int $courseid
+ * @param string $name of setting
+ * @param string value, NULL means no setting==remove
+ * @return void
+ */
+function grade_set_setting($courseid, $name, $value) {
+    if (is_null($value)) {
+        delete_records('grade_settings', 'courseid', $courseid, 'name', addslashes($name));
+
+    } else if (!$existing = get_record('grade_settings', 'courseid', $courseid, 'name', addslashes($name))) {
+        $data = new object();
+        $data->courseid = $courseid;
+        $data->name     = addslashes($name);
+        $data->value    = addslashes($value);
+        insert_record('grade_settings', $data);
+
+    } else {
+        $data = new object();
+        $data->id       = $existing->id;
+        $data->value    = addslashes($value);
+        update_record('grade_settings', $data);
+    }
+
+    grade_get_setting($courseid, null, null, true); // reset the cache
+}
 
 /**
  * Returns string representation of grade value
  * @param float $value grade value
  * @param object $grade_item - by reference to prevent scale reloading
  * @param bool $localized use localised decimal separator
- * @param int $display type of display - raw, letter, percentage
+ * @param int $displaytype type of display - GRADE_DISPLAY_TYPE_REAL, GRADE_DISPLAY_TYPE_PERCENTAGE, GRADE_DISPLAY_TYPE_LETTER
  * @param int $decimalplaces number of decimal places when displaying float values
  * @return string
  */
@@ -459,7 +568,10 @@ function grade_format_gradevalue($value, &$grade_item, $localized=true, $display
     switch ($displaytype) {
         case GRADE_DISPLAY_TYPE_REAL:
             if ($grade_item->gradetype == GRADE_TYPE_SCALE) {
-                $scale = $grade_item->load_scale();
+                if (!$scale = $grade_item->load_scale()) {
+                    return get_string('error');
+                }
+
                 $value = (int)bounded_number($grade_item->grademin, $value, $grade_item->grademax);
                 return format_string($scale->scale_items[$value-1]);
 
@@ -701,35 +813,17 @@ function grade_regrade_final_grades($courseid, $userid=null, $updated_item=null)
 /**
  * For backwards compatibility with old third-party modules, this function can
  * be used to import all grades from activities with legacy grading.
- * @param int $courseid or null if all courses
+ * @param int $courseid
  */
-function grade_grab_legacy_grades($courseid=null) {
-
+function grade_grab_legacy_grades($courseid) {
     global $CFG;
 
     if (!$mods = get_list_of_plugins('mod') ) {
         error('No modules installed!');
     }
 
-    if ($courseid) {
-        $course_sql = " AND cm.course=$courseid";
-    } else {
-        $course_sql = "";
-    }
-
     foreach ($mods as $mod) {
-
         if ($mod == 'NEWMODULE') {   // Someone has unzipped the template, ignore it
-            continue;
-        }
-
-        if (!$module = get_record('modules', 'name', $mod)) {
-            //not installed
-            continue;
-        }
-
-        if (!$module->visible) {
-            //disabled module
             continue;
         }
 
@@ -742,46 +836,40 @@ function grade_grab_legacy_grades($courseid=null) {
             // if present sync the grades with new grading system
             $gradefunc = $mod.'_grades';
             if (function_exists($gradefunc)) {
-
-                // get all instance of the activity
-                $sql = "SELECT a.*, cm.idnumber as cmidnumber, m.name as modname
-                          FROM {$CFG->prefix}$mod a, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
-                         WHERE m.name='$mod' AND m.id=cm.module AND cm.instance=a.id $course_sql";
-
-                if ($modinstances = get_records_sql($sql)) {
-                    foreach ($modinstances as $modinstance) {
-                        grade_update_mod_grades($modinstance);
-                    }
-                }
+                grade_grab_course_grades($courseid, $mod);
             }
         }
     }
 }
 
 /**
- * For testing purposes mainly, reloads grades from all non legacy modules into gradebook.
+ * Refetches data from all course activities
+ * @param int $courseid
+ * @param string $modname
+ * @return success
  */
-function grade_grab_grades() {
-
+function grade_grab_course_grades($courseid, $modname=null) {
     global $CFG;
+
+    if ($modname) {
+        $sql = "SELECT a.*, cm.idnumber as cmidnumber, m.name as modname
+                  FROM {$CFG->prefix}$modname a, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
+                 WHERE m.name='$modname' AND m.visible=1 AND m.id=cm.module AND cm.instance=a.id AND cm.course=$courseid";
+
+        if ($modinstances = get_records_sql($sql)) {
+            foreach ($modinstances as $modinstance) {
+                grade_update_mod_grades($modinstance);
+            }
+        }
+        return;
+    }
 
     if (!$mods = get_list_of_plugins('mod') ) {
         error('No modules installed!');
     }
 
     foreach ($mods as $mod) {
-
         if ($mod == 'NEWMODULE') {   // Someone has unzipped the template, ignore it
-            continue;
-        }
-
-        if (!$module = get_record('modules', 'name', $mod)) {
-            //not installed
-            continue;
-        }
-
-        if (!$module->visible) {
-            //disabled module
             continue;
         }
 
@@ -789,12 +877,15 @@ function grade_grab_grades() {
 
         // include the module lib once
         if (file_exists($fullmod.'/lib.php')) {
-            include_once($fullmod.'/lib.php');
-            // look for modname_grades() function - old gradebook pulling function
-            // if present sync the grades with new grading system
-            $gradefunc = $mod.'_update_grades';
-            if (function_exists($gradefunc)) {
-                $gradefunc();
+            // get all instance of the activity
+            $sql = "SELECT a.*, cm.idnumber as cmidnumber, m.name as modname
+                      FROM {$CFG->prefix}$mod a, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
+                     WHERE m.name='$mod' AND m.visible=1 AND m.id=cm.module AND cm.instance=a.id AND cm.course=$courseid";
+
+            if ($modinstances = get_records_sql($sql)) {
+                foreach ($modinstances as $modinstance) {
+                    grade_update_mod_grades($modinstance);
+                }
             }
         }
     }
@@ -841,32 +932,35 @@ function grade_update_mod_grades($modinstance, $userid=0) {
                 return false;
             }
 
-            $grades = array();
-            foreach ($oldgrades->grades as $uid=>$usergrade) {
-                if ($userid and $uid != $userid) {
-                    continue;
+            if (!empty($oldgrades->grades)) {
+                $grades = array();
+
+                foreach ($oldgrades->grades as $uid=>$usergrade) {
+                    if ($userid and $uid != $userid) {
+                        continue;
+                    }
+                    $grade = new object();
+                    $grade->userid = $uid;
+
+                    if ($usergrade == '-') {
+                        // no grade
+                        $grade->rawgrade = null;
+
+                    } else if ($scaleid) {
+                        // scale in use, words used
+                        $gradescale = explode(",", $scale->scale);
+                        $grade->rawgrade = array_search($usergrade, $gradescale) + 1;
+
+                    } else {
+                        // good old numeric value
+                        $grade->rawgrade = $usergrade;
+                    }
+                    $grades[] = $grade;
                 }
-                $grade = new object();
-                $grade->userid = $uid;
 
-                if ($usergrade == '-') {
-                    // no grade
-                    $grade->rawgrade = null;
-
-                } else if ($scaleid) {
-                    // scale in use, words used
-                    $gradescale = explode(",", $scale->scale);
-                    $grade->rawgrade = array_search($usergrade, $gradescale) + 1;
-
-                } else {
-                    // good old numeric value
-                    $grade->rawgrade = $usergrade;
-                }
-                $grades[] = $grade;
+                grade_update('legacygrab', $grade_item->courseid, $grade_item->itemtype, $grade_item->itemmodule,
+                             $grade_item->iteminstance, $grade_item->itemnumber, $grades);
             }
-
-            grade_update('legacygrab', $grade_item->courseid, $grade_item->itemtype, $grade_item->itemmodule,
-                         $grade_item->iteminstance, $grade_item->itemnumber, $grades);
         }
 
     } else if (function_exists($updategradesfunc) and function_exists($updateitemfunc)) {
@@ -946,6 +1040,18 @@ function grade_get_legacy_grade_item($modinstance, $grademax, $scaleid) {
 }
 
 /**
+ * Remove grade letters for given context
+ * @param object $context
+ */
+function remove_grade_letters($context, $showfeedback) {
+    $strdeleted = get_string('deleted');
+
+    delete_records('grade_letters', 'contextid', $context->id);
+    if ($showfeedback) {
+        notify($strdeleted.' - '.get_string('letters', 'grades'));
+    }
+}
+/**
  * Remove all grade related course data - history is kept
  * @param int $courseid
  * @param bool @showfeedback print feedback
@@ -977,17 +1083,11 @@ function remove_course_grades($courseid, $showfeedback) {
     if ($showfeedback) {
         notify($strdeleted.' - '.get_string('scales'));
     }
-}
 
-/**
- * Builds an array of percentages indexed by integers for the purpose of building a select drop-down element.
- * @param int $steps The value between each level.
- * @param string $order 'asc' for 0-100 and 'desc' for 100-0
- * @param int $lowest The lowest value to include
- * @param int $highest The highest value to include
- */
-function build_percentages_array($steps=1, $order='desc', $lowest=0, $highest=100) {
-    // TODO reject or implement
+    delete_records('grade_settings', 'courseid', $courseid);
+    if ($showfeedback) {
+        notify($strdeleted.' - '.get_string('settings', 'grades'));
+    }
 }
 
 /**
@@ -1005,12 +1105,10 @@ function grade_cron() {
 
     // go through all courses that have proper final grades and lock them if needed
     if ($rs = get_recordset_sql($sql)) {
-        if ($rs->RecordCount() > 0) {
-            while ($item = rs_fetch_next_record($rs)) {
-                $grade_item = new grade_item($item, false);
-                $grade_item->locked = $now;
-                $grade_item->update('locktime');
-            }
+        while ($item = rs_fetch_next_record($rs)) {
+            $grade_item = new grade_item($item, false);
+            $grade_item->locked = $now;
+            $grade_item->update('locktime');
         }
         rs_close($rs);
     }
@@ -1025,16 +1123,48 @@ function grade_cron() {
 
     // go through all courses that have proper final grades and lock them if needed
     if ($rs = get_recordset_sql($sql)) {
-        if ($rs->RecordCount() > 0) {
-            while ($grade = rs_fetch_next_record($rs)) {
-                $grade_grade = new grade_grade($grade, false);
-                $grade_grade->locked = $now;
-                $grade_grade->update('locktime');
-            }
+        while ($grade = rs_fetch_next_record($rs)) {
+            $grade_grade = new grade_grade($grade, false);
+            $grade_grade->locked = $now;
+            $grade_grade->update('locktime');
         }
         rs_close($rs);
     }
 
+    //TODO: do not run this cleanup every cron invocation
+    // cleanup history tables
+    if (!empty($CFG->gradehistorylifetime)) {  // value in days
+        $histlifetime = $now - ($CFG->gradehistorylifetime * 3600 * 24);
+        $tables = array('grade_outcomes_history', 'grade_categories_history', 'grade_items_history', 'grade_grades_history', 'scale_history');
+        foreach ($tables as $table) {
+            if (delete_records_select($table, "timemodified < $histlifetime")) {
+                mtrace("    Deleted old grade history records from '$table'");
+            }
+        }
+    }
+}
+
+/**
+ * Resel all course grades
+ * @param int $courseid
+ * @return success
+ */
+function grade_course_reset($courseid) {
+
+    // no recalculations
+    grade_force_full_regrading($courseid);
+
+    $grade_items = grade_item::fetch_all(array('courseid'=>$courseid));
+    foreach ($grade_items as $gid=>$grade_item) {
+        $grade_item->delete_all_grades('reset');
+    }
+
+    //refetch all grades
+    grade_grab_course_grades($courseid);
+
+    // recalculate all grades
+    grade_regrade_final_grades($courseid);
+    return true;
 }
 
 ?>

@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.8 2006/09/20 19:46:53 skodak Exp $
+<?php  // $Id: report.php,v 1.8.8.1 2007/10/22 01:43:19 gbateson Exp $
 /// Overview report just displays a big table of all the attempts
 class hotpot_report extends hotpot_default_report {
 	function display(&$hotpot, &$cm, &$course, &$users, &$attempts, &$questions, &$options) {
@@ -221,7 +221,7 @@ class hotpot_report extends hotpot_default_report {
 				} // foreach $detail
 				// set data cell values for
 				$this->set_data_click(
-					$allow_review ? '<a href="review.php?hp='.$hotpot->id.'&attempt='.$attempt->id.'">'.$clickcount.'</a>' : $clickcount,
+					$allow_review ? '<a href="review.php?hp='.$hotpot->id.'&amp;attempt='.$attempt->id.'">'.$clickcount.'</a>' : $clickcount,
 					trim(userdate($attempt->timefinish, $strftimetime)),
 					$exercisetype,
 					$click
@@ -399,7 +399,7 @@ class hotpot_report extends hotpot_default_report {
 			$idnumber = fullname($attempt);
 		}
 		if ($options['reportformat']=='htm') {
-			$idnumber = '<a href="'.$CFG->wwwroot.'/user/view.php?id='.$attempt->userid.'&course='.$course->id.'">'.$idnumber.'</a>';
+			$idnumber = '<a href="'.$CFG->wwwroot.'/user/view.php?id='.$attempt->userid.'&amp;course='.$course->id.'">'.$idnumber.'</a>';
 		}
 		$this->data['user'] = array(
 			'idnumber' => $idnumber,

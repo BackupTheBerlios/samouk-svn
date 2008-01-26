@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.21 2007/08/17 19:09:23 nicolasconnault Exp $
+<?php // $Id: resource.class.php,v 1.21.3 2008/01/21 16:09:37 kowy Exp $
 
 /**
 * Extend the base resource class for repository resources
@@ -244,10 +244,7 @@ function display() {
             $resourcetype = "html";
         }
     }
-
-
-    $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-    $this->navigation = build_navigation($this->navlinks);
+    $navigation = build_navigation($this->navlinks, $cm);
 
 /// Form the parse string
     if (!empty($resource->alltext)) {
@@ -280,8 +277,10 @@ function display() {
         if ($inpopup) {
             print_header($pagetitle, $course->fullname);
         } else {
-            print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                    update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+            print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                    update_module_button($cm->id, $course->id, $this->strresource), 
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         }
         notify('You do not have access to HarvestRoad Hive. This resource is unavailable.');
         if ($inpopup) {
@@ -299,8 +298,10 @@ function display() {
         if ($inpopup) {
             print_header($pagetitle, $course->fullname);
         } else {
-            print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                    update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+            print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                    update_module_button($cm->id, $course->id, $this->strresource), 
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         }
         notify(get_string('notallowedlocalfileaccess', 'resource', ''));
         if ($inpopup) {
@@ -314,8 +315,10 @@ function display() {
     /// Check whether this is supposed to be a popup, but was called directly
 
     if ($resource->popup and !$inpopup) {    /// Make a page and a pop-up window
-        print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm));
+        print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                update_module_button($cm->id, $course->id, $this->strresource), 
+                // kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
 
         echo "\n<script type=\"text/javascript\">";
@@ -373,8 +376,10 @@ function display() {
     /// If we are in a frameset, just print the top of it
 
     if (!empty($frameset) and $frameset == "top") {
-        print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm, "parent"));
+        print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                update_module_button($cm->id, $course->id, $this->strresource), 
+                // kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm, "parent"));
 
         echo '<div class="summary">'.format_text($resource->summary, FORMAT_HTML, $formatoptions).'</div>';
         if (!empty($localpath)) {  // Show some help
@@ -395,8 +400,10 @@ function display() {
         if ($inpopup) {
             print_header($pagetitle);
         } else {
-            print_header($pagetitle, $course->fullname, $this->navigation, "", "", true,
-                    update_module_button($cm->id, $course->id, $this->strresource), navmenu($course, $cm, "self"));
+            print_header($pagetitle, $course->fullname, $navigation, "", "", true,
+                    update_module_button($cm->id, $course->id, $this->strresource), 
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm, "self"));
 
         }
 

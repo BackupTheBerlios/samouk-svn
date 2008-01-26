@@ -1,4 +1,4 @@
-<?php  // $Id: tabs.php,v 1.28 2007/09/24 17:12:56 skodak Exp $
+<?php  // $Id: tabs.php,v 1.28.2.1 2007/11/16 05:55:00 moodler Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -38,14 +38,14 @@
 
     $row[] = new tabobject('list', $CFG->wwwroot.'/mod/data/view.php?d='.$data->id, get_string('list','data'));
     
-    //Add an advanced search tab.
-    $row[] = new tabobject('asearch', $CFG->wwwroot.'/mod/data/view.php?d='.$data->id.'&amp;mode=asearch', get_string('advancedsearch', 'data'));
-    
     if (isset($record)) {
         $row[] = new tabobject('single', $CFG->wwwroot.'/mod/data/view.php?d='.$data->id.'&amp;rid='.$record->id, get_string('single','data'));
     } else {
         $row[] = new tabobject('single', $CFG->wwwroot.'/mod/data/view.php?d='.$data->id.'&amp;mode=single', get_string('single','data'));
     }
+
+    // Add an advanced search tab.
+    $row[] = new tabobject('asearch', $CFG->wwwroot.'/mod/data/view.php?d='.$data->id.'&amp;mode=asearch', get_string('search', 'data'));
 
     if (isloggedin()) {
         if (data_user_can_add_entry($data, $currentgroup, $groupmode)) { // took out participation list here!
@@ -57,8 +57,8 @@
                 $defaultemplate = 'listtemplate';
             } else if ($currenttab == 'add') {
                 $defaultemplate = 'addtemplate';
-                       } else if ($currenttab == 'asearch') {
-                               $defaultemplate = 'asearchtemplate';
+            } else if ($currenttab == 'asearch') {
+                $defaultemplate = 'asearchtemplate';
             } else {
                 $defaultemplate = 'singletemplate';
             }
@@ -78,7 +78,7 @@
 
         $inactive = array();
         $inactive[] = 'templates';
-        $templatelist = array ('listtemplate', 'asearchtemplate' , 'singletemplate', 'addtemplate', 'rsstemplate', 'csstemplate', 'jstemplate');
+        $templatelist = array ('listtemplate', 'singletemplate', 'asearchtemplate', 'addtemplate', 'rsstemplate', 'csstemplate', 'jstemplate');
 
         $row  = array();
         $currenttab ='';

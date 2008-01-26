@@ -1,11 +1,33 @@
-<?php //$Id: lib.php,v 1.117 2007/10/04 09:00:29 skodak Exp $
+<?php //$Id: lib.php,v 1.120.2.11 2008/01/09 18:19:12 skodak Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once $CFG->libdir.'/gradelib.php';
 
-
 /**
  * This class iterates over all users that are graded in a course.
- * Returns fetailed info about users and their grades.
+ * Returns detailed info about users and their grades.
  */
 class graded_users_iterator {
     var $course;
@@ -45,7 +67,7 @@ class graded_users_iterator {
             return false;
         }
 
-        if (strpos($CFG->gradebookroles, ',') !== false) {
+        if (strpos($CFG->gradebookroles, ',') === false) {
             $gradebookroles = " = {$CFG->gradebookroles}";
         } else {
             $gradebookroles = " IN ({$CFG->gradebookroles})";
@@ -96,7 +118,7 @@ class graded_users_iterator {
      * @return mixed array of user info, all grades and feedback or null when no more users found
      */
     function next_user() {
-        if (!$this->users_rs or !$this->users_rs->RecordCount()) {
+        if (!$this->users_rs) {
             return false; // no users present
         }
 
@@ -177,7 +199,7 @@ class graded_users_iterator {
      */
     function _pop() {
         if (empty($this->gradestack)) {
-            if (!$this->grades_rs or !$this->grades_rs->RecordCount()) {
+            if (!$this->grades_rs) {
                 return NULL; // no grades present
             }
 
@@ -207,7 +229,7 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
     $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
     $menu = array();
-
+    $count = 0;
     $active = '';
 
 /// report plugins with its special structure
@@ -225,7 +247,8 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
             if ($active_type == 'report' and $active_plugin == $plugin ) {
                 $active = $url;
             }
-            $reportnames[$url] = get_string('modulename', 'gradereport_'.$plugin, NULL, $CFG->dirroot.'/grade/report/'.$plugin.'/lang/');
+            $reportnames[$url] = get_string('modulename', 'gradereport_'.$plugin);
+            $count++;
         }
         asort($reportnames);
     }
@@ -249,7 +272,8 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
             if ($active_type == 'import' and $active_plugin == $plugin ) {
                 $active = $url;
             }
-            $importnames[$url] = get_string('modulename', 'gradeimport_'.$plugin, NULL, $CFG->dirroot.'/grade/import/'.$plugin.'/lang/');
+            $importnames[$url] = get_string('modulename', 'gradeimport_'.$plugin);
+            $count++;
         }
         asort($importnames);
     }
@@ -273,7 +297,8 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
             if ($active_type == 'export' and $active_plugin == $plugin ) {
                 $active = $url;
             }
-            $exportnames[$url] = get_string('modulename', 'gradeexport_'.$plugin, NULL, $CFG->dirroot.'/grade/export/'.$plugin.'/lang/');
+            $exportnames[$url] = get_string('modulename', 'gradeexport_'.$plugin);
+            $count++;
         }
         asort($exportnames);
     }
@@ -295,6 +320,7 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
                 $active = $url;
             }
             $menu[$url] = get_string('edittree', 'grades');
+            $count++;
         }
 
         if (has_capability('moodle/course:managescales', $context)) {
@@ -303,6 +329,7 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
                 $active = $url;
             }
             $menu[$url] = get_string('scales');
+            $count++;
         }
 
         if (!empty($CFG->enableoutcomes) && (has_capability('moodle/grade:manage', $context) or
@@ -316,6 +343,7 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
                 $active = $url;
             }
             $menu[$url] = get_string('outcomes', 'grades');
+            $count++;
         }
 
         if (has_capability('moodle/grade:manage', $context) or has_capability('moodle/grade:manageletters', $context)) {
@@ -324,12 +352,27 @@ function print_grade_plugin_selector($courseid, $active_type, $active_plugin, $r
                 $active = $url;
             }
             $menu[$url] = get_string('letters', 'grades');
+            $count++;
+        }
+
+        if (has_capability('moodle/grade:manage', $context)) {
+            $url = 'edit/settings/index.php?id='.$courseid;
+            if ($active_type == 'edit' and $active_plugin == 'settings' ) {
+                $active = $url;
+            }
+            $menu[$url] = get_string('coursesettings', 'grades');
+            $count++;
         }
 
     }
 
 /// finally print/return the popup form
-    return popup_form($CFG->wwwroot.'/grade/', $menu, 'choosepluginreport', $active, 'choose', '', '', $return, 'self', get_string('view'));
+    if ($count > 1) {
+        return popup_form($CFG->wwwroot.'/grade/', $menu, 'choosepluginreport', $active, 'choose', '', '', $return, 'self', get_string('view'));
+    } else {
+        // only one option - no plugin selector needed
+        return '';
+    }
 }
 
 /**
@@ -635,33 +678,367 @@ function grade_build_nav($path, $pagename=null, $id=null) {
 }
 
 /**
- * Computes then returns the percentage value of the grade value within the given range.
- * @param float $gradeval
- * @param float $grademin
- * @param float $grademx
- * @return float $percentage
+ * General structure representing grade items in course
  */
-function grade_to_percentage($gradeval, $grademin, $grademax) {
-    if ($grademin >= $grademax) {
-        debugging("The minimum grade ($grademin) was higher than or equal to the maximum grade ($grademax)!!! Cannot proceed with computation.");
+class grade_structure {
+    var $context;
+
+    var $courseid;
+
+    /**
+     * 1D array of grade items only
+     */
+    var $items;
+
+    /**
+     * Returns icon of element
+     * @param object $element
+     * @param bool $spacerifnone return spacer if no icon found
+     * @return string icon or spacer
+     */
+    function get_element_icon(&$element, $spacerifnone=false) {
+        global $CFG;
+
+        switch ($element['type']) {
+            case 'item':
+            case 'courseitem':
+            case 'categoryitem':
+                if ($element['object']->is_calculated()) {
+                    return '<img src="'.$CFG->pixpath.'/i/calc.gif" class="icon itemicon" alt="'.get_string('calculation', 'grades').'"/>';
+
+                } else if (($element['object']->is_course_item() or $element['object']->is_category_item())
+                  and ($element['object']->gradetype == GRADE_TYPE_SCALE or $element['object']->gradetype == GRADE_TYPE_VALUE)) {
+                    if ($category = $element['object']->get_item_category()) {
+                        switch ($category->aggregation) {
+                            case GRADE_AGGREGATE_MEAN:
+                            case GRADE_AGGREGATE_MEDIAN:
+                            case GRADE_AGGREGATE_WEIGHTED_MEAN:
+                            case GRADE_AGGREGATE_WEIGHTED_MEAN2:
+                            case GRADE_AGGREGATE_EXTRACREDIT_MEAN:
+                                return '<img src="'.$CFG->pixpath.'/i/agg_mean.gif" class="icon itemicon" alt="'.get_string('aggregation', 'grades').'"/>';
+                            case GRADE_AGGREGATE_SUM:
+                                return '<img src="'.$CFG->pixpath.'/i/agg_sum.gif" class="icon itemicon" alt="'.get_string('aggregation', 'grades').'"/>';
+                        }
+                    }
+
+                } else if ($element['object']->itemtype == 'mod') {
+                    return '<img src="'.$CFG->modpixpath.'/'.$element['object']->itemmodule.'/icon.gif" class="icon itemicon" alt="'
+                           .get_string('modulename', $element['object']->itemmodule).'"/>';
+
+                } else if ($element['object']->itemtype == 'manual') {
+                    if ($element['object']->is_outcome_item()) {
+                        return '<img src="'.$CFG->pixpath.'/i/outcomes.gif" class="icon itemicon" alt="'.get_string('outcome', 'grades').'"/>';
+                    } else {
+                        //TODO: add better icon
+                        return '<img src="'.$CFG->pixpath.'/t/edit.gif" class="icon itemicon" alt="'.get_string('manualitem', 'grades').'"/>';
+                    }
+                }
+                break;
+
+            case 'category':
+                return '<img src="'.$CFG->pixpath.'/f/folder.gif" class="icon itemicon" alt="'.get_string('category', 'grades').'"/>';
+        }
+
+        if ($spacerifnone) {
+            return '<img src="'.$CFG->wwwroot.'/pix/spacer.gif" class="icon itemicon" alt=""/>';
+        } else {
+            return '';
+        }
     }
 
-    // If given gradevalue is lower than grademin, adjust it to grademin
-    if ($gradeval < $grademin || empty($gradeval)) {
-        $gradeval = $grademin;
+    /**
+     * Returns name of element optionally with icon and link
+     * @param object $element
+     * @param bool $withlinks
+     * @param bool $icons
+     * @param bool $spacerifnone return spacer if no icon found
+     * @return header string
+     */
+    function get_element_header(&$element, $withlink=false, $icon=true, $spacerifnone=false) {
+        global $CFG;
+
+        $header = '';
+
+        if ($icon) {
+            $header .= $this->get_element_icon($element, $spacerifnone);
+        }
+
+        $header .= $element['object']->get_name();
+
+        if ($element['type'] != 'item' and $element['type'] != 'categoryitem' and $element['type'] != 'courseitem') {
+            return $header;
+        }
+
+        $itemtype     = $element['object']->itemtype;
+        $itemmodule   = $element['object']->itemmodule;
+        $iteminstance = $element['object']->iteminstance;
+
+        if ($withlink and $itemtype=='mod' and $iteminstance and $itemmodule) {
+            $cm = get_coursemodule_from_instance($itemmodule, $iteminstance, $this->courseid);
+
+            $dir = $CFG->dirroot.'/mod/'.$itemmodule;
+
+            if (file_exists($dir.'/grade.php')) {
+                $url = $CFG->wwwroot.'/mod/'.$itemmodule.'/grade.php?id='.$cm->id;
+            } else {
+                $url = $CFG->wwwroot.'/mod/'.$itemmodule.'/view.php?id='.$cm->id;
+            }
+
+            $header = '<a href="'.$url.'">'.$header.'</a>';
+        }
+
+        return $header;
     }
 
-    $offset_value = $gradeval - $grademin;
-    $offset_max = $grademax - $grademin;
-    $factor = 100 / $offset_max;
-    $percentage = $offset_value * $factor;
-    return $percentage;
+    /**
+     * Returns the grade eid - the grade may not exist yet.
+     * @param $grade_grade object
+     * @return string eid
+     */
+    function get_grade_eid($grade_grade) {
+        if (empty($grade_grade->id)) {
+            return 'n'.$grade_grade->itemid.'u'.$grade_grade->userid;
+        } else {
+            return 'g'.$grade_grade->id;
+        }
+    }
+
+    /**
+     * Returns the grade_item eid
+     * @param $grade_item object
+     * @return string eid
+     */
+    function get_item_eid($grade_item) {
+        return 'i'.$grade_item->id;
+    }
+    
+    function get_params_for_iconstr($element) {
+        $strparams = new stdClass();
+        $strparams->category = '';
+        $strparams->itemname = '';
+        $strparams->itemmodule = '';
+        if (!method_exists($element['object'], 'get_name')) {
+            return $strparams;
+        }
+        
+        $strparams->itemname = $element['object']->get_name();
+
+        // If element name is categorytotal, get the name of the parent category
+        if ($strparams->itemname == get_string('categorytotal', 'grades')) {
+            $parent = $element['object']->get_parent_category();
+            $strparams->category = $parent->get_name() . ' ';
+        } else {
+            $strparams->category = '';
+        }
+
+        $strparams->itemmodule = null;
+        if (isset($element['object']->itemmodule)) {
+            $strparams->itemmodule = $element['object']->itemmodule;
+        } 
+        return $strparams;
+    }
+
+    /**
+     * Return edit icon for give element
+     * @param object $element
+     * @return string
+     */
+    function get_edit_icon($element, $gpr) {
+        global $CFG;
+
+        if (!has_capability('moodle/grade:manage', $this->context)) {
+            if ($element['type'] == 'grade' and has_capability('moodle/grade:edit', $this->context)) {
+                // oki - let them override grade
+            } else {
+                return '';
+            }
+        }
+
+        static $stredit = null;
+        static $strfeedback = null;
+        if (is_null($stredit)) {
+            $stredit = get_string('edit');
+            $strfeedback = get_string('feedback');
+        }
+
+        $strparams = $this->get_params_for_iconstr($element);
+        if ($element['type'] == 'item' or $element['type'] == 'category') { 
+        }
+        
+        $object = $element['object'];
+        $overlib = '';
+
+        switch ($element['type']) {
+            case 'item':
+            case 'categoryitem':
+            case 'courseitem':
+                $stredit = get_string('editverbose', 'grades', $strparams);
+                if (empty($object->outcomeid) || empty($CFG->enableoutcomes)) {
+                    $url = $CFG->wwwroot.'/grade/edit/tree/item.php?courseid='.$this->courseid.'&amp;id='.$object->id;
+                } else {
+                    $url = $CFG->wwwroot.'/grade/edit/tree/outcomeitem.php?courseid='.$this->courseid.'&amp;id='.$object->id;
+                }
+                $url = $gpr->add_url_params($url);
+                break;
+
+            case 'category':
+                $stredit = get_string('editverbose', 'grades', $strparams);
+                $url = $CFG->wwwroot.'/grade/edit/tree/category.php?courseid='.$this->courseid.'&amp;id='.$object->id;
+                $url = $gpr->add_url_params($url);
+                break;
+
+            case 'grade':
+                if (empty($object->id)) {
+                    $url = $CFG->wwwroot.'/grade/edit/tree/grade.php?courseid='.$this->courseid.'&amp;itemid='.$object->itemid.'&amp;userid='.$object->userid;
+                } else {
+                    $url = $CFG->wwwroot.'/grade/edit/tree/grade.php?courseid='.$this->courseid.'&amp;id='.$object->id;
+                }
+                $url = $gpr->add_url_params($url);
+                if (!empty($object->feedback)) {
+                    $feedback = addslashes_js(trim(format_string($object->feedback, $object->feedbackformat)));
+                    $function = "return overlib('$feedback', BORDER, 0, FGCLASS, 'feedback', "
+                              ."CAPTIONFONTCLASS, 'caption', CAPTION, '$strfeedback');";
+                    $overlib = 'onmouseover="'.s($function).'" onmouseout="return nd();"';
+                }
+                break;
+
+            default:
+                $url = null;
+        }
+
+        if ($url) {
+            return '<a href="'.$url.'"><img '.$overlib.' src="'.$CFG->pixpath.'/t/edit.gif" class="iconsmall" alt="'.$stredit.'" title="'.$stredit.'"/></a>';
+
+        } else {
+            return '';
+        }
+    }
+
+    /**
+     * Return hiding icon for give element
+     * @param object $element
+     * @return string
+     */
+    function get_hiding_icon($element, $gpr) {
+        global $CFG;
+
+        if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:hide', $this->context)) {
+            return '';
+        }
+
+        $strparams = $this->get_params_for_iconstr($element); 
+        $strshow = get_string('showverbose', 'grades', $strparams);
+        $strhide = get_string('hideverbose', 'grades', $strparams); 
+
+        if ($element['object']->is_hidden()) {
+            $icon = 'show';
+            $tooltip = $strshow;
+
+            if ($element['type'] != 'category' and $element['object']->get_hidden() > 1) { // Change the icon and add a tooltip showing the date
+                $icon = 'hiddenuntil';
+                $tooltip = get_string('hiddenuntildate', 'grades', userdate($element['object']->get_hidden()));
+            }
+
+            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=show&amp;sesskey='.sesskey()
+                     . '&amp;eid='.$element['eid'];
+            $url     = $gpr->add_url_params($url);
+            $action  = '<a href="'.$url.'"><img alt="'.$strshow.'" src="'.$CFG->pixpath.'/t/'.$icon.'.gif" class="iconsmall" title="'.$tooltip.'"/></a>';
+
+        } else {
+            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=hide&amp;sesskey='.sesskey()
+                     . '&amp;eid='.$element['eid'];
+            $url     = $gpr->add_url_params($url);
+            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.$strhide.'" title="'.$strhide.'"/></a>';
+        }
+        return $action;
+    }
+
+    /**
+     * Return locking icon for give element
+     * @param object $element
+     * @return string
+     */
+    function get_locking_icon($element, $gpr) {
+        global $CFG;
+
+        $strparams = $this->get_params_for_iconstr($element); 
+        $strunlock = get_string('unlockverbose', 'grades', $strparams);
+        $strlock = get_string('lockverbose', 'grades', $strparams);
+
+        if ($element['object']->is_locked()) {
+            $icon = 'unlock';
+            $tooltip = $strunlock;
+
+            if ($element['type'] != 'category' and $element['object']->get_locktime() > 1) { // Change the icon and add a tooltip showing the date
+                $icon = 'locktime';
+                $tooltip = get_string('locktimedate', 'grades', userdate($element['object']->get_locktime()));
+            }
+
+            if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:unlock', $this->context)) {
+                return '';
+            }
+            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=unlock&amp;sesskey='.sesskey()
+                     . '&amp;eid='.$element['eid'];
+            $url     = $gpr->add_url_params($url);
+            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/'.$icon.'.gif" alt="'.$strunlock.'" class="iconsmall" title="'.$tooltip.'"/></a>';
+
+        } else {
+            if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:lock', $this->context)) {
+                return '';
+            }
+            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=lock&amp;sesskey='.sesskey()
+                     . '&amp;eid='.$element['eid'];
+            $url     = $gpr->add_url_params($url);
+            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/lock.gif" class="iconsmall" alt="'.$strlock.'" title="'
+                     . $strlock.'"/></a>';
+        }
+        return $action;
+    }
+
+    /**
+     * Return calculation icon for given element
+     * @param object $element
+     * @return string
+     */
+    function get_calculation_icon($element, $gpr) {
+        global $CFG;
+        if (!has_capability('moodle/grade:manage', $this->context)) {
+            return '';
+        }
+
+        $calculation_icon = '';
+
+        $type   = $element['type'];
+        $object = $element['object'];
+        
+
+        if ($type == 'item' or $type == 'courseitem' or $type == 'categoryitem') {
+            $strparams = $this->get_params_for_iconstr($element); 
+            $streditcalculation = get_string('editcalculationverbose', 'grades', $strparams);
+
+            // show calculation icon only when calculation possible
+            if ((!$object->is_external_item() or $object->is_outcome_item())
+              and ($object->gradetype == GRADE_TYPE_SCALE or $object->gradetype == GRADE_TYPE_VALUE)) {
+                if ($object->is_calculated()) {
+                    $icon = 'calc.gif';
+                } else {
+                    $icon = 'calc_off.gif';
+                }
+                $url = $CFG->wwwroot.'/grade/edit/tree/calculation.php?courseid='.$this->courseid.'&amp;id='.$object->id;
+                $url = $gpr->add_url_params($url);
+                $calculation_icon = '<a href="'. $url.'"><img src="'.$CFG->pixpath.'/t/'.$icon.'" class="iconsmall" alt="'
+                                       . $streditcalculation.'" title="'.$streditcalculation.'" /></a>'. "\n";
+            }
+        }
+
+        return $calculation_icon;
+    }
 }
 
 /**
  * Flat structure similar to grade tree.
  */
-class grade_seq {
+class grade_seq extends grade_structure {
 
     /**
      * A string of GET URL variables, namely courseid and sesskey, used in most URLs built by this class.
@@ -670,14 +1047,9 @@ class grade_seq {
     var $commonvars;
 
     /**
-     * 1D array of grade items only
+     * 1D array of elements
      */
-    var $items;
-
-    /**
-     * Course context
-     */
-    var $context;
+    var $elements;
 
     /**
      * Constructor, retrieves and stores array of all grade_category and grade_item
@@ -696,7 +1068,11 @@ class grade_seq {
         // get course grade tree
         $top_element = grade_category::fetch_course_tree($courseid, true);
 
-        $this->items = grade_seq::flatten($top_element, $category_grade_last, $nooutcomes);
+        $this->elements = grade_seq::flatten($top_element, $category_grade_last, $nooutcomes);
+
+        foreach ($this->elements as $key=>$unused) {
+            $this->items[$this->elements[$key]['object']->id] =& $this->elements[$key]['object'];
+        }
     }
 
     /**
@@ -726,11 +1102,11 @@ class grade_seq {
 
         $result = array();
         foreach ($children as $child) {
-            if ($child['type']== 'category') {
-                $result = array_merge($result, grade_seq::flatten($child, $category_grade_last, $nooutcomes));
+            if ($child['type'] == 'category') {
+                $result = $result + grade_seq::flatten($child, $category_grade_last, $nooutcomes);
             } else {
                 $child['eid'] = 'i'.$child['object']->id;
-                $result[] = $child;
+                $result[$child['object']->id] = $child;
             }
         }
 
@@ -778,7 +1154,7 @@ class grade_seq {
         }
 
         // it is a category or item
-        foreach ($this->items as $element) {
+        foreach ($this->elements as $element) {
             if ($element['eid'] == $eid) {
                 return $element;
             }
@@ -786,20 +1162,6 @@ class grade_seq {
 
         return null;
     }
-
-    /**
-     * Returns the grade eid - the grade may not exist yet.
-     * @param $grade_grade object
-     * @return string eid
-     */
-    function get_grade_eid($grade_grade) {
-        if (empty($grade_grade->id)) {
-            return 'n'.$grade_grade->itemid.'u'.$grade_grade->userid;
-        } else {
-            return 'g'.$grade_grade->id;
-        }
-    }
-
 }
 
 /**
@@ -808,7 +1170,7 @@ class grade_seq {
  * It has simple method calls with complex implementations, allowing for easy insertion,
  * deletion and moving of items and categories within the tree.
  */
-class grade_tree {
+class grade_tree extends grade_structure {
 
     /**
      * The basic representation of the tree as a hierarchical, 3-tiered array.
@@ -828,9 +1190,9 @@ class grade_tree {
     var $levels;
 
     /**
-     * Course context
+     * Grade items
      */
-    var $context;
+    var $items;
 
     /**
      * Constructor, retrieves and stores a hierarchical array of all grade_category and grade_item
@@ -874,6 +1236,7 @@ class grade_tree {
         }
 
         grade_tree::fill_levels($this->levels, $this->top_element, 0);
+
     }
 
     /**
@@ -971,6 +1334,7 @@ class grade_tree {
             $element['eid'] = 'c'.$element['object']->id;
         } else if (in_array($element['type'], array('item', 'courseitem', 'categoryitem'))) {
             $element['eid'] = 'i'.$element['object']->id;
+            $this->items[$element['object']->id] =& $element['object'];
         }
 
         $levels[$depth][] =& $element;
@@ -1098,205 +1462,6 @@ class grade_tree {
         }
 
         return null;
-    }
-
-    /**
-     * Returns the grade eid - the grade may not exist yet.
-     * @param $grade_grade object
-     * @return string eid
-     */
-    function get_grade_eid($grade_grade) {
-        if (empty($grade_grade->id)) {
-            return 'n'.$grade_grade->itemid.'u'.$grade_grade->userid;
-        } else {
-            return 'g'.$grade_grade->id;
-        }
-    }
-
-    /**
-     * Return edit icon for give element
-     * @param object $element
-     * @return string
-     */
-    function get_edit_icon($element, $gpr) {
-        global $CFG;
-
-        if (!has_capability('moodle/grade:manage', $this->context)) {
-            if ($element['type'] == 'grade' and has_capability('moodle/grade:edit', $this->context)) {
-                // oki - let them override grade
-            } else {
-                return '';
-            }
-        }
-
-        static $stredit = null;
-        if (is_null($stredit)) {
-            $stredit = get_string('edit');
-        }
-
-        $object = $element['object'];
-        $overlib = '';
-
-        switch ($element['type']) {
-            case 'item':
-            case 'categoryitem':
-            case 'courseitem':
-                if (empty($object->outcomeid) || empty($CFG->enableoutcomes)) {
-                    $url = $CFG->wwwroot.'/grade/edit/tree/item.php?courseid='.$this->courseid.'&amp;id='.$object->id;
-                } else {
-                    $url = $CFG->wwwroot.'/grade/edit/tree/outcomeitem.php?courseid='.$this->courseid.'&amp;id='.$object->id;
-                }
-                $url = $gpr->add_url_params($url);
-                break;
-
-            case 'category':
-                $url = $CFG->wwwroot.'/grade/edit/tree/category.php?courseid='.$this->courseid.'&amp;id='.$object->id;
-                $url = $gpr->add_url_params($url);
-                break;
-
-            case 'grade':
-                if (empty($object->id)) {
-                    $url = $CFG->wwwroot.'/grade/edit/tree/grade.php?courseid='.$this->courseid.'&amp;itemid='.$object->itemid.'&amp;userid='.$object->userid;
-                } else {
-                    $url = $CFG->wwwroot.'/grade/edit/tree/grade.php?courseid='.$this->courseid.'&amp;id='.$object->id;
-                }
-                $url = $gpr->add_url_params($url);
-                if (!empty($object->feedback)) {
-                    $feedback = format_text($object->feedback, $object->feedbackformat);
-                    $function = "return overlib('".s(ltrim($object->feedback)."', FULLHTML);");
-                    $overlib = 'onmouseover="'.$function.'" onmouseout="return nd();"';
-                }
-                break;
-
-            default:
-                $url = null;
-        }
-
-        if ($url) {
-            return '<a href="'.$url.'"><img '.$overlib.' src="'.$CFG->pixpath.'/t/edit.gif" class="iconsmall" alt="'.$stredit.'" title="'.$stredit.'"/></a>';
-
-        } else {
-            return '';
-        }
-    }
-
-    /**
-     * Return hiding icon for give element
-     * @param object $element
-     * @return string
-     */
-    function get_hiding_icon($element, $gpr) {
-        global $CFG;
-
-        if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:hide', $this->context)) {
-            return '';
-        }
-
-        static $strshow = null;
-        static $strhide   = null;
-        if (is_null($strshow)) {
-            $strshow = get_string('show');
-            $strhide = get_string('hide');
-        }
-
-        if ($element['object']->is_hidden()) {
-            $icon = 'show';
-            $tooltip = $strshow;
-
-            if ($element['type'] != 'category' and $element['object']->get_hidden() > 1) { // Change the icon and add a tooltip showing the date
-                $icon = 'hiddenuntil';
-                $tooltip = get_string('hiddenuntildate', 'grades', userdate($element['object']->get_hidden()));
-            }
-
-            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=show&amp;sesskey='.sesskey()
-                     . '&amp;eid='.$element['eid'];
-            $url     = $gpr->add_url_params($url);
-            $action  = '<a href="'.$url.'"><img alt="'.$strshow.'" src="'.$CFG->pixpath.'/t/'.$icon.'.gif" class="iconsmall" title="'.$tooltip.'"/></a>';
-
-        } else {
-            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=hide&amp;sesskey='.sesskey()
-                     . '&amp;eid='.$element['eid'];
-            $url     = $gpr->add_url_params($url);
-            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/hide.gif" class="iconsmall" alt="'.$strhide.'" title="'.$strhide.'"/></a>';
-        }
-        return $action;
-    }
-
-    /**
-     * Return locking icon for give element
-     * @param object $element
-     * @return string
-     */
-    function get_locking_icon($element, $gpr) {
-        global $CFG;
-
-        static $strunlock = null;
-        static $strlock   = null;
-        if (is_null($strunlock)) {
-            $strunlock = get_string('unlock', 'grades');
-            $strlock   = get_string('lock', 'grades');
-        }
-
-        if ($element['object']->is_locked()) {
-            $icon = 'unlock';
-            $tooltip = $strunlock;
-
-            if ($element['type'] != 'category' and $element['object']->get_locktime() > 1) { // Change the icon and add a tooltip showing the date
-                $icon = 'locktime';
-                $tooltip = get_string('locktimedate', 'grades', userdate($element['object']->get_locktime()));
-            }
-
-            if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:unlock', $this->context)) {
-                return '';
-            }
-            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=unlock&amp;sesskey='.sesskey()
-                     . '&amp;eid='.$element['eid'];
-            $url     = $gpr->add_url_params($url);
-            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/'.$icon.'.gif" alt="'.$strunlock.'" class="iconsmall" title="'.$tooltip.'"/></a>';
-
-        } else {
-            if (!has_capability('moodle/grade:manage', $this->context) and !has_capability('moodle/grade:lock', $this->context)) {
-                return '';
-            }
-            $url     = $CFG->wwwroot.'/grade/edit/tree/action.php?id='.$this->courseid.'&amp;action=lock&amp;sesskey='.sesskey()
-                     . '&amp;eid='.$element['eid'];
-            $url     = $gpr->add_url_params($url);
-            $action  = '<a href="'.$url.'"><img src="'.$CFG->pixpath.'/t/lock.gif" class="iconsmall" alt="'.$strlock.'" title="'
-                     . $strlock.'"/></a>';
-        }
-        return $action;
-    }
-
-    /**
-     * Return calculation icon for given element
-     * @param object $element
-     * @return string
-     */
-    function get_calculation_icon($element, $gpr) {
-        global $CFG;
-        if (!has_capability('moodle/grade:manage', $this->context)) {
-            return '';
-        }
-
-        $calculation_icon = '';
-
-        $type   = $element['type'];
-        $object = $element['object'];
-
-        if ($type == 'item' or $type == 'courseitem' or $type == 'categoryitem') {
-            $streditcalculation = get_string('editcalculation', 'grades');
-
-            // show calculation icon only when calculation possible
-            if ((!$object->is_normal_item() or $object->is_outcome_item())
-              and ($object->gradetype == GRADE_TYPE_SCALE or $object->gradetype == GRADE_TYPE_VALUE)) {
-                $url = $CFG->wwwroot.'/grade/edit/tree/calculation.php?courseid='.$this->courseid.'&amp;id='.$object->id;
-                $url = $gpr->add_url_params($url);
-                $calculation_icon = '<a href="'. $url.'"><img src="'.$CFG->pixpath.'/t/calc.gif" class="iconsmall" alt="'
-                                       . $streditcalculation.'" title="'.$streditcalculation.'" /></a>'. "\n";
-            }
-        }
-
-        return $calculation_icon;
     }
 }
 

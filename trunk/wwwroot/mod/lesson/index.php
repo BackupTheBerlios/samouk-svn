@@ -1,8 +1,8 @@
-<?php // $Id: index.php,v 1.25 2007/07/05 04:55:32 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.25.3 2008/01/21 10:42:17 kowy Exp $
 /**
  * This page lists all the instances of lesson in a particular course
  *
- * @version $Id: index.php,v 1.25 2007/07/05 04:55:32 mattc-catalyst Exp $
+ * @version $Id: index.php,v 1.25.2.1 2007/10/29 10:42:17 poltawski Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -34,12 +34,14 @@
     
     $navigation = build_navigation($navlinks);
 
-    print_header("$course->shortname: $strlessons", $course->fullname, $navigation, "", "", true, "", navmenu($course));
+    print_header("$course->shortname: $strlessons", $course->fullname, $navigation, "", "", true, "", 
+    			// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Get all the appropriate data
 
     if (! $lessons = get_all_instances_in_course("lesson", $course)) {
-        notice("There are no lessons", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strlessons), "../../course/view.php?id=$course->id");
         die;
     }
 

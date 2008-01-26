@@ -1,4 +1,4 @@
-<?php // $Id: editlib.php,v 1.76 2007/10/03 04:42:57 jamiesensei Exp $
+<?php // $Id: editlib.php,v 1.76.2.3 2007/11/20 15:54:21 tjhunt Exp $
 /**
  * Functions used to show question editing interface
  *
@@ -27,6 +27,7 @@ function get_module_from_cmid($cmid){
     }
     $modrec->instance = $modrec->id;
     $modrec->cmid = $cmrec->id;
+    $cmrec->name = $modrec->name;
 
     return array($modrec, $cmrec);
 }
@@ -267,7 +268,7 @@ function question_list($contexts, $pageurl, $categoryandcontext, $cm = null,
     echo '<form method="post" action="edit.php">';
     echo '<fieldset class="invisiblefieldset" style="display: block;">';
     echo '<input type="hidden" name="sesskey" value="'.$USER->sesskey.'" />';
-    echo $pageurl->hidden_params_out(array('qsortorder'));
+    echo $pageurl->hidden_params_out();
     echo '<table id="categoryquestions" style="width: 100%"><tr>';
     echo "<th style=\"white-space:nowrap;\" class=\"header\" scope=\"col\">$straction</th>";
 

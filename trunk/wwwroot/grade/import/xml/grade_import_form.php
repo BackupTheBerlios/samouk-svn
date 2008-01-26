@@ -1,4 +1,27 @@
-<?php // $Id: grade_import_form.php,v 1.4 2007/10/07 10:22:23 skodak Exp $
+<?php // $Id: grade_import_form.php,v 1.5.2.1 2007/11/23 22:12:37 skodak Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 require_once $CFG->libdir.'/formslib.php';
 
 class grade_import_form extends moodleform {
@@ -61,7 +84,7 @@ class grade_import_form extends moodleform {
     }
 
     function validation($data, $files) {
-        $err = array();
+        $err = parent::validation($data, $files);
         if (empty($data['url']) and empty($files['userfile'])) {
             if (array_key_exists('url', $data)) {
                 $err['url'] = get_string('required');
@@ -74,11 +97,7 @@ class grade_import_form extends moodleform {
             $err['url'] = get_string('error');
         }
 
-        if (count($err) == 0){
-            return true;
-        } else {
-            return $err;
-        }
+        return $err;
     }
 }
 ?>

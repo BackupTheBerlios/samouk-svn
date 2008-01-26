@@ -86,7 +86,7 @@ if ($editform->is_cancelled()) {
         }
     } else {
         if (!$id = groups_create_group($data, $editform->_upload_manager)) {
-            error('Error updating group');
+            error('Error creating group');
         }
         $returnurl = $CFG->wwwroot.'/group/index.php?id='.$course->id.'&amp;group='.$id;
     }
@@ -110,7 +110,9 @@ $navlinks = array(array('name'=>$strparticipants, 'link'=>$CFG->wwwroot.'/user/i
 $navigation = build_navigation($navlinks);
 
 /// Print header
-print_header_simple($strgroups, ': '.$strgroups, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgroups, ': '.$strgroups, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 echo '<div id="grouppicture">';
 if ($id) {

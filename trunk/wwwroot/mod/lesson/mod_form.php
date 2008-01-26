@@ -1,9 +1,9 @@
-<?php  // $Id: mod_form.php,v 1.20 2007/08/27 23:05:42 mattc-catalyst Exp $
+<?php  // $Id: mod_form.php,v 1.20.2.2 2007/11/26 04:42:25 scyrma Exp $
 /**
  * Form to define a new instance of lesson or edit an instance.
  * It is used from /course/modedit.php.
  *
- * @version $Id: mod_form.php,v 1.20 2007/08/27 23:05:42 mattc-catalyst Exp $
+ * @version $Id: mod_form.php,v 1.20.2.2 2007/11/26 04:42:25 scyrma Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -49,7 +49,7 @@ class mod_lesson_mod_form extends moodleform_mod {
         }
         $mform->addElement('select', 'maxanswers', get_string('maximumnumberofanswersbranches', 'lesson'), $numbers);
         $mform->setDefault('maxanswers', 4);
-        $mform->setHelpButton('maxanswers', array('maxanswers', get_string('displayformat', 'lesson'), 'lesson'));
+        $mform->setHelpButton('maxanswers', array('maxanswers', get_string('maximumnumberofanswersbranches', 'lesson'), 'lesson'));
 
 //-------------------------------------------------------------------------------
         $mform->addElement('header', '', get_string('gradeoptions', 'lesson'));
@@ -68,7 +68,7 @@ class mod_lesson_mod_form extends moodleform_mod {
         }
         $mform->addElement('select', 'grade', get_string('maximumgrade'), $grades);
         $mform->setDefault('grade', 0);
-        $mform->setHelpButton('grade', array('grade', get_string('maximumgrade', 'lesson'), 'lesson'));
+        $mform->setHelpButton('grade', array('grade', get_string('maximumgrade'), 'lesson'));
 
         $mform->addElement('selectyesno', 'retake', get_string('canretake', 'lesson', $COURSE->student));
         $mform->setHelpButton('retake', array('retake', get_string('canretake', 'lesson', $COURSE->student), 'lesson'));
@@ -203,7 +203,7 @@ class mod_lesson_mod_form extends moodleform_mod {
             }
         }
         $mform->addElement('select', 'dependency', get_string('dependencyon', 'lesson'), $options);
-        $mform->setHelpButton('dependency', array('dependency', get_string('dependency', 'lesson'), 'lesson'));
+        $mform->setHelpButton('dependency', array('dependency', get_string('dependencyon', 'lesson'), 'lesson'));
         $mform->setDefault('dependency', 0);
 
         $mform->addElement('text', 'timespent', get_string('timespentminutes', 'lesson'));
@@ -327,21 +327,14 @@ class mod_lesson_mod_form extends moodleform_mod {
      * @param object $data Post data to validate
      * @return array
      **/
-    function validation($data) {
-        $errors = parent::validation($data);
-        if ($errors === true) {
-            $errors = array();
-        }
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         if (empty($data['maxtime']) and !empty($data['timed'])) {
             $errors['timedgrp'] = get_string('err_numeric', 'form');
         }
 
-        if (count($errors) == 0) {
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
     }
 }
 ?>

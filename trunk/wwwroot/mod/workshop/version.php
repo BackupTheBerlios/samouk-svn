@@ -1,4 +1,4 @@
-<?php // $Id: version.php,v 1.35 2007/02/02 13:02:31 moodler Exp $
+<?php // $Id: version.php,v 1.36 2007/10/10 16:09:20 skodak Exp $
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Code fragment to define the module version etc.
@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 $module->version  = 2007020200;
-$module->requires = 2007020200;  // Requires this Moodle version
+$module->requires = 2007101000;  // Requires this Moodle version
 $module->cron     = 60;
 
 ?>

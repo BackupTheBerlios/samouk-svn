@@ -1,4 +1,4 @@
-<?php // $Id: post.php,v 1.154 2007/10/07 13:31:41 skodak Exp $
+<?php // $Id: post.php,v 1.154.3 2008/01/21 05:08:19 kowy Exp $
 
 //  Edit and save a new post to a discussion
 
@@ -52,20 +52,14 @@
             $modcontext = get_context_instance(CONTEXT_MODULE, $cm->id);
         }
 
-        $strforums = get_string('modulenameplural', 'forum');
-
         if (!get_referer()) {   // No referer - probably coming in via email  See MDL-9052
             require_login();
         }
         
-        $navlinks = array();
-        $navlinks[] = array('name' => get_string("forums", "forum"), 'link' => "../forum/view.php?f=$forum->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($forum->name,true), 'link' => '../forum/index.php?id=$course->id', 'type' => 'activityinstance');
-        
-        $navigation = build_navigation($navlinks);
-        
-        
-        print_header($course->shortname, $course->fullname, $navigation, '' , '', true, "", navmenu($course, $cm));
+        $navigation = build_navigation('', $cm);
+        print_header($course->shortname, $course->fullname, $navigation, '' , '', true, "", 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
         notice_yesno(get_string('noguestpost', 'forum').'<br /><br />'.get_string('liketologin'),
                      $wwwroot, get_referer(false));
@@ -410,17 +404,14 @@
         } else { // User just asked to prune something
 
             $course = get_record('course', 'id', $forum->course);
-            $strforums = get_string("modulenameplural", "forum");
             
             $navlinks = array();
-            $navlinks[] = array('name' => $strforums, 'link' => "../forum/index.php?id=$course->id", 'type' => 'activity');
-            $navlinks[] = array('name' => $forum->name, 'link' => "view.php?f=$forum->id", 'type' => 'activityinstance');
             $navlinks[] = array('name' => format_string($post->subject, true), 'link' => "discuss.php?d=$discussion->id", 'type' => 'title');
             $navlinks[] = array('name' => get_string("prune", "forum"), 'link' => '', 'type' => 'title');
-            
-            $navigation = build_navigation($navlinks);
-            
-            print_header_simple(format_string($discussion->name).": ".format_string($post->subject), "", $navigation, '', "", true, "", navmenu($course, $cm));
+            $navigation = build_navigation($navlinks, $cm);
+            print_header_simple(format_string($discussion->name).": ".format_string($post->subject), "", $navigation, '', "", true, "", 
+            					// kowy - 2007-01-12 - add standard logout box 
+								user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
             print_heading(get_string('pruneheading', 'forum'));
             echo '<center>';
@@ -500,6 +491,15 @@
             $updatepost->forum=$forum->id;
             if (!forum_update_post($updatepost, $message)) {
                 error(get_string("couldnotupdate", "forum"), $errordestination);
+            }
+            
+            // MDL-11818
+            if (($forum->type == 'single') && ($updatepost->parent == '0')){ // updating first post of single discussion type -> updating forum intro
+                $forum->intro = $updatepost->message;
+                $forum->timemodified = time();
+                if (!update_record("forum", $forum)) {
+                    error(get_string("couldnotupdate", "forum"), $errordestination);
+                }
             }
 
             $timemessage = 2;
@@ -635,24 +635,9 @@
                                                        get_string("addanewdiscussion", "forum");
     }
 
-    $strforums = get_string("modulenameplural", "forum");
-
-    $navlinks = array();
-    $navlinks[] = array('name' => $strforums, 'link' => "../forum/index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => $forum->name, 'link' => "view.php?f=$forum->id", 'type' => 'activityinstance');
-
-
-    if ($post->parent) {
-        $navlinks[] = array('name' => format_string($toppost->subject, true), 'link' => "discuss.php?d=$discussion->id", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => get_string('editing', 'forum'), 'link' => '', 'type' => 'action');            
-    } else {
-        $navlinks[] = array('name' => format_string($toppost->subject), 'link' => '', 'type' => 'action');
-    }
-
     if (empty($post->edit)) {
         $post->edit = '';
     }
-
     
     if (empty($discussion->name)) {
         if (empty($discussion)) {
@@ -665,7 +650,6 @@
         // not show the discussion name (same as forum name in this case) in
         // the breadcrumbs.
         $strdiscussionname = '';
-        $navtail = '';
     } else {
         // Show the discussion name in the breadcrumbs.
         $strdiscussionname = format_string($discussion->name).':';
@@ -673,13 +657,20 @@
 
     $forcefocus = empty($reply) ? NULL : 'message';
 
-
-    $navigation = build_navigation($navlinks);
+    $navlinks = array();
+    if ($post->parent) {
+        $navlinks[] = array('name' => format_string($toppost->subject, true), 'link' => "discuss.php?d=$discussion->id", 'type' => 'title');
+        $navlinks[] = array('name' => get_string('editing', 'forum'), 'link' => '', 'type' => 'title');            
+    } else {
+        $navlinks[] = array('name' => format_string($toppost->subject), 'link' => '', 'type' => 'title');
+    }
+    $navigation = build_navigation($navlinks, $cm);
      
     print_header("$course->shortname: $strdiscussionname ".
                   format_string($toppost->subject), $course->fullname,
-                  $navigation, $mform_post->focus($forcefocus), "", true, "", navmenu($course, $cm));
-
+                  $navigation, $mform_post->focus($forcefocus), "", true, "", 
+                  // kowy - 2007-01-12 - add standard logout box 
+				  user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
    
 // checkup
     if (!empty($parent) && !forum_user_can_see_post($forum, $discussion, $post)) {

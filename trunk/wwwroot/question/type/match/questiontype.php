@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.31 2007/09/04 11:55:16 jamiesensei Exp $
+<?php  // $Id: questiontype.php,v 1.32.2.2 2007/11/02 16:20:29 tjhunt Exp $
 
 /////////////
 /// MATCH ///
@@ -34,7 +34,7 @@ class question_match_qtype extends default_questiontype {
         // Insert all the new question+answer pairs
         foreach ($question->subquestions as $key => $questiontext) {
             $answertext = $question->subanswers[$key];
-            if (!empty($questiontext) or !empty($answertext)) {
+            if ($questiontext != '' || $answertext != '') {
                 if ($subquestion = array_shift($oldsubquestions)) {  // Existing answer, so reuse it
                     $subquestion->questiontext = $questiontext;
                     $subquestion->answertext   = $answertext;
@@ -59,7 +59,7 @@ class question_match_qtype extends default_questiontype {
                 }
                 $subquestions[] = $subquestion->id;
             }
-            if (!empty($questiontext) && empty($answertext)) {
+            if ($questiontext != '' && $answertext == '') {
                 $result->notice = get_string('nomatchinganswer', 'quiz', $questiontext);
             }
         }
@@ -223,7 +223,7 @@ class question_match_qtype extends default_questiontype {
         $responses = array();
         foreach ($state->options->subquestions as $sub) {
             foreach ($sub->options->answers as $answer) {
-                if (1 == $answer->fraction && $sub->questiontext) {
+                if (1 == $answer->fraction && $sub->questiontext != '') {
                     $responses[$sub->id] = $answer->id;
                 }
             }
@@ -272,7 +272,7 @@ class question_match_qtype extends default_questiontype {
 
         // Print the input controls
         foreach ($subquestions as $key => $subquestion) {
-            if ($subquestion->questiontext) {
+            if ($subquestion->questiontext != '') {
                 // Subquestion text:
                 $a = new stdClass;
                 $a->text = $this->format_text($subquestion->questiontext,
@@ -650,15 +650,18 @@ class question_match_qtype extends default_questiontype {
     function find_file_links($question, $courseid){
         // find links in the question_match_sub table.
         $urls = array();
-        foreach ($question->options->subquestions as $subquestion) {
-            $urls += question_find_file_links_from_html($subquestion->questiontext, $courseid);
-        }
+        if (isset($question->options->subquestions)){
+            foreach ($question->options->subquestions as $subquestion) {
+                $urls += question_find_file_links_from_html($subquestion->questiontext, $courseid);
+            }
 
-        //set all the values of the array to the question object
-        if ($urls){
-            $urls = array_combine(array_keys($urls), array_fill(0, count($urls), array($question->id)));
+            //set all the values of the array to the question object
+            if ($urls){
+                $urls = array_combine(array_keys($urls), array_fill(0, count($urls), array($question->id)));
+            }
         }
         $urls = array_merge_recursive($urls, parent::find_file_links($question, $courseid));
+
         return $urls;
     }
 

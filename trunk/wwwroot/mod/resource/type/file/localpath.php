@@ -1,4 +1,4 @@
-<?php    // $Id: localpath.php,v 1.5 2007/01/09 10:42:24 vyshane Exp $
+<?php    // $Id: localpath.php,v 1.5.4.1 2007/12/14 21:21:07 skodak Exp $
 
     require('../../../../config.php');
     require('../../lib.php');
@@ -52,6 +52,6 @@
     </form>
     </fieldset>
     </div>
-
-    </body>
-    </html>
+<?php
+    print_footer('empty');
+?>

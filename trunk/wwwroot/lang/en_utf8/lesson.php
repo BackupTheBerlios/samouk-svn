@@ -1,4 +1,4 @@
-<?PHP // $Id: lesson.php,v 1.25 2007/07/24 05:23:55 mark-nielsen Exp $ 
+<?PHP // $Id: lesson.php,v 1.25.2.2 2007/12/29 22:16:03 mark-nielsen Exp $ 
       // lesson.php - created with Moodle 1.7 beta + (2006101003)
 
 $string['accesscontrol'] = 'Access control';
@@ -203,7 +203,6 @@ $string['or'] = 'OR';
 $string['ordered'] = 'Ordered';
 $string['other'] = 'Other';
 $string['outof'] = 'Out of $a';
-$string['outoftime'] = 'Out of time';
 $string['overview'] = 'Overview';
 $string['page'] = 'Page: $a';
 $string['pagecontents'] = 'Page contents';
@@ -223,6 +222,7 @@ $string['previewlesson'] = 'Preview $a';
 $string['previouspage'] = 'Previous page';
 $string['progressbar'] = 'Progress Bar';
 $string['progressbarteacherwarning'] = 'Progress Bar does not display for $a';
+$string['deleteallattempts'] = 'Delete all lesson attempts';
 $string['qtype'] = 'Page type';
 $string['question'] = 'Question';
 $string['questionoption'] = 'Question';
@@ -261,7 +261,6 @@ $string['startlesson'] = 'Start lesson';
 $string['studentattemptlesson'] = '$a->lastname, $a->firstname\'s attempt number $a->attempt';
 $string['studentname'] = '$a Name';
 $string['studentoneminwarning'] = 'Warning: You have 1 minute or less to finish the lesson.';
-$string['studentoutoftime'] = 'Attention: You ran out of time for this lesson. Your last answer does not count because it was answered after the time was up.  Please push the continue button to finish the lesson.';
 $string['studentresponse'] = '{$a}\'s response';
 $string['submitname'] = 'Submit name';
 $string['teacherjumpwarning'] = 'An $a->cluster jump or an $a->unseen jump is being used in this lesson.  The Next Page jump will be used instead.  Login as a student to test these jumps.';

@@ -1,4 +1,4 @@
-<?php // $Id: lib.php,v 1.7 2007/09/28 07:21:49 toyomoyo Exp $
+<?php // $Id: lib.php,v 1.7.2.1 2007/11/29 14:40:54 skodak Exp $
 
 /**
  * Library of functions and constants for notes
@@ -254,4 +254,12 @@ function note_print_notes($header, $addcourseid = 0, $viewnotes = true, $coursei
     }
 }
 
+/**
+ * Delete all notes about users in course-
+ * @param int $courseid
+ * @return bool success
+ */
+function note_delete_all($courseid) {
+    return delete_records('post', 'module', 'notes', 'courseid', $courseid);
+}
 ?>

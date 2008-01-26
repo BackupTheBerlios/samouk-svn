@@ -1,4 +1,4 @@
-<?PHP // $Id: choice.php,v 1.6 2007/05/03 00:06:17 danmarsden Exp $
+<?PHP // $Id: choice.php,v 1.6.4.2 2007/11/29 14:40:45 skodak Exp $
       // choice.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -17,6 +17,7 @@ $string['choicetext'] = 'Choice text';
 $string['displayhorizontal'] = 'Display horizontally';
 $string['displaymode'] = 'Display Mode';
 $string['displayvertical'] = 'Display vertically';
+$string['expired'] = 'Sorry, this activity closed on $a and is no longer available';
 $string['fillinatleastoneoption'] = 'You need to provide at least two possible answers.';
 $string['full'] = '(Full)';
 $string['havetologin'] = 'You have to log in before you can submit your choice';
@@ -37,6 +38,7 @@ $string['publishalways'] = 'Always show results to students';
 $string['publishanonymous'] = 'Publish anonymous results, do not show student names';
 $string['publishnames'] = 'Publish full results, showing names and their choices';
 $string['publishnot'] = 'Do not publish results to students';
+$string['removeresponses'] = 'Remove all responses';
 $string['responses'] = 'Responses';
 $string['responsesto'] = 'Responses to $a';
 $string['savemychoice'] = 'Save my choice';

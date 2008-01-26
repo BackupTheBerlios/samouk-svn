@@ -1,4 +1,4 @@
-<?php // $Id: report.php,v 1.53 2007/08/28 00:12:03 mattc-catalyst Exp $
+<?php // $Id: report.php,v 1.53.3 2008/01/21 16:09:38 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -65,15 +65,12 @@
                        <a href=\"view.php?id=$cm->id\">".format_string($survey->name,true)."</a> -> ";
     }
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strsurveys, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($survey->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strreport, 'link' => '', 'type' => 'title');
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation($strreport, $cm);
     print_header("$course->shortname: ".format_string($survey->name), $course->fullname, $navigation,
                  "", "", true,
-                 update_module_button($cm->id, $course->id, $strsurvey), navmenu($course, $cm));
+                 update_module_button($cm->id, $course->id, $strsurvey), 
+                 // kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
 /// Check to see if groups are being used in this survey
     if ($groupmode = groups_get_activity_groupmode($cm)) {   // Groups are being used

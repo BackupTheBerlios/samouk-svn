@@ -1,8 +1,8 @@
-<?php  //$Id: upgradelib.php,v 1.9 2007/09/28 21:58:03 skodak Exp $
+<?php  //$Id: upgradelib.php,v 1.9.2.4 2007/12/19 17:47:32 skodak Exp $
 
 /*
  * This file is used for special upgrade functions - for example groups and gradebook.
- * These functions must use SQL and dabase related functions only- no other Moodle API,
+ * These functions must use SQL and database related functions only- no other Moodle API,
  * because it might depend on db structures that are not yet present during upgrade.
  * (Do not use functions from accesslib.php, grades classes or group functions at all!)
  */
@@ -131,8 +131,9 @@ function upgrade_18_gradebook($courseid) {
     $course_category->courseid     = $courseid;
     $course_category->fullname     = get_string('coursegradecategory', 'grades');
     $course_category->parent       = null;
-    $course_category->aggregation  = GRADE_AGGREGATE_MEAN;
+    $course_category->aggregation  = GRADE_AGGREGATE_WEIGHTED_MEAN2;
     $course_category->timemodified = $course_category->timecreated = time();
+    $course_category->aggregateonlygraded = 0;
     if (!$course_category->id = insert_record('grade_categories', $course_category)) {
         return false;
     }
@@ -148,6 +149,7 @@ function upgrade_18_gradebook($courseid) {
     $course_item->itemtype     = 'course';
     $course_item->iteminstance = $course_category->id;
     $course_item->gradetype    = GRADE_TYPE_VALUE;
+    $course_item->display = GRADE_DISPLAY_TYPE_PERCENTAGE;
     $course_item->sortorder    = $order++;
     $course_item->timemodified = $course_item->timecreated = $course_category->timemodified;
     $course_item->needsupdate  = 1;
@@ -173,8 +175,9 @@ function upgrade_18_gradebook($courseid) {
             $category->fullname     = addslashes($oldcat->name);
             $category->parent       = $course_category->id;
             $category->droplow      = $oldcat->drop_x_lowest;
-            $category->aggregation  = GRADE_AGGREGATE_MEAN;
+            $category->aggregation  = GRADE_AGGREGATE_WEIGHTED_MEAN2;
             $category->timemodified = $category->timecreated = time();
+            $category->aggregateonlygraded = 0;
             if (!$category->id = insert_record('grade_categories', $category)) {
                 return false;
             }
@@ -191,6 +194,7 @@ function upgrade_18_gradebook($courseid) {
             $item->itemtype        = 'category';
             $item->iteminstance    = $category->id;
             $item->gradetype       = GRADE_TYPE_VALUE;
+            $item->display         = GRADE_DISPLAY_TYPE_PERCENTAGE;
             $item->plusfactor      = $oldcat->bonus_points;
             $item->hidden          = $oldcat->hidden;
             $item->aggregationcoef = $oldcat->weight;
@@ -205,7 +209,7 @@ function upgrade_18_gradebook($courseid) {
             }
         }
 
-        $course_category->aggregation = GRADE_AGGREGATE_WEIGHTED_MEAN;
+        $course_category->aggregation = GRADE_AGGREGATE_WEIGHTED_MEAN2;
         update_record('grade_categories', $course_category);
     }
     unset($oldcats);
@@ -508,6 +512,54 @@ function upgrade_18_groups_drop_keys_indexes() {
     $result = $result && drop_index($table, $index);
 
     return $result;
+}
+
+function upgrade_fix_category_depths() {
+    global $CFG, $db;
+
+    // first fix incorrect parents
+    $sql = "SELECT c.id
+              FROM {$CFG->prefix}course_categories c
+             WHERE c.parent > 0 AND c.parent NOT IN (SELECT pc.id FROM {$CFG->prefix}course_categories pc)";
+    if ($rs = get_recordset_sql($sql)) {
+        while ($cat = rs_fetch_next_record($rs)) {
+            $cat->depth  = 1;
+            $cat->path   = '/'.$cat->id;
+            $cat->parent = 0;
+            update_record('course_categories', $cat);
+        }
+        rs_close($rs);
+    }
+
+    // now add path and depth to top level categories
+    $sql = "UPDATE {$CFG->prefix}course_categories
+               SET depth = 1, path = ".sql_concat("'/'", "id")."
+             WHERE parent = 0";
+    execute_sql($sql);
+
+    // now fix all other levels - slow but works in all supported dbs
+    $parentdepth = 1;
+    $db->debug = true;
+    while (record_exists('course_categories', 'depth', 0)) {
+        $sql = "SELECT c.id, pc.path
+                  FROM {$CFG->prefix}course_categories c, {$CFG->prefix}course_categories pc
+                 WHERE c.parent=pc.id AND c.depth=0 AND pc.depth=$parentdepth";
+        if ($rs = get_recordset_sql($sql)) {
+            while ($cat = rs_fetch_next_record($rs)) {
+                $cat->depth = $parentdepth+1;
+                $cat->path  = $cat->path.'/'.$cat->id;
+                update_record('course_categories', $cat);
+            }
+            rs_close($rs);
+        }
+        $parentdepth++;
+        if ($parentdepth > 100) {
+            //something must have gone wrong - nobody can have more than 100 levels of categories, right?
+            debugging('Unknown error fixing category depths');
+            break;
+        }
+    }
+    $db->debug = true;
 }
 
 ?>

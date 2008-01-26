@@ -1,4 +1,4 @@
-<?php // $Id: deprecatedlib.php,v 1.39 2007/10/03 16:31:22 stronk7 Exp $
+<?php // $Id: deprecatedlib.php,v 1.41.2.2 2008/01/06 23:18:51 martinlanghoff Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.org                                            //
 //                                                                       //
-// Copyright (C) 1999-2999  Martin Dougiamas, Moodle  http://moodle.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas, Moodle  http://moodle.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -30,7 +30,7 @@
  * use any of these functions.
  *
  * @author Martin Dougiamas
- * @version $Id: deprecatedlib.php,v 1.39 2007/10/03 16:31:22 stronk7 Exp $
+ * @version $Id: deprecatedlib.php,v 1.41.2.2 2008/01/06 23:18:51 martinlanghoff Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package moodlecore
  */
@@ -331,9 +331,6 @@ function enrol_student($userid, $courseid, $timestart=0, $timeend=0, $enrol='man
 
     $res = role_assign($role->id, $user->id, 0, $context->id, $timestart, $timeend, 0, $enrol);
 
-    // force accessinfo refresh for users visiting this context...
-    mark_context_dirty($context->path);
-
     return $res;
 }
 
@@ -368,8 +365,6 @@ function unenrol_student($userid, $courseid=0) {
         foreach($roles as $role) {
             $status = role_unassign($role->id, $userid, 0, $context->id) and $status;
         }
-        // force accessinfo refresh for users visiting this context...
-        mark_context_dirty($context->path);
     } else {
         // recursivelly unenroll student from all courses
         if ($courses = get_records('course')) {
@@ -414,9 +409,6 @@ function add_teacher($userid, $courseid, $editall=1, $role='', $timestart=0, $ti
     }
 
     $res = role_assign($role->id, $user->id, 0, $context->id, $timestart, $timeend, 0, $enrol);
-
-    // force accessinfo refresh for users visiting this context...
-    mark_context_dirty($context->path);
 
     return $res;
 }
@@ -467,8 +459,6 @@ function remove_teacher($userid, $courseid=0) {
                 $return = false;
             }
         }
-        // force accessinfo refresh for users visiting this context...
-        mark_context_dirty($context->path);
 
     } else {
         delete_records('forum_subscriptions', 'userid', $userid);
@@ -525,13 +515,11 @@ function get_teacher($courseid) {
 
     $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-    if ($users = get_users_by_capability($context, 'moodle/course:update', 'u.*,ra.hidden', 'r.sortorder ASC',
-                                         '', '', '', '', false)) {
-        foreach ($users as $user) {
-            if (!$user->hidden || has_capability('moodle/role:viewhiddenassigns', $context)) {
-                return $user;
-            }
-        }
+    // Pass $view=true to filter hidden caps if the user cannot see them
+    if ($users = get_users_by_capability($context, 'moodle/course:update', 'u.*', 'u.id ASC',
+                                         '', '', '', '', false, true)) {
+        $users = sort_by_roleassignment_authority($users, $context);
+        return array_shift($users);
     }
 
     return false;
@@ -756,7 +744,11 @@ function get_course_teachers($courseid, $sort='t.authority ASC', $exceptions='')
         }
     }
 
-    return get_users_by_capability($context, 'moodle/course:update', 'u.*, ul.timeaccess as lastaccess, ra.hidden', $sort, '','','',$exceptions, false);
+    $users = get_users_by_capability($context, 'moodle/course:update',
+                                     'u.*, ul.timeaccess as lastaccess',
+                                     $sort, '','','',$exceptions, false);
+    return sort_by_roleassignment_authority($users, $context);
+
     /// some fields will be missing, like authority, editall
     /*
     return get_records_sql("SELECT u.id, u.username, u.firstname, u.lastname, u.maildisplay, u.mailformat, u.maildigest,

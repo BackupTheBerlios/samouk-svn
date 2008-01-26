@@ -1,4 +1,4 @@
-<?php  // $Id: import.php,v 1.21 2007/08/20 14:04:10 skodak Exp $
+<?php  // $Id: import.php,v 1.21.3 2008/01/21 16:09:45 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -78,12 +78,10 @@
 /// Print the page header
     $strdata = get_string('modulenameplural','data');
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strdata, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-    
-    print_header_simple($data->name, "", $navigation, "", "", true, "", navmenu($course));
+    $navigation = build_navigation('', $cm);
+    print_header_simple($data->name, "", $navigation, "", "", true, "", 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
     print_heading(format_string($data->name));
 
 /// Groups needed for Add entry tab

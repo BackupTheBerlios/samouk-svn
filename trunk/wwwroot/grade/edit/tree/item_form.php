@@ -1,4 +1,27 @@
-<?php  //$Id: item_form.php,v 1.18 2007/10/07 10:51:52 skodak Exp $
+<?php  //$Id: item_form.php,v 1.20.2.10 2007/11/26 04:42:23 scyrma Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once $CFG->libdir.'/formslib.php';
 
@@ -43,7 +66,7 @@ class edit_item_form extends moodleform {
             }
         }
         $mform->addElement('select', 'scaleid', get_string('scale'), $options);
-        $mform->setHelpButton('scaleid', array(false, get_string('scaleid', 'grades'),
+        $mform->setHelpButton('scaleid', array(false, get_string('scale', 'grades'),
                 false, true, false, get_string('scaleidhelp', 'grades', get_string('gradeitem', 'grades'))));
         $mform->disabledIf('scaleid', 'gradetype', 'noteq', GRADE_TYPE_SCALE);
 
@@ -77,26 +100,33 @@ class edit_item_form extends moodleform {
         $mform->disabledIf('plusfactor', 'gradetype', 'eq', GRADE_TYPE_NONE);
         $mform->disabledIf('plusfactor', 'gradetype', 'eq', GRADE_TYPE_TEXT);
 
-        $mform->addElement('text', 'aggregationcoef', get_string('aggregationcoef', 'grades'));
-        $mform->setHelpButton('aggregationcoef', array(false, get_string('aggregationcoef', 'grades'),
-                false, true, false, get_string('aggregationcoefhelp', 'grades')));
-
         /// grade display prefs
-        $this->displayoptions = array(GRADE_DISPLAY_TYPE_DEFAULT => get_string('default', 'grades'),
-                                      GRADE_DISPLAY_TYPE_REAL => get_string('real', 'grades'),
-                                      GRADE_DISPLAY_TYPE_PERCENTAGE => get_string('percentage', 'grades'),
-                                      GRADE_DISPLAY_TYPE_LETTER => get_string('letter', 'grades'));
-        $mform->addElement('select', 'display', null, $this->displayoptions);
+        $default_gradedisplaytype = grade_get_setting($COURSE->id, 'displaytype', $CFG->grade_displaytype);
+        $options = array(GRADE_DISPLAY_TYPE_DEFAULT    => get_string('default', 'grades'),
+                         GRADE_DISPLAY_TYPE_REAL       => get_string('real', 'grades'),
+                         GRADE_DISPLAY_TYPE_PERCENTAGE => get_string('percentage', 'grades'),
+                         GRADE_DISPLAY_TYPE_LETTER     => get_string('letter', 'grades'));
+        foreach ($options as $key=>$option) {
+            if ($key == $default_gradedisplaytype) {
+                $options[GRADE_DISPLAY_TYPE_DEFAULT] = get_string('defaultprev', 'grades', $option);
+                break;
+            }
+        }
+        $mform->addElement('select', 'display', get_string('gradedisplaytype', 'grades'), $options);
         $mform->setHelpButton('display', array(false, get_string('gradedisplaytype', 'grades'),
                               false, true, false, get_string('configgradedisplaytype', 'grades')));
 
 
-        $options = array(-1=>get_string('default', 'grades'), 0, 1, 2, 3, 4, 5);
-        $mform->addElement('select', 'decimals', null, $options);
+        $default_gradedecimals = grade_get_setting($COURSE->id, 'decimalpoints', $CFG->grade_decimalpoints);
+        $options = array(-1=>get_string('defaultprev', 'grades', $default_gradedecimals), 0=>0, 1=>1, 2=>2, 3=>3, 4=>4, 5=>5);
+        $mform->addElement('select', 'decimals', get_string('decimalpoints', 'grades'), $options);
         $mform->setHelpButton('decimals', array(false, get_string('decimalpoints', 'grades'),
                               false, true, false, get_string('configdecimalpoints', 'grades')));
-        $mform->setDefault('decimals', GRADE_REPORT_PREFERENCE_DEFAULT);
+        $mform->setDefault('decimals', -1);
         $mform->disabledIf('decimals', 'display', 'eq', GRADE_DISPLAY_TYPE_LETTER);
+        if ($default_gradedisplaytype == GRADE_DISPLAY_TYPE_LETTER) {
+            $mform->disabledIf('decimals', 'display', "eq", GRADE_DISPLAY_TYPE_DEFAULT);
+        }
 
         /// hiding
         /// advcheckbox is not compatible with disabledIf !!
@@ -114,6 +144,44 @@ class edit_item_form extends moodleform {
         $mform->setHelpButton('locktime', array('locktime', get_string('locktime', 'grades'), 'grade'));
         $mform->disabledIf('locktime', 'gradetype', 'eq', GRADE_TYPE_NONE);
 
+/// parent category related settings
+        $mform->addElement('header', 'headerparent', get_string('parentcategory', 'grades'));
+
+        $options = array();
+        $default = '';
+        $coefstring = '';
+        $categories = grade_category::fetch_all(array('courseid'=>$COURSE->id));
+        foreach ($categories as $cat) {
+            $cat->apply_forced_settings();
+            $options[$cat->id] = $cat->get_name();
+            if ($cat->is_course_category()) {
+                $default = $cat->id;
+            }
+            if ($cat->is_aggregationcoef_used()) {
+                if ($cat->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefweight') ? 'aggregationcoefweight' : 'aggregationcoef';
+
+                } else if ($cat->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefextra') ? 'aggregationcoefextra' : 'aggregationcoef';
+
+                } else {
+                    $coefstring = 'aggregationcoef';
+                }
+            } else {
+                $mform->disabledIf('aggregationcoef', 'parentcategory', 'eq', $cat->id);
+            }
+        }
+
+        if (count($categories) > 1) {
+            $mform->addElement('select', 'parentcategory', get_string('gradecategory', 'grades'), $options);
+        }
+
+        if ($coefstring !== '') {
+            $mform->addElement('text', 'aggregationcoef', get_string($coefstring, 'grades'));
+            $mform->setHelpButton('aggregationcoef', array(false, get_string($coefstring, 'grades'),
+                                    false, true, false, get_string($coefstring.'help', 'grades')));
+        }
+
 /// hidden params
         $mform->addElement('hidden', 'id', 0);
         $mform->setType('id', PARAM_INT);
@@ -128,6 +196,15 @@ class edit_item_form extends moodleform {
         $gpr = $this->_customdata['gpr'];
         $gpr->add_mform_elements($mform);
 
+/// mark advanced according to site settings
+        if (isset($CFG->grade_item_advanced)) {
+            $advanced = explode(',', $CFG->grade_item_advanced);
+            foreach ($advanced as $el) {
+                if ($mform->elementExists($el)) {
+                    $mform->setAdvanced($el);
+                }
+            }
+        }
 //-------------------------------------------------------------------------------
         // buttons
         $this->add_action_buttons();
@@ -158,27 +235,72 @@ class edit_item_form extends moodleform {
                 $mform->hardFreeze('scaleid');
 
             } else {
-                if ($grade_item->is_normal_item()) {
+                if ($grade_item->is_external_item()) {
                     // following items are set up from modules and should not be overrided by user
                     $mform->hardFreeze('itemname,idnumber,gradetype,grademax,grademin,scaleid');
                     //$mform->removeElement('calculation');
                 }
             }
+
             //remove the aggregation coef element if not needed
             if ($grade_item->is_course_item()) {
-                $mform->removeElement('aggregationcoef');
-
-            } else if ($grade_item->is_category_item()) {
-                $category = $grade_item->get_item_category();
-                $parent_category = $category->get_parent_category();
-                if (!$parent_category->is_aggregationcoef_used()) {
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->removeElement('parentcategory');
+                }
+                if ($mform->elementExists('aggregationcoef')) {
                     $mform->removeElement('aggregationcoef');
                 }
 
             } else {
-                $parent_category = $grade_item->get_parent_category();
+                // if we wanted to change parent of existing item - we would have to verify there are no circular references in parents!!!
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->hardFreeze('parentcategory');
+                }
+
+                if ($grade_item->is_category_item()) {
+                    $category = $grade_item->get_item_category();
+                    $parent_category = $category->get_parent_category();
+                } else {
+                    $parent_category = $grade_item->get_parent_category();
+                }
+
+                $parent_category->apply_forced_settings();
+
                 if (!$parent_category->is_aggregationcoef_used()) {
-                    $mform->removeElement('aggregationcoef');
+                    if ($mform->elementExists('aggregationcoef')) {
+                        $mform->removeElement('aggregationcoef');
+                    }
+                } else {
+                    //fix label if needed
+                    $agg_el =& $mform->getElement('aggregationcoef');
+                    $aggcoef = '';
+                    if ($parent_category->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                        $aggcoef = 'aggregationcoefweight';
+                    } else if ($parent_category->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                        $aggcoef = 'aggregationcoefextra';
+                    }
+                    if ($aggcoef !== '') {
+                        $agg_el->setLabel(get_string($aggcoef, 'grades'));
+                        $mform->setHelpButton('aggregationcoef', array(false, get_string($aggcoef, 'grades'),
+                                false, true, false, get_string($aggcoef.'help', 'grades')));
+                    }
+                }
+            }
+
+            if ($category = $grade_item->get_item_category()) {
+                if ($category->aggregation == GRADE_AGGREGATE_SUM) {
+                    if ($mform->elementExists('gradetype')) {
+                        $mform->hardFreeze('gradetype');
+                    }
+                    if ($mform->elementExists('grademin')) {
+                        $mform->hardFreeze('grademin');
+                    }
+                    if ($mform->elementExists('grademax')) {
+                        $mform->hardFreeze('grademax');
+                    }
+                    if ($mform->elementExists('scaleid')) {
+                        $mform->removeElement('scaleid');
+                    }
                 }
             }
 
@@ -186,41 +308,18 @@ class edit_item_form extends moodleform {
             // all new items are manual, children of course category
             $mform->removeElement('plusfactor');
             $mform->removeElement('multfactor');
-
-            $course_category = grade_category::fetch_course_category($COURSE->id);
-            if (!$course_category->is_aggregationcoef_used()) {
-                $mform->removeElement('aggregationcoef');
-            }
         }
 
-        // setup defaults and extra locking based on it
-        $course_item = grade_item::fetch_course_item($COURSE->id);
-        $default_gradedisplaytype = $course_item->get_displaytype();
-        $default_gradedecimals    = $course_item->get_decimals();
-
-        $option_value = 'error';
-        foreach ($this->displayoptions as $key => $option) {
-            if ($key == $default_gradedisplaytype) {
-                $option_value = $option;
-                break;
-            }
-        }
-        $displaytypeEl =& $mform->getElement('display');
-        $displaytypeEl->setLabel(get_string('gradedisplaytype', 'grades').' ('.get_string('default', 'grades').': '.$option_value.')');
-
-        $decimalsEl =& $mform->getElement('decimals');
-        $decimalsEl->setLabel(get_string('decimalpoints', 'grades').' ('.get_string('default', 'grades').': '.$default_gradedecimals.')');
-
-        // Disable decimals if displaytype is DEFAULT and course or site displaytype is LETTER
-        if ($default_gradedisplaytype == GRADE_DISPLAY_TYPE_LETTER) {
-            $mform->disabledIf('decimals', 'display', "eq", GRADE_DISPLAY_TYPE_DEFAULT);
+        // no parent header for course category
+        if (!$mform->elementExists('aggregationcoef') and !$mform->elementExists('parentcategory')) {
+            $mform->removeElement('headerparent');
         }
     }
 
 
 /// perform extra validation before submission
-    function validation($data){
-        $errors = array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         if (array_key_exists('idnumber', $data)) {
             if ($data['id']) {
@@ -239,28 +338,20 @@ class edit_item_form extends moodleform {
             }
         }
 
-        /*
-        if (array_key_exists('calculation', $data) and $data['calculation'] != '') {
-            $grade_item = new grade_item(array('id'=>$data['id'], 'itemtype'=>$data['itemtype'], 'courseid'=>$data['courseid']));
-            $result = $grade_item->validate_formula($data['calculation']);
-            if ($result !== true) {
-                $errors['calculation'] = $result;
+        if (array_key_exists('gradetype', $data) and $data['gradetype'] == GRADE_TYPE_SCALE) {
+            if (empty($data['scaleid'])) {
+                $errors['scaleid'] = get_string('missingscale', 'grades');
             }
         }
-        */
 
         if (array_key_exists('grademin', $data) and array_key_exists('grademax', $data)) {
             if ($data['grademax'] == $data['grademin'] or $data['grademax'] < $data['grademin']) {
-                $errors['grademin'] = get_String('incorrectminmax', 'grades');
-                $errors['grademax'] = get_String('incorrectminmax', 'grades');
+                $errors['grademin'] = get_string('incorrectminmax', 'grades');
+                $errors['grademax'] = get_string('incorrectminmax', 'grades');
             }
         }
 
-        if (0 == count($errors)){
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
     }
 
 }

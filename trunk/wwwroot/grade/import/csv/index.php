@@ -1,4 +1,27 @@
-<?php  //$Id: index.php,v 1.29 2007/10/07 13:04:50 skodak Exp $
+<?php  //$Id: index.php,v 1.31.2.1 2008/01/08 22:24:10 poltawski Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 require_once '../../../config.php';
 require_once $CFG->libdir.'/gradelib.php';
 require_once $CFG->dirroot.'/grade/lib.php';
@@ -15,7 +38,6 @@ require_login($course);
 $context = get_context_instance(CONTEXT_COURSE, $id);
 require_capability('moodle/grade:import', $context);
 require_capability('gradeimport/csv:view', $context);
-
 
 // sort out delimiter
 $csv_encode = '/\&\#44/';
@@ -37,12 +59,102 @@ $navigation = grade_build_nav(__FILE__, $actionstr, array('courseid' => $course-
 
 print_header($course->shortname.': '.get_string('grades'), $course->fullname, $navigation);
 print_grade_plugin_selector($id, 'import', 'csv');
+
+// set up import form
 $mform = new grade_import_form();
-//$mform2 = new grade_import_mapping_form();
-//if ($formdata = $mform2->get_data() ) {
-// i am not able to get the mapping[] and map[] array using the following line
-// they are somehow not returned with get_data()
-if (($formdata = data_submitted()) && !empty($formdata->map)) {
+
+// set up grade import mapping form
+$header = '';
+$gradeitems = array();
+if ($id) {
+    if ($grade_items = grade_item::fetch_all(array('courseid'=>$id))) {
+        foreach ($grade_items as $grade_item) {
+            // skip course type and category type
+            if ($grade_item->itemtype == 'course' || $grade_item->itemtype == 'category') {
+                continue;
+            }
+
+            // this was idnumber
+            $gradeitems[$grade_item->id] = $grade_item->get_name();
+        }
+    }
+}
+
+if ($importcode = optional_param('importcode', '', PARAM_FILE)) {
+    $filename = $CFG->dataroot.'/temp/gradeimport/cvs/'.$USER->id.'/'.$importcode;
+    $fp = fopen($filename, "r");
+    $header = split($csv_delimiter, fgets($fp,1024), PARAM_RAW);
+}
+
+$mform2 = new grade_import_mapping_form(null, array('gradeitems'=>$gradeitems, 'header'=>$header));
+
+// if import form is submitted
+if ($formdata = $mform->get_data()) {
+
+    // Large files are likely to take their time and memory. Let PHP know
+    // that we'll take longer, and that the process should be recycled soon
+    // to free up memory.
+    @set_time_limit(0);
+    @raise_memory_limit("192M");
+    if (function_exists('apache_child_terminate')) {
+        @apache_child_terminate();
+    }
+
+    // use current (non-conflicting) time stamp
+    $importcode = get_new_importcode();
+    if (!$filename = make_upload_directory('temp/gradeimport/cvs/'.$USER->id, true)) {
+        die;
+    }
+    $filename = $filename.'/'.$importcode;
+
+    $text = $mform->get_file_content('userfile');
+    // trim utf-8 bom
+    $textlib = textlib_get_instance();
+    /// normalize line endings and do the encoding conversion
+    $text = $textlib->convert($text, $formdata->encoding);
+    $text = $textlib->trim_utf8_bom($text);
+    // Fix mac/dos newlines
+    $text = preg_replace('!\r\n?!',"\n",$text);
+    $fp = fopen($filename, "w");
+    fwrite($fp,$text);
+    fclose($fp);
+
+    $fp = fopen($filename, "r");
+
+    // --- get header (field names) ---
+    $header = split($csv_delimiter, fgets($fp,1024), PARAM_RAW);
+
+    // print some preview
+    $numlines = 0; // 0 preview lines displayed
+
+    print_heading(get_string('importpreview', 'grades'));
+    echo '<table>';
+    echo '<tr>';
+    foreach ($header as $h) {
+        $h = clean_param($h, PARAM_RAW);
+        echo '<th>'.$h.'</th>';
+    }
+    echo '</tr>';
+    while (!feof ($fp) && $numlines <= $formdata->previewrows) {
+        $lines = split($csv_delimiter, fgets($fp,1024));
+        echo '<tr>';
+        foreach ($lines as $line) {
+            echo '<td>'.$line.'</td>';;
+        }
+        $numlines ++;
+        echo '</tr>';
+    }
+    echo '</table>';
+
+    // display the mapping form with header info processed
+    $mform2 = new grade_import_mapping_form(null, array('gradeitems'=>$gradeitems, 'header'=>$header));
+    $mform2->set_data(array('importcode'=>$importcode, 'id'=>$id));
+    $mform2->display();
+
+//} else if (($formdata = data_submitted()) && !empty($formdata->map)) {
+ 
+// else if grade import mapping form is submitted
+} else if ($formdata = $mform2->get_data()) {
 
     $importcode = clean_param($formdata->importcode, PARAM_FILE);
     $filename = $CFG->dataroot.'/temp/gradeimport/cvs/'.$USER->id.'/'.$importcode;
@@ -109,6 +221,11 @@ if (($formdata = data_submitted()) && !empty($formdata->map)) {
         while (!feof ($fp)) {
             // add something
             $line = split($csv_delimiter, fgets($fp,1024));
+
+            if(count($line) <= 1){
+                // there is no data on this line, move on
+                continue;
+            }
 
             // array to hold all grades to be inserted
             $newgrades = array();
@@ -337,82 +454,6 @@ if (($formdata = data_submitted()) && !empty($formdata->map)) {
         error ('import file '.$filename.' not readable');
     }
 
-} else if ($formdata = $mform->get_data()) {
-
-    // Large files are likely to take their time and memory. Let PHP know
-    // that we'll take longer, and that the process should be recycled soon
-    // to free up memory.
-    @set_time_limit(0);
-    @raise_memory_limit("192M");
-    if (function_exists('apache_child_terminate')) {
-        @apache_child_terminate();
-    }
-
-    // use current (non-conflicting) time stamp
-    $importcode = get_new_importcode();
-    if (!$filename = make_upload_directory('temp/gradeimport/cvs/'.$USER->id, true)) {
-        die;
-    }
-    $filename = $filename.'/'.$importcode;
-
-    $text = $mform->get_file_content('userfile');
-    // trim utf-8 bom
-    $textlib = textlib_get_instance();
-    /// normalize line endings and do the encoding conversion
-    $text = $textlib->convert($text, $formdata->encoding);
-    $text = $textlib->trim_utf8_bom($text);
-    // Fix mac/dos newlines
-    $text = preg_replace('!\r\n?!',"\n",$text);
-    $fp = fopen($filename, "w");
-    fwrite($fp,$text);
-    fclose($fp);
-
-    $fp = fopen($filename, "r");
-
-    // --- get header (field names) ---
-    $header = split($csv_delimiter, fgets($fp,1024), PARAM_RAW);
-
-    // print some preview
-    $numlines = 0; // 0 preview lines displayed
-
-    print_heading(get_string('importpreview', 'grades'));
-    echo '<table>';
-    echo '<tr>';
-    foreach ($header as $h) {
-        $h = clean_param($h, PARAM_RAW);
-        echo '<th>'.$h.'</th>';
-    }
-    echo '</tr>';
-    while (!feof ($fp) && $numlines <= $formdata->previewrows) {
-        $lines = split($csv_delimiter, fgets($fp,1024));
-        echo '<tr>';
-        foreach ($lines as $line) {
-            echo '<td>'.$line.'</td>';;
-        }
-        $numlines ++;
-        echo '</tr>';
-    }
-    echo '</table>';
-
-    /// feeding gradeitems into the grade_import_mapping_form
-    $gradeitems = array();
-    if ($id) {
-        if ($grade_items = grade_item::fetch_all(array('courseid'=>$id))) {
-            foreach ($grade_items as $grade_item) {
-                // skip course type and category type
-                if ($grade_item->itemtype == 'course' || $grade_item->itemtype == 'category') {
-                    continue;
-                }
-
-                // this was idnumber
-                $gradeitems[$grade_item->id] = $grade_item->get_name();
-            }
-        }
-    }
-    // display the mapping form with header info processed
-    $mform2 = new grade_import_mapping_form(null, array('gradeitems'=>$gradeitems, 'header'=>$header));
-    $mform2->set_data(array('importcode'=>$importcode, 'id'=>$id));
-    $mform2->display();
 } else {
     // display the standard upload file form
     $mform->display();

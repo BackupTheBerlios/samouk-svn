@@ -1,4 +1,4 @@
-<?php  //$Id: environmentlib.php,v 1.26 2007/08/22 04:28:27 jamiesensei Exp $
+<?php  //$Id: environmentlib.php,v 1.27.2.1 2007/11/08 05:12:32 toyomoyo Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-3001 Martin Dougiamas        http://dougiamas.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas        http://dougiamas.com  //
 //           (C) 2001-3001 Eloy Lafuente (stronk7) http://contiento.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
@@ -282,6 +282,14 @@ function print_moodle_environment($result, $environment_results) {
  * @return string the normalized version
  */
 function normalize_version($version) {
+ 
+/// 1.9 Beta 2 should be read 1.9 on enviromental checks, not 1.9.2
+/// we can discard everything after the first space
+    $version = trim($version);
+    $versionarr = explode(" ",$version);
+    if (!empty($versionarr)) {
+        $version = $versionarr[0];
+    }
 /// Replace everything but numbers and dots by dots
     $version = preg_replace('/[^\.\d]/', '.', $version);
 /// Combine multiple dots in one

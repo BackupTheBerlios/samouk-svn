@@ -1,17 +1,24 @@
-<?php // $Id: frontpage.php,v 1.8 2007/10/03 03:31:31 moodler Exp $
+<?php // $Id: frontpage.php,v 1.8.2.3 2007/10/30 10:49:25 tjhunt Exp $
 
 // This file defines everything related to frontpage
 
 if (get_site()) { //do not use during installation
     $frontpagecontext = get_context_instance(CONTEXT_COURSE, SITEID);
 
-    if (has_capability('moodle/site:config',        $systemcontext)
-     or has_capability('moodle/course:update',      $frontpagecontext)
-     or has_capability('moodle/role:assign',        $frontpagecontext)
-     or has_capability('moodle/site:restore',       $frontpagecontext)
-     or has_capability('moodle/site:backup',        $frontpagecontext)
-     or has_capability('moodle/course:managefiles', $frontpagecontext)
-     ) {
+    if ($hassiteconfig or has_any_capability(array(
+            'moodle/course:update',
+            'moodle/role:assign',
+            'moodle/site:restore',
+            'moodle/site:backup',
+            'moodle/course:managefiles',
+            'moodle/question:add',
+            'moodle/question:editmine',
+            'moodle/question:editall',
+            'moodle/question:viewmine',
+            'moodle/question:viewall',
+            'moodle/question:movemine',
+            'moodle/question:moveall'), $frontpagecontext)) {
+
         // "frontpage" settingpage
         $temp = new admin_settingpage('frontpagesettings', get_string('frontpagesettings','admin'), 'moodle/course:update', false, $frontpagecontext);
         $temp->add(new admin_setting_sitesettext('fullname', get_string('fullsitename'), '', NULL)); // no default
@@ -51,6 +58,16 @@ if (get_site()) { //do not use during installation
         $ADMIN->add('frontpage', new admin_externalpage('frontpagebackup', get_string('frontpagebackup', 'admin'), $CFG->wwwroot.'/backup/backup.php?id='.SITEID, 'moodle/site:backup', false, $frontpagecontext));
 
         $ADMIN->add('frontpage', new admin_externalpage('frontpagerestore', get_string('frontpagerestore', 'admin'), $CFG->wwwroot.'/files/index.php?id='.SITEID.'&amp;wdir=/backupdata', 'moodle/site:restore', false, $frontpagecontext));
+
+        $questioncapabilites = array(
+                'moodle/question:add',
+                'moodle/question:editmine',
+                'moodle/question:editall',
+                'moodle/question:viewmine',
+                'moodle/question:viewall',
+                'moodle/question:movemine',
+                'moodle/question:moveall');
+        $ADMIN->add('frontpage', new admin_externalpage('frontpagequestions', get_string('frontpagequestions', 'admin'), $CFG->wwwroot.'/question/edit.php?courseid='.SITEID, $questioncapabilites, false, $frontpagecontext));
 
         $ADMIN->add('frontpage', new admin_externalpage('sitefiles', get_string('sitefiles'), $CFG->wwwroot . '/files/index.php?id=' . SITEID, 'moodle/course:managefiles', false, $frontpagecontext));
     }

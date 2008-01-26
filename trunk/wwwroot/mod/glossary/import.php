@@ -1,4 +1,4 @@
-<?php   // $Id: import.php,v 1.43 2007/08/17 12:49:31 skodak Exp $
+<?php   // $Id: import.php,v 1.43.3 2008/01/21 16:09:44 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -45,16 +45,11 @@
     $strsearch = get_string("search");
     $strimportentries = get_string('importentriesfromxml', 'glossary');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strimportentries, 'link' => '', 'type' => 'title');
-   
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($strimportentries, $cm);
     print_header_simple(format_string($glossary->name), "", $navigation,
         "", "", true, update_module_button($cm->id, $course->id, $strglossary),
-        navmenu($course, $cm));
+        // kowy - 2007-01-12 - add standard logout box 
+		user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     print_heading($strimportentries);
 

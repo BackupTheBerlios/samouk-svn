@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.285 2007/10/03 10:35:37 skodak Exp $
+<?php // $Id: index.php,v 1.286.2.11 2008/01/11 23:21:35 skodak Exp $
 
 /// Check that config.php exists, if not then call the install script
     if (!file_exists('../config.php')) {
@@ -25,7 +25,7 @@
     require_once($CFG->libdir.'/adminlib.php');  // Contains various admin-only functions
     require_once($CFG->libdir.'/ddllib.php'); // Install/upgrade related db functions
 
-    $id             = optional_param('id', '', PARAM_ALPHANUM);
+    $id             = optional_param('id', '', PARAM_TEXT);
     $confirmupgrade = optional_param('confirmupgrade', 0, PARAM_BOOL);
     $confirmrelease = optional_param('confirmrelease', 0, PARAM_BOOL);
     $agreelicense   = optional_param('agreelicense', 0, PARAM_BOOL);
@@ -202,26 +202,20 @@
             // install core event handlers
             events_update_definition();
 
-            // Write default settings unconditionally (i.e. even if a setting is already set, overwrite it)
-            // (this should only have any effect during initial install).
-            $adminroot = admin_get_root();
-            $adminroot->prune('backups'); // backup settings table not created yet
-            apply_default_settings($adminroot);
-
             /// This is used to handle any settings that must exist in $CFG but which do not exist in
             /// admin_get_root()/$ADMIN as admin_setting objects (there are some exceptions).
-            apply_default_exception_settings(array('alternateloginurl' => '',
-                                                   'auth' => 'email',
+            apply_default_exception_settings(array('auth' => 'email',
                                                    'auth_pop3mailbox' => 'INBOX',
-                                                   'changepassword' => '',
                                                    'enrol' => 'manual',
                                                    'enrol_plugins_enabled' => 'manual',
-                                                   'guestloginbutton' => 1,
-                                                   'registerauth' => 'email',
                                                    'style' => 'default',
                                                    'template' => 'default',
                                                    'theme' => 'standardwhite',
                                                    'filter_multilang_converted' => 1));
+
+            // Write default settings unconditionally (i.e. even if a setting is already set, overwrite it)
+            // (this should only have any effect during initial install).
+            admin_apply_default_settings(NULL, true);
 
             notify($strdatabasesuccess, "green");
             require_once $CFG->dirroot.'/mnet/lib.php';
@@ -264,8 +258,9 @@
             $CFG->debug = DEBUG_MINIMAL;
             error_reporting($CFG->debug);
 
-            // logout in case we are upgrading from pre 1.7 version - prevention of weird session problems
-            if ($CFG->version < 2006050600) {
+            // logo ut in case we are upgrading from pre 1.9 version in order to prevent
+            // weird session/role problems caused by incorrect data in USER and SESSION
+            if ($CFG->version < 2007101500) {
                 require_logout();
             }
 
@@ -275,6 +270,7 @@
                         "", "", false, "&nbsp;", "&nbsp;");
 
                 notice_yesno(get_string('upgradesure', 'admin', $a->newversion), 'index.php?confirmupgrade=1', 'index.php');
+                print_footer('none');
                 exit;
 
             } else if (empty($confirmrelease)){
@@ -287,11 +283,16 @@
                 require_once($CFG->libdir.'/environmentlib.php');
                 print_heading(get_string('environment', 'admin'));
                 if (!check_moodle_environment($release, $environment_results, true)) {
+                    print_box_start('generalbox', 'notice'); // MDL-8330
+                    print_string('langpackwillbeupdated', 'admin');
+                    print_box_end();
                     notice_yesno(get_string('environmenterrorupgrade', 'admin'),
                                  'index.php?confirmupgrade=1&confirmrelease=1', 'index.php');
                 } else {
                     notify(get_string('environmentok', 'admin'), 'notifysuccess');
-
+                    print_box_start('generalbox', 'notice'); // MDL-8330
+                    print_string('langpackwillbeupdated', 'admin');
+                    print_box_end();
                     echo '<form action="index.php"><div>';
                     echo '<input type="hidden" name="confirmupgrade" value="1" />';
                     echo '<input type="hidden" name="confirmrelease" value="1" />';
@@ -415,6 +416,9 @@
 /// first old *.php update and then the new upgrade.php script
     upgrade_plugins('enrol', 'enrol', "$CFG->wwwroot/$CFG->admin/index.php");  // Return here afterwards
 
+/// Check all auth plugins and upgrade if necessary
+    upgrade_plugins('auth','auth',"$CFG->wwwroot/$CFG->admin/index.php");
+
 /// Check all course formats and upgrade if necessary
     upgrade_plugins('format','course/format',"$CFG->wwwroot/$CFG->admin/index.php");
 
@@ -424,7 +428,7 @@
     upgrade_local_db("$CFG->wwwroot/$CFG->admin/index.php");  // Return here afterwards
 
 /// Check for changes to RPC functions
-    require_once($CFG->dirroot.'/admin/mnet/adminlib.php');
+    require_once("$CFG->dirroot/$CFG->admin/mnet/adminlib.php");
     upgrade_RPC_functions("$CFG->wwwroot/$CFG->admin/index.php");  // Return here afterwards
 
 /// Upgrade all plugins for gradebook
@@ -472,6 +476,7 @@
 
         $cat = new object();
         $cat->name = get_string('miscellaneous');
+        $cat->depth = 1;
         if (!$catid = insert_record('course_categories', $cat)) {
             error("Serious Error! Could not set up a default course category!");
         }
@@ -517,12 +522,12 @@
 
 /// Set up the admin user
     if (empty($CFG->rolesactive)) {
-        build_context_path();
+        build_context_path(); // just in case - should not be needed
         create_admin_user();
     }
 
-/// Check for valid admin user
-    require_login();
+/// Check for valid admin user - no guest autologin
+    require_login(0, false);
 
     $context = get_context_instance(CONTEXT_SYSTEM, SITEID);
 
@@ -542,10 +547,10 @@
         }
     }
 
-    $adminroot = admin_get_root();
+    $adminroot =& admin_get_root();
 
 /// Check if there are any new admin settings which have still yet to be set
-    if( any_new_admin_settings( $adminroot ) ){
+    if (any_new_admin_settings($adminroot)){
         redirect('upgradesettings.php');
     }
 
@@ -566,12 +571,19 @@
         print_box(get_string("upgrade$CFG->upgrade", "admin", "$CFG->wwwroot/$CFG->admin/upgrade$CFG->upgrade.php"));
     }
 
-    if (ini_get_bool('register_globals') && !ini_get_bool('magic_quotes_gpc')) {
-        print_box(get_string('globalsquoteswarning', 'admin'), 'generalbox adminwarning');
+    if (ini_get_bool('register_globals')) {
+        print_box(get_string('globalswarning', 'admin'), 'generalbox adminwarning');
     }
 
     if (is_dataroot_insecure()) {
         print_box(get_string('datarootsecuritywarning', 'admin', $CFG->dataroot), 'generalbox adminwarning');
+    }
+
+    if (substr($CFG->wwwroot, -1) == '/') {
+        print_box(get_string('cfgwwwrootslashwarning', 'admin'), 'generalbox adminwarning');
+    }
+    if (strpos($ME, $CFG->httpswwwroot.'/') === false) {
+        print_box(get_string('cfgwwwrootwarning', 'admin'), 'generalbox adminwarning');
     }
 
 /// If no recently cron run
@@ -593,18 +605,19 @@
     }
 
 
-/// Print slightly annoying registration button every six months   ;-)
-/// You can set the "registered" variable to something far in the future
-/// if you really want to prevent this.   eg  9999999999
-    if (!isset($CFG->registered) || $CFG->registered < (time() - 3600*24*30*6)) {
-        $options = array();
-        $options['sesskey'] = $USER->sesskey;
-        print_box_start('generalbox adminwarning');
-        print_string('pleaseregister', 'admin');
-        print_single_button('register.php', $options, get_string('registration'));
-        print_box_end();
-        $registrationbuttonshown = true;
+/// Print slightly annoying registration button
+    $options = array();
+    $options['sesskey'] = $USER->sesskey;
+    print_box_start('generalbox adminwarning');
+    if(!isset($CFG->registered)) {
+       print_string('pleaseregister', 'admin');
     }
+    else { /* if (isset($CFG->registered) && $CFG->registered < (time() - 3600*24*30*6)) { */
+       print_string('pleaserefreshregistration', 'admin', userdate($CFG->registered));
+    }
+    print_single_button('register.php', $options, get_string('registration'));
+    print_box_end();
+
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     ////  IT IS ILLEGAL AND A VIOLATION OF THE GPL TO HIDE, REMOVE OR MODIFY THIS COPYRIGHT NOTICE ///
@@ -616,15 +629,6 @@
     print_box($copyrighttext, 'copyright');
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-    if (empty($registrationbuttonshown)) {
-        $options = array();
-        $options['sesskey'] = $USER->sesskey;
-        print_single_button('register.php', $options, get_string('registration'));
-    }
-
-
     admin_externalpage_print_footer();
-
 
 ?>

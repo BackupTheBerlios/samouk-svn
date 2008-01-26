@@ -65,8 +65,8 @@ class moodleform_mod extends moodleform {
             }
         }
 
-        if ($mform->elementExists('groupmode')) {
-            if ($COURSE->groupmodeforce) {
+        if ($COURSE->groupmodeforce) {
+            if ($mform->elementExists('groupmode')) {
                 $mform->hardFreeze('groupmode'); // groupmode can not be changed if forced from course settings
             }
         }
@@ -86,8 +86,9 @@ class moodleform_mod extends moodleform {
     }
 
     // form verification
-    function validation($data) {
+    function validation($data, $files) {
         global $COURSE;
+        $errors = parent::validation($data, $files);
 
         $mform =& $this->_form;
 
@@ -115,11 +116,7 @@ class moodleform_mod extends moodleform {
             }
         }
 
-        if (count($errors) == 0) {
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
     }
 
     /**
@@ -181,11 +178,12 @@ class moodleform_mod extends moodleform {
         }
 
         $mform->addElement('header', 'modstandardelshdr', get_string('modstandardels', 'form'));
-        // if no other elements will be shown, this header should be removed
-        $showHeader = false;
-        if ($features->groups){
-            $mform->addElement('modgroupmode', 'groupmode', get_string('groupmode'));
-            $showHeader = true;
+        if ($features->groups) {
+            $options = array(NOGROUPS       => get_string('groupsnone'),
+                             SEPARATEGROUPS => get_string('groupsseparate'),
+                             VISIBLEGROUPS  => get_string('groupsvisible'));
+            $mform->addElement('select', 'groupmode', get_string('groupmode'), $options, NOGROUPS);
+            $mform->setHelpButton('groupmode', array('groupmode', get_string('groupmode')));
         }
 
         if (!empty($CFG->enablegroupings)) {
@@ -200,23 +198,16 @@ class moodleform_mod extends moodleform {
                 }
                 $mform->addElement('select', 'groupingid', get_string('grouping', 'group'), $options);
                 $mform->setAdvanced('groupingid');
-                $showHeader = true;
             }
 
             if ($features->groupmembersonly) {
                 $mform->addElement('checkbox', 'groupmembersonly', get_string('groupmembersonly', 'group'));
                 $mform->setAdvanced('groupmembersonly');
-                $showHeader = true;
             }
         }
-        
-        if (!$showHeader) {
-            $mform->removeElement('modstandardelshdr');
-        }
 
-        // kowy - this parameter is too dificult to leave setting to a teacher
-        //$mform->addElement('modvisible', 'visible', get_string('visible'));
-        //$mform->addElement('text', 'cmidnumber', get_string('idnumber'));
+        $mform->addElement('modvisible', 'visible', get_string('visible'));
+        $mform->addElement('text', 'cmidnumber', get_string('idnumber'));
 
         $this->standard_hidden_coursemodule_elements();
     }

@@ -1,4 +1,4 @@
-<?php //$Id: lib.php,v 1.89 2007/09/25 14:44:53 tjhunt Exp $
+<?php //$Id: lib.php,v 1.89.2.4 2007/12/19 17:38:45 skodak Exp $
     //This file contains all the general function needed (file manipulation...)
     //not directly part of the backup/restore utility
 
@@ -125,7 +125,7 @@
         }
 
         // Loop through all directory entries, and construct two temporary arrays containing files and sub directories
-        while($entry = readdir($handle)) {
+        while(false !== ($entry = readdir($handle))) {
             if (is_dir($dir. $slash .$entry) && $entry != ".." && $entry != "." && $entry != $excludeddir) {
                 $dir_subdirs[] = $dir. $slash .$entry;
             }
@@ -149,7 +149,7 @@
                 return false;
             }
             else {
-                if (rmdir($dir_subdirs[$i]) == FALSE) {
+                if (remove_dir($dir_subdirs[$i]) == FALSE) {
                 return false;
                 }
             }
@@ -202,7 +202,7 @@
         $results = null;
 
         $dir = opendir($rootdir);
-        while ($file=readdir($dir)) {
+        while (false !== ($file=readdir($dir))) {
             if ($file=="." || $file=="..") {
                 continue;
             }
@@ -221,7 +221,7 @@
         $results = "";
 
         $dir = opendir($rootdir);
-        while ($file=readdir($dir)) {
+        while (false !== ($file=readdir($dir))) {
             if ($file=="." || $file=="..") {
                 continue;
             }
@@ -305,10 +305,10 @@
         if (!is_dir($to_file)) {
             //echo "<br />Creating ".$to_file;                                //Debug
             umask(0000);
-            $status = mkdir($to_file,$CFG->directorypermissions);
+            $status = mkdir($to_file,$CFG->directorypermissions); 
         }
         $dir = opendir($from_file);
-        while ($file=readdir($dir)) {
+        while (false !== ($file=readdir($dir))) {
             if ($file=="." || $file=="..") {
                 continue;
             }
@@ -355,9 +355,6 @@
             $db->debug = false;
             if ($status) {
                 if (set_config("backup_version", $backup_version) and set_config("backup_release", $backup_release)) {
-                    //initialize default backup settings now
-                    $adminroot = admin_get_root();
-                    apply_default_settings($adminroot->locate('backups'));
                     notify(get_string("databasesuccess"), "green");
                     notify(get_string("databaseupgradebackups", "", $backup_version), "green");
                     print_continue($continueto);

@@ -1,15 +1,12 @@
-<?php  // $Id: view.php,v 1.124 2007/09/20 15:14:29 tjhunt Exp $
+<?php  // $Id: view.php,v 1.124.2.10 2008/01/13 08:54:56 jamiesensei Exp $
 
 // This page prints a particular instance of quiz
 
     require_once("../../config.php");
-    require_once("locallib.php");
     require_once($CFG->libdir.'/blocklib.php');
-    require_once('pagelib.php');
-    
-    if (!empty($THEME->customcorners)) {
-        require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-    }
+    require_once($CFG->libdir.'/gradelib.php');
+    require_once($CFG->dirroot.'/mod/quiz/locallib.php');
+    require_once($CFG->dirroot.'/mod/quiz/pagelib.php');
 
     $id   = optional_param('id', 0, PARAM_INT); // Course Module ID, or
     $q    = optional_param('q',  0, PARAM_INT);  // quiz ID
@@ -67,14 +64,14 @@
 
     if(!empty($CFG->showblocksonmodpages) && (blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing())) {
         echo '<td style="width: '.$blocks_preferred_width.'px;" id="left-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
         blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';
     }
 
     echo '<td id="middle-column">';
-    if (!empty($THEME->customcorners)) print_custom_corners_start();
+    print_container_start();
 
     // Print the main part of the page
 
@@ -111,7 +108,12 @@
             if ($quiz->timelimit) {
                 echo "<p>".get_string("quiztimelimit","quiz", format_time($quiz->timelimit * 60))."</p>";
             }
-            quiz_view_dates($quiz);
+            if ($quiz->timeopen) {
+                echo '<p>', get_string('quizopens', 'quiz'), ': ', userdate($quiz->timeopen), '</p>';
+            }
+            if ($quiz->timeclose) {
+                echo '<p>', get_string('quizcloses', 'quiz'), ': ', userdate($quiz->timeclose), '</p>';
+            }
         } else if ($timenow < $quiz->timeopen) {
             echo "<p>".get_string("quiznotavailable", "quiz", userdate($quiz->timeopen))."</p>";
         } else {
@@ -124,11 +126,9 @@
 
     // Show number of attempts summary to those who can view reports.
     if (has_capability('mod/quiz:viewreports', $context)) {
-        if ($a->attemptnum = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0)) {
-            $a->studentnum = count_records_select('quiz_attempts', "quiz = '$quiz->id' AND preview = '0'", 'COUNT(DISTINCT userid)');
-            $a->studentstring  = $course->students;
-
-            notify("<a href=\"report.php?mode=overview&amp;id=$cm->id\">".get_string('numattempts', 'quiz', $a).'</a>');
+        if ($strattemptnum = quiz_num_attempt_summary($quiz, $cm)) {
+            echo '<div class="quizattemptcounts"><a href="report.php?mode=overview&amp;id=' .
+                    $cm->id . '">' . $strattemptnum . '</a></div>';
         }
     }
 
@@ -160,12 +160,31 @@
     }
     $numattempts = count($attempts);
 
+    // Work out the final grade, checking whether it was overridden in the gradebook.
     $mygrade = quiz_get_best_grade($quiz, $USER->id);
+    $mygradeoverridden = false;
+    $gradebookfeedback = '';
+
+    $grading_info = grade_get_grades($course->id, 'mod', 'quiz', $quiz->id, $USER->id);
+    if (!empty($grading_info->items)) {
+        $item = $grading_info->items[0];
+        if (isset($item->grades[$USER->id])) {
+            $grade = $item->grades[$USER->id];
+
+            if ($grade->overridden) {
+                $mygrade = $grade->grade + 0; // Convert to number.
+                $mygradeoverridden = true;
+            }
+            if (!empty($grade->str_feedback)) {
+                $gradebookfeedback = $grade->str_feedback;
+            }
+        }
+    }
 
     // Print table with existing attempts
     if ($attempts) {
 
-        print_heading('Summary of your previous attempts');
+        print_heading(get_string('summaryofattempts', 'quiz'));
 
         // Get some strings.
         $strattempt       = get_string("attempt", "quiz");
@@ -239,13 +258,13 @@
                 $timetaken = format_time($quiz->timeclose - $attempt->timestart);
                 $datecompleted = userdate($quiz->timeclose);
             } else {
-                // Something wheird happened.
+                // Something weird happened.
                 $timetaken = '';
                 $datecompleted = '';
             }
             $row[] = $datecompleted;
 
-            if ($markcolumn) {
+            if ($markcolumn && $attempt->timefinish > 0) {
                 if ($attemptoptions->scores) {
                     $row[] = make_review_link(round($attempt->sumgrades, $quiz->decimalpoints), $quiz, $attempt);
                 } else {
@@ -257,7 +276,7 @@
             $attemptgrade = quiz_rescale_grade($attempt->sumgrades, $quiz);
 
             if ($gradecolumn) {
-                if ($attemptoptions->scores) {
+                if ($attemptoptions->scores && $attempt->timefinish > 0) {
                     $formattedgrade = $attemptgrade;
                     // highlight the highest grade if appropriate
                     if ($overallstats && $numattempts > 1 && !is_null($mygrade) && $attemptgrade == $mygrade && $quiz->grademethod == QUIZ_GRADEHIGHEST) {
@@ -270,7 +289,7 @@
                 }
             }
 
-            if ($feedbackcolumn) {
+            if ($feedbackcolumn && $attempt->timefinish > 0) {
                 if ($attemptoptions->overallfeedback) {
                     $row[] = quiz_feedback_for_grade($attemptgrade, $quiz->id);
                 } else {
@@ -294,20 +313,34 @@
     }
 
     if ($numattempts && $quiz->sumgrades && !is_null($mygrade)) {
+        $resultinfo = '';
+
         if ($overallstats) {
             if ($available && $moreattempts) {
                 $a = new stdClass;
                 $a->method = quiz_get_grading_option_name($quiz->grademethod);
                 $a->mygrade = $mygrade;
                 $a->quizgrade = $quiz->grade;
-                print_heading(get_string('gradesofar', 'quiz', $a));
+                $resultinfo .= print_heading(get_string('gradesofar', 'quiz', $a), '', 2, 'main', true);
             } else {
-                print_heading(get_string('yourfinalgradeis', 'quiz', "$mygrade / $quiz->grade"));
+                $resultinfo .= print_heading(get_string('yourfinalgradeis', 'quiz', "$mygrade / $quiz->grade"), '', 2, 'main', true);
+                if ($mygradeoverridden) {
+                    $resultinfo .= '<p class="overriddennotice">'.get_string('overriddennotice', 'grades').'</p>';
+                }
             }
         }
 
+        if ($gradebookfeedback) {
+            $resultinfo .= print_heading(get_string('comment', 'quiz'), '', 3, 'main', true);
+            $resultinfo .= '<p class="quizteacherfeedback">'.$gradebookfeedback.'</p>';
+        }
         if ($overallfeedback) {
-            echo '<p class="quizgradefeedback">'.quiz_feedback_for_grade($mygrade, $quiz->id).'</p>';
+            $resultinfo .= print_heading(get_string('overallfeedback', 'quiz'), '', 3, 'main', true);
+            $resultinfo .= '<p class="quizgradefeedback">'.quiz_feedback_for_grade($mygrade, $quiz->id).'</p>';
+        }
+
+        if ($resultinfo) {
+            print_box($resultinfo, 'generalbox', 'feedback');
         }
     }
 
@@ -366,14 +399,16 @@
             if ($unfinished) {
                 $strconfirmstartattempt = '';
             } else if ($quiz->timelimit && $quiz->attempts) {
-                $strconfirmstartattempt = addslashes(get_string('confirmstartattempttimelimit','quiz', $quiz->attempts));
+                $strconfirmstartattempt = get_string('confirmstartattempttimelimit','quiz', $quiz->attempts);
             } else if ($quiz->timelimit) {
-                $strconfirmstartattempt = addslashes(get_string('confirmstarttimelimit','quiz'));
+                $strconfirmstartattempt = get_string('confirmstarttimelimit','quiz');
             } else if ($quiz->attempts) {
-                $strconfirmstartattempt = addslashes(get_string('confirmstartattemptlimit','quiz', $quiz->attempts));
+                $strconfirmstartattempt = get_string('confirmstartattemptlimit','quiz', $quiz->attempts);
             } else {
                 $strconfirmstartattempt =  '';
             }
+            // Determine the URL to use.
+            $attempturl = "attempt.php?id=$cm->id";
 
             // Prepare options depending on whether the quiz should be a popup.
             if (!empty($quiz->popup)) {
@@ -382,22 +417,20 @@
                         "width='+window.screen.width+', channelmode=yes, fullscreen=yes, " .
                         "scrollbars=yes, resizeable=no, directories=no, toolbar=no, " .
                         "titlebar=no, location=no, status=no, menubar=no";
+                if (!empty($CFG->usesid) && !isset($_COOKIE[session_name()])) {
+                    $attempturl = sid_process_url($attempturl);
+                }
+
+                echo '<input type="button" value="'.$buttontext.'" onclick="javascript:';
+                if ($strconfirmstartattempt) {
+                    $strconfirmstartattempt = addslashes($strconfirmstartattempt);
+                    echo "if (confirm('".addslashes_js($strconfirmstartattempt)."')) ";
+                }
+                echo "window.open('$attempturl','$window','$windowoptions');", '" />';
             } else {
-                $window = '_self';
-                $windowoptions = '';
+                print_single_button("attempt.php", array('id'=>$cm->id), $buttontext, 'get', '', false, '', false, $strconfirmstartattempt);
             }
 
-            // Determine the URL to use.
-            $attempturl = "attempt.php?id=$cm->id";
-            if (!empty($CFG->usesid) && !isset($_COOKIE[session_name()])) {
-                $attempturl = sid_process_url($attempturl);
-            }
-            
-            echo '<input type="button" value="'.$buttontext.'" onclick="javascript:';
-            if ($strconfirmstartattempt) {
-                echo "if (confirm('".addslashes_js($strconfirmstartattempt)."')) ";
-            } 
-            echo "window.open('$attempturl','$window','$windowoptions');", '" />';   
 
 ?>
 <noscript>
@@ -420,7 +453,8 @@
 // Utility functions =================================================================
 
 function finish_page($course) {
-    if (!empty($THEME->customcorners)) print_custom_corners_end();
+    global $THEME;
+    print_container_end();
     echo '</td></tr></table>';
     print_footer($course);
     exit;

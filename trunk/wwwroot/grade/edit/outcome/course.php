@@ -1,5 +1,28 @@
-<?php // $Id: course.php,v 1.5 2007/08/01 06:47:35 nicolasconnault Exp $
+<?php // $Id: course.php,v 1.9 2008/01/21 06:34:22 kowy Exp $
       // Allows a creator to edit custom outcomes, and also display help about outcomes
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once '../../../config.php';
 require_once $CFG->dirroot.'/grade/lib.php';
@@ -119,7 +142,9 @@ $navlinks = array(array('name'=>$strgrades,
 $navigation = build_navigation($navlinks);
 $navigation = grade_build_nav(__FILE__, $pagename, $courseid);
 /// Print header
-print_header_simple($strgrades.': '.$pagename, ': '.$strgrades, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgrades.': '.$pagename, ': '.$strgrades, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Print the plugin selector at the top
 print_grade_plugin_selector($courseid, 'edit', 'outcome');

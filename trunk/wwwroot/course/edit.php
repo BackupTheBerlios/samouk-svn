@@ -1,4 +1,4 @@
-<?php // $Id: edit.php,v 1.108 2007/09/19 07:13:20 martinlanghoff Exp $
+<?php // $Id: edit.php,v 1.108.2.1 2007/12/03 12:12:15 poltawski Exp $
       // Edit course settings
 
     require_once('../config.php');
@@ -13,6 +13,12 @@
 
 /// basic access control checks
     if ($id) { // editing course
+
+        if($id == SITEID){
+            // don't allow editing of  'site course' using this from
+            error('You cannot edit the site course using this form');
+        }
+
         if (!$course = get_record('course', 'id', $id)) {
             error('Course ID was incorrect');
         }

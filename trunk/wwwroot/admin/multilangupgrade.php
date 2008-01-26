@@ -1,4 +1,4 @@
-<?php /// $Id: multilangupgrade.php,v 1.5 2007/06/19 17:24:33 skodak Exp $
+<?php /// $Id: multilangupgrade.php,v 1.6 2007/10/10 12:19:40 skodak Exp $
       /// Search and replace strings throughout all texts in the whole database
 
 require_once('../config.php');
@@ -56,7 +56,7 @@ foreach ($tables as $table) {
             if (in_array($data->type, array('text','mediumtext','longtext','varchar'))) {  // Text stuff only
                 // first find candidate records
                 $rs = get_recordset_sql("SELECT id, $column FROM $table WHERE $column LIKE '%</lang>%' OR $column LIKE '%<span lang=%'");
-                if ($rs and $rs->RecordCount() > 0) {
+                if ($rs) {
                     while (!$rs->EOF) {
                         $text = $rs->fields[$column];
                         $id   = $rs->fields['id'];
@@ -86,6 +86,7 @@ foreach ($tables as $table) {
                             execute_sql("UPDATE $table SET $column='$newtext' WHERE id=$id", false);
                         }
                     }
+                    rs_close($rs);
                 }
             }
         }

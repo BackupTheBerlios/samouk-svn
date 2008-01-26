@@ -1,15 +1,13 @@
-<?php // $Id: index.php,v 1.2 2007/09/08 22:36:29 stronk7 Exp $
+<?php // $Id: index.php,v 1.2.2.1 2007/12/19 17:38:49 skodak Exp $
       // index.php - scheduled backup logs
 
     require_once('../../../config.php');
     require_once($CFG->libdir.'/adminlib.php');
     require_once($CFG->dirroot.'/backup/lib.php');
 
-    $adminroot = admin_get_root();
+    admin_externalpage_setup('reportbackups');
 
-    admin_externalpage_setup('reportbackups', $adminroot);
-
-    admin_externalpage_print_header($adminroot);
+    admin_externalpage_print_header();
 
     $courseid = optional_param('courseid', 0, PARAM_INT);
 
@@ -135,6 +133,6 @@
         print_simple_box_end();
     }
 
-    admin_externalpage_print_footer($adminroot);
+    print_footer();
 
 ?>

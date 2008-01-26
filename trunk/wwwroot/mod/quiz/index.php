@@ -1,12 +1,11 @@
-<?php // $Id: index.php,v 1.46 2007/09/26 20:45:23 tjhunt Exp $
+<?php // $Id: index.php,v 1.46.3. 2008/01/21 15:11:01 kowy Exp $
 /**
-* This page lists all the instances of quiz in a particular course
-*
-* @version $Id: index.php,v 1.46 2007/09/26 20:45:23 tjhunt Exp $
-* @author Martin Dougiamas and many others.
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * This page lists all the instances of quiz in a particular course
+ *
+ * @author Martin Dougiamas and many others.
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
     require_once("../../config.php");
     require_once("locallib.php");
 
@@ -36,43 +35,38 @@
     $navigation = build_navigation($navlinks);
 
     print_header_simple($strquizzes, '', $navigation,
-                 '', '', true, $streditquestions, navmenu($course));
+					'', '', true, $streditquestions, 
+    				// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 // Get all the appropriate data
     if (!$quizzes = get_all_instances_in_course("quiz", $course)) {
-        notice("There are no quizzes", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strquizzes), "../../course/view.php?id=$course->id");
         die;
     }
 
 // Configure table for displaying the list of instances.
     $headings = array(get_string('name'), get_string('quizcloses', 'quiz'));
     $align = array('left', 'left');
-    $colsize = array('', '');
-    if ($course->format == "weeks" || $course->format == "weekscss") {
+    if ($course->format == 'weeks' or $course->format == 'weekscss') {
         array_unshift($headings, get_string('week'));
-        array_unshift($align, 'center');
-        array_unshift($colsize, 10);
-    } else if ($course->format == "topics") {
-        array_unshift($headings, get_string('topic'));
-        array_unshift($align, 'center');
-        array_unshift($colsize, 10);
+    } else {
+        array_unshift($headings, get_string('section'));
     }
+    array_unshift($align, 'center');
 
     if (has_capability('mod/quiz:viewreports', $coursecontext)) {
         array_push($headings, get_string('attempts', 'quiz'));
         array_push($align, 'left');
-        array_push($colsize, '');
         $showing = 'stats';
     } else if (has_capability('mod/quiz:attempt', $coursecontext)) {
         array_push($headings, get_string('bestgrade', 'quiz'), get_string('feedback', 'quiz'));
         array_push($align, 'left', 'left');
-        array_push($colsize, '', '');
         $showing = 'scores';
     }
 
     $table->head = $headings;
     $table->align = $align;
-    $table->size = $colsize;
 
 // Poplate the table with the list of instances.
     $currentsection = '';
@@ -84,16 +78,14 @@
 
         // Section number if necessary.
         $strsection = '';
-        if ($course->format == "weeks" || $course->format == "weekscss" || $course->format == "topics") {
-            if ($quiz->section !== $currentsection) {
-                if ($quiz->section) {
-                    $strsection = $quiz->section;
-                }
-                if ($currentsection !== "") {
-                    $table->data[] = 'hr';
-                }
-                $currentsection = $quiz->section;
+        if ($quiz->section != $currentsection) {
+            if ($quiz->section) {
+                $strsection = $quiz->section;
             }
+            if ($currentsection) {
+                $learningtable->data[] = 'hr';
+            }
+            $currentsection = $quiz->section;
         }
         $data[] = $strsection;
 
@@ -112,14 +104,11 @@
         }
 
         if ($showing == 'stats') {
-
-            // Number of students who have attempted this quiz.
-            if ($a->attemptnum = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0)) {
-                $a->studentnum = count_records_select('quiz_attempts',
-                        "quiz = '$quiz->id' AND preview = '0'", 'COUNT(DISTINCT userid)');
-                $a->studentstring  = $course->students;
-                $data[] = "<a href=\"report.php?mode=overview&amp;q=$quiz->id\">" .
-                        get_string('numattempts', 'quiz', $a) . '</a>';
+            // The $quiz objects returned by get_all_instances_in_course have the necessary $cm 
+            // fields set to make the following call work.
+            $attemptcount = quiz_num_attempt_summary($quiz, $quiz);
+            if ($attemptcount) {
+                $data[] = "<a$class href=\"report.php?id=$quiz->coursemodule\">$attemptcount</a>";
             } else {
                 $data[] = '';
             }

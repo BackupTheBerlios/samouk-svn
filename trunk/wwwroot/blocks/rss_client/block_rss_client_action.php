@@ -1,11 +1,11 @@
-<?php //$Id: block_rss_client_action.php,v 1.54 2007/08/16 15:01:26 nicolasconnault Exp $
+<?php //$Id: block_rss_client_action.php,v 1.54.2.2 2007/12/28 12:56:32 poltawski Exp $
 
 /*******************************************************************
 * This file contains no classes. It will display a list of existing feeds
 * defined for the site and allow add/edit/delete of site feeds.
 *
 * @author Daryl Hawes
-* @version  $Id: block_rss_client_action.php,v 1.54 2007/08/16 15:01:26 nicolasconnault Exp $
+* @version  $Id: block_rss_client_action.php,v 1.54.2.2 2007/12/28 12:56:32 poltawski Exp $
 * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
 * @package base
 ******************************************************************/
@@ -47,7 +47,7 @@ $act            = optional_param('act', NULL, PARAM_ALPHA);
 $rssid          = optional_param('rssid', NULL, PARAM_INT);
 $id             = optional_param('id', SITEID, PARAM_INT);
 //$url            = clean_param($url, PARAM_URL);
-$preferredtitle = optional_param('preferredtitle', '', PARAM_ALPHA);
+$preferredtitle = optional_param('preferredtitle', '', PARAM_TEXT);
 $shared         = optional_param('shared', 0, PARAM_INT);
 
 
@@ -72,6 +72,7 @@ $link = $CFG->wwwroot.'/course/view.php?id='.$id;
 if (empty($course)) {
     $link = '';
 }
+$navlinks = array();
 // $navlinks = array(array('name' => $course->shortname, 'link' => $link, 'type' => 'misc'));
 $navigation = build_navigation($navlinks);
 print_header($straddedit, $straddedit, $navigation);

@@ -1,4 +1,4 @@
-<?php //$Id: restore_execute.html,v 1.62 2007/03/02 01:43:47 mjollnir_ Exp $
+<?php //$Id: restore_execute.html,v 1.62.4.1 2007/11/26 02:38:56 toyomoyo Exp $
     //This page receives the required info and executes the restore
     //with the parameters suplied. Whe finished, delete temporary
     //data from backup_tables and temp directory
@@ -26,7 +26,8 @@
             if (empty($to)) {
                 error("You need to be a teacher or admin user to use this page.", "$CFG->wwwroot/login/index.php");
             } else {
-                if (!has_capability('moodle/site:restore', get_context_instance(CONTEXT_COURSE, $to))) {
+                if (!has_capability('moodle/site:restore', get_context_instance(CONTEXT_COURSE, $to)) 
+                    && !has_capability('moodle/site:import',  get_context_instance(CONTEXT_COURSE, $to))) {
                     error("You need to be a teacher or admin user to use this page.", "$CFG->wwwroot/login/index.php");
                 }
             }

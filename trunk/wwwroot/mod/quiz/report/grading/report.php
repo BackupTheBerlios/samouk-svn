@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.25 2007/09/19 15:52:27 tjhunt Exp $
+<?php  // $Id: report.php,v 1.25.2.2 2007/12/18 16:11:41 tjhunt Exp $
 /**
  * Quiz report to help teachers manually grade quiz questions that need it.
  *
@@ -33,6 +33,13 @@ class quiz_report extends quiz_default_report {
         $questionid = optional_param('questionid', 0, PARAM_INT);
 
         $this->print_header_and_tabs($cm, $course, $quiz, $reportmode="grading");
+
+        // Check permissions
+        $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+        if (!has_capability('mod/quiz:grade', $context)) {
+            notify(get_string('gradingnotallowed', 'quiz_grading'));
+            return true;
+        }
 
         if (!empty($questionid)) {
             if (! $question = get_record('question', 'id', $questionid)) {

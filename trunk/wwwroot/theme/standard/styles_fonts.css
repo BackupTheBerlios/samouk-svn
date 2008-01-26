@@ -250,7 +250,12 @@ body#admin-index .copyright {
   font-size: 0.75em;
 }
 
+#adminsettings .form-defaultinfo {
+  font-size: 0.8em;
+}
+
 #admin-roles-override .cell.c1,
+#admin-roles-assign .cell.c3,
 #admin-roles-assign .cell.c1 {
   font-size: 0.7em;
 }
@@ -259,6 +264,17 @@ body#admin-index .copyright {
   font-size: 0.75em;
 }
 
+#admin-uploaduser table#uupreview {
+  font-size: 0.8em;
+}
+#admin-uploaduser table#uuresults {
+  font-size: 0.9em;
+}
+
+#adminsettings .form-warning,
+#adminsettings .form-overridden {
+  font-size: 0.8em;
+}
 
 /***
  *** Blocks
@@ -427,6 +443,12 @@ table.minicalendar {
   line-height:1em;
 }
 
+#course-view .section .weekdates {
+  margin: 0;
+  font-weight: normal;
+  font-size: 1em;
+}
+
 #course-view .section .left {
   font-weight:bold;
 }
@@ -494,16 +516,19 @@ body#grade-index .grades .header {
   font-size: 0.7em;
 }
 
-.grade-report-grader .gradestable tr.groupavg td.cell {
-	font-weight: bold;
-	color: #006400;
+#grade-aggregation-help dt {
+    font-weight: bold;
 }
 
-.grade-report-grader .gradestable tr.avg td.cell {
-	font-weight: bold;
-	color: #00008B;
-	
+
+#grade-aggregation-help dd.example {
+    font-style: italic;
 }
+
+#grade-aggregation-help code {
+    font-style: normal;
+}
+
 /***
  *** Login
  ***/
@@ -625,6 +650,10 @@ body#grade-index .grades .header {
  *** Tabs
  ***/
 
+.tabtree a.nolink:hover {
+  text-decoration: none;
+}
+
 
 /***
  *** User
@@ -646,6 +675,14 @@ body#user-index #longtimenosee {
   font-size: 0.8em;
 }
 
+.iplookup #header h1.headermain {
+  font-size:1em;
+}
+
+.iplookup #note {
+  font-size:0.8em;
+  font-style: italic;
+}
 
 /***
  *** Modules: Assignment
@@ -733,8 +770,18 @@ body#mod-forum-index .generalbox .cell {
 .glossarypost .time {
   font-size: 0.8em;
 }
-.concept {
-  font-weight: bold;
+.glossarycategoryheader h2,
+.glossarypost .concept h3 {
+  font-size: 1em;
+  margin: 0;
+}
+.glossarypost div.concept h3,
+.glossarypost.continuous .concept {
+  display: inline;
+}
+.glossarypost .entryheader {
+  font-weight: normal;
+  text-align: left;
 }
 .glossarycomment .author {
   font-size: 0.8em;

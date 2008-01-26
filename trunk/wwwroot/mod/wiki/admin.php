@@ -1,4 +1,4 @@
-<?PHP  // $Id: admin.php,v 1.30 2007/07/05 04:55:36 mattc-catalyst Exp $
+<?PHP  // $Id: admin.php,v 1.30.2.1 2007/10/12 16:09:42 tjhunt Exp $
 /// Extended by Michael Schneider
 
     require_once("../../config.php");
@@ -114,13 +114,8 @@
           default: break;
        }
     }
-    $navlinks = array();
-    $navlinks[] = array('name' => $strwikis, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($wiki->name,true), 'link' => "view.php?id=$moodleID", 'type' => 'activityinstace');
-    $navlinks[] = array('name' => get_string("administration","wiki"), 'link' => '', 'type' => 'title');
-    
-    $navigation = build_navigation($navlinks);
 
+    $navigation = build_navigation(get_string("administration","wiki"), $cm);
     print_header_simple("$wiki_entry->pagename", "", $navigation,
                 $focus, "", true, update_module_button($cm->id, $course->id, $strwiki),
                 navmenu($course, $cm));

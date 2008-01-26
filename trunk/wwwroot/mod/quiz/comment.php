@@ -1,11 +1,10 @@
-<?php  // $Id: comment.php,v 1.6 2007/08/17 12:49:38 skodak Exp $
+<?php  // $Id: comment.php,v 1.6.2.2 2007/11/07 12:38:59 tjhunt Exp $
 /**
-* This page prints a review of a particular question attempt
-*
-* @version $Id: comment.php,v 1.6 2007/08/17 12:49:38 skodak Exp $
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * This page prints a review of a particular question attempt
+ *
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
 
     require_once('../../config.php');
     require_once('locallib.php');

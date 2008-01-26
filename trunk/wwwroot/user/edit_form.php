@@ -1,4 +1,4 @@
-<?php //$Id: edit_form.php,v 1.23 2007/04/16 18:30:52 skodak Exp $
+<?php //$Id: edit_form.php,v 1.24.2.1 2007/11/23 22:12:36 skodak Exp $
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
@@ -10,6 +10,8 @@ class user_edit_form extends moodleform {
 
         $mform =& $this->_form;
         $this->set_upload_manager(new upload_manager('imagefile', false, false, null, false, 0, true, true, false));
+        //Accessibility: "Required" is bad legend text.
+        $strgeneral  = get_string('general');
         $strrequired = get_string('required');
 
         /// Add some extra hidden fields
@@ -17,7 +19,7 @@ class user_edit_form extends moodleform {
         $mform->addElement('hidden', 'course', $COURSE->id);
 
         /// Print the required moodle fields first
-        $mform->addElement('header', 'moodle', $strrequired);
+        $mform->addElement('header', 'moodle', $strgeneral);
 
         /// shared fields
         useredit_shared_definition($mform);
@@ -89,32 +91,29 @@ class user_edit_form extends moodleform {
 
     }
 
-    function validation ($usernew) {
+    function validation($usernew, $files) {
         global $CFG;
+
+        $errors = parent::validation($usernew, $files);
 
         $usernew = (object)$usernew;
         $user    = get_record('user', 'id', $usernew->id);
-        $err     = array();
 
         // validate email
         if (!validate_email($usernew->email)) {
-            $err['email'] = get_string('invalidemail');
+            $errors['email'] = get_string('invalidemail');
         } else if (($usernew->email !== $user->email) and record_exists('user', 'email', $usernew->email, 'mnethostid', $CFG->mnet_localhost_id)) {
-            $err['email'] = get_string('emailexists');
+            $errors['email'] = get_string('emailexists');
         }
 
         if ($usernew->email === $user->email and over_bounce_threshold($user)) {
-            $err['email'] = get_string('toomanybounces');
+            $errors['email'] = get_string('toomanybounces');
         }
 
         /// Next the customisable profile fields
-        $err += profile_validation($usernew);
+        $errors += profile_validation($usernew, $files);
 
-        if (count($err) == 0){
-            return true;
-        } else {
-            return $err;
-        }
+        return $errors;
     }
 
     function get_um() {

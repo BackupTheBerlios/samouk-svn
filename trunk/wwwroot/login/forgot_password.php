@@ -1,5 +1,5 @@
 <?php
-// $Id: forgot_password.php,v 1.45 2007/08/19 21:07:15 skodak Exp $
+// $Id: forgot_password.php,v 1.45.2.1 2007/11/01 14:40:17 thepurpleblob Exp $
 // forgot password routine.
 // find the user and call the appropriate routine for their authentication
 // type.
@@ -20,6 +20,11 @@ $strlogin     = get_string('login');
 
 $navigation = build_navigation(array(array('name' => $strlogin, 'link' => "$CFG->wwwroot/login/index.php", 'type' => 'misc'),
                                      array('name' => $strforgotten, 'link' => null, 'type' => 'misc')));
+
+// if alternatepasswordurl is defined, then we'll just head there
+if (!empty($CFG->forgottenpasswordurl)) {
+    redirect($CFG->forgottenpasswordurl);
+}
 
 // if you are logged in then you shouldn't be here!
 if (isloggedin() and !isguestuser()) {

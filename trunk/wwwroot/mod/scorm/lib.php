@@ -1,4 +1,4 @@
-<?php  // $Id: lib.php,v 1.86 2007/08/10 20:58:09 skodak Exp $
+<?php  // $Id: lib.php,v 1.87.2.4 2007/12/26 23:20:54 skodak Exp $
 
 /**
 * Given an object containing all the necessary data,
@@ -461,13 +461,16 @@ function scorm_update_grades($scorm=null, $userid=0, $nullifnone=true) {
 
     if ($scorm != null) {
         if ($grades = scorm_get_user_grades($scorm, $userid)) {
-            grade_update('mod/scorm', $scorm->course, 'mod', 'scorm', $scorm->id, 0, $grades);
+            scorm_grade_item_update($scorm, $grades);
 
         } else if ($userid and $nullifnone) {
             $grade = new object();
             $grade->userid   = $userid;
             $grade->rawgrade = NULL;
-            grade_update('mod/scorm', $scorm->course, 'mod', 'scorm', $scorm->id, 0, $grade);
+            scorm_grade_item_update($scorm, $grade);
+
+        } else {
+            scorm_grade_item_update($scorm);
         }
 
     } else {
@@ -475,11 +478,8 @@ function scorm_update_grades($scorm=null, $userid=0, $nullifnone=true) {
                   FROM {$CFG->prefix}scorm s, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
                  WHERE m.name='scorm' AND m.id=cm.module AND cm.instance=s.id";
         if ($rs = get_recordset_sql($sql)) {
-            if ($rs->RecordCount() > 0) {
-                while ($scorm = rs_fetch_next_record($rs)) {
-                    scorm_grade_item_update($scorm);
-                    scorm_update_grades($scorm, 0, false);
-                }
+            while ($scorm = rs_fetch_next_record($rs)) {
+                scorm_update_grades($scorm, 0, false);
             }
             rs_close($rs);
         }
@@ -490,9 +490,10 @@ function scorm_update_grades($scorm=null, $userid=0, $nullifnone=true) {
  * Update/create grade item for given scorm
  *
  * @param object $scorm object with extra cmidnumber
+ * @param mixed optional array/object of grade(s); 'reset' means reset grades in gradebook
  * @return object grade_item
  */
-function scorm_grade_item_update($scorm) {
+function scorm_grade_item_update($scorm, $grades=NULL) {
     global $CFG;
     if (!function_exists('grade_update')) { //workaround for buggy PHP versions
         require_once($CFG->libdir.'/gradelib.php');
@@ -514,7 +515,12 @@ function scorm_grade_item_update($scorm) {
         $params['grademin']  = 0;
     }
 
-    return grade_update('mod/scorm', $scorm->course, 'mod', 'scorm', $scorm->id, 0, NULL, $params);
+    if ($grades  === 'reset') {
+        $params['reset'] = true;
+        $grades = NULL;
+    }
+
+    return grade_update('mod/scorm', $scorm->course, 'mod', 'scorm', $scorm->id, 0, $grades, $params);
 }
 
 /**
@@ -559,6 +565,74 @@ function scorm_option2text($scorm) {
         $scorm->options = '';
     }
     return $scorm;
+}
+
+/**
+ * Implementation of the function for printing the form elements that control
+ * whether the course reset functionality affects the scorm.
+ * @param $mform form passed by reference
+ */
+function scorm_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'scormheader', get_string('modulenameplural', 'scorm'));
+    $mform->addElement('advcheckbox', 'reset_scorm', get_string('deleteallattempts','scorm'));
+}
+
+/**
+ * Course reset form defaults.
+ */
+function scorm_reset_course_form_defaults($course) {
+    return array('reset_scorm'=>1);
+}
+
+/**
+ * Removes all grades from gradebook
+ * @param int $courseid
+ * @param string optional type
+ */
+function scorm_reset_gradebook($courseid, $type='') {
+    global $CFG;
+
+    $sql = "SELECT s.*, cm.idnumber as cmidnumber, s.course as courseid
+              FROM {$CFG->prefix}scorm s, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
+             WHERE m.name='scorm' AND m.id=cm.module AND cm.instance=s.id AND s.course=$courseid";
+
+    if ($scorms = get_records_sql($sql)) {
+        foreach ($scorms as $scorm) {
+            scorm_grade_item_update($scorm, 'reset');
+        }
+    }
+}
+
+/**
+ * Actual implementation of the rest coures functionality, delete all the
+ * scorm attempts for course $data->courseid.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
+ */
+function scorm_reset_userdata($data) {
+    global $CFG;
+
+    $componentstr = get_string('modulenameplural', 'scorm');
+    $status = array();
+
+    if (!empty($data->reset_scorm)) {
+        $scormssql = "SELECT s.id
+                         FROM {$CFG->prefix}scorm s
+                        WHERE s.course={$data->courseid}";
+
+        delete_records_select('scorm_scoes_track', "scormid IN ($scormssql)");
+
+        // remove all grades from gradebook
+        if (empty($data->reset_gradebook_grades)) {
+            scorm_reset_gradebook($data->courseid);
+        }
+
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('deleteallattempts', 'scorm'), 'error'=>false);
+    }
+
+    // no dates to shift here
+
+    return $status;
 }
 
 ?>

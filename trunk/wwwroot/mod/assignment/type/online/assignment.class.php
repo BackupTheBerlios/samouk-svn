@@ -1,4 +1,4 @@
-<?php // $Id: assignment.class.php,v 1.46 2007/09/16 21:06:56 stronk7 Exp $
+<?php // $Id: assignment.class.php,v 1.46.2.1 2007/11/29 14:40:53 skodak Exp $
 require_once($CFG->libdir.'/formslib.php');
 
 /**
@@ -9,6 +9,7 @@ class assignment_online extends assignment_base {
 
     function assignment_online($cmid='staticonly', $assignment=NULL, $cm=NULL, $course=NULL) {
         parent::assignment_base($cmid, $assignment, $cm, $course);
+        $this->type = 'online';
     }
 
     function view() {

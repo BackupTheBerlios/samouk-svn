@@ -1,4 +1,4 @@
-<?php // $Id: deleteentry.php,v 1.37 2007/07/05 04:55:29 mattc-catalyst Exp $
+<?php // $Id: deleteentry.php,v 1.37.3 2008/01/21 16:09:44 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -39,16 +39,11 @@
 
     $strareyousuredelete = get_string("areyousuredelete","glossary");
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-
-$navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($glossary->name), "", $navigation,
-                  "", "", true, update_module_button($cm->id, $course->id, $strglossary),
-                  navmenu($course, $cm));
-
+                  	"", "", true, update_module_button($cm->id, $course->id, $strglossary),
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     if (($entry->userid != $USER->id) and !$manageentries) { // guest id is never matched, no need for special check here
         error("You can't delete other people's entries!");

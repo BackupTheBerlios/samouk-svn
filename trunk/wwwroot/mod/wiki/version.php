@@ -1,4 +1,4 @@
-<?PHP // $Id: version.php,v 1.28 2007/02/02 13:02:31 moodler Exp $
+<?PHP // $Id: version.php,v 1.29 2007/10/10 16:09:30 skodak Exp $
 
 /////////////////////////////////////////////////////////////////////////////////
 ///  Code fragment to define the version of Wiki
@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 $module->version  = 2007020200;  // The current module version (Date: YYYYMMDDXX)
-$module->requires = 2007020200;  // The current module version (Date: YYYYMMDDXX)
+$module->requires = 2007101000;  // The current module version (Date: YYYYMMDDXX)
 $module->cron     = 3600;        // Period for cron to check this module (secs)
 
 ?>

@@ -1,4 +1,27 @@
-<?php  // $Id: lib.php,v 1.12 2007/10/07 13:04:50 skodak Exp $
+<?php  // $Id: lib.php,v 1.13.2.1 2007/10/30 11:54:26 skodak Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once($CFG->libdir.'/gradelib.php');
 
@@ -55,7 +78,7 @@ function grade_import_commit($courseid, $importcode, $importfeedback=true, $verb
 
                 // insert each individual grade to this new grade item
                 foreach ($grades as $grade) {
-                    if (!$gradeitem->update_final_grade($grade->userid, $grade->finalgrade, 'import', NULL, $grade->feedback)) {
+                    if (!$gradeitem->update_final_grade($grade->userid, $grade->finalgrade, 'import', $grade->feedback, FORMAT_MOODLE)) {
                         $failed = true;
                         break 2;
                     }
@@ -95,7 +118,7 @@ function grade_import_commit($courseid, $importcode, $importfeedback=true, $verb
                     if (!$importfeedback) {
                         $grade->feedback = false; // ignore it
                     }
-                    if (!$gradeitem->update_final_grade($grade->userid, $grade->finalgrade, 'import', NULL, $grade->feedback)) {
+                    if (!$gradeitem->update_final_grade($grade->userid, $grade->finalgrade, 'import', $grade->feedback)) {
                         $failed = 1;
                         break 2;
                     }

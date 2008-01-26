@@ -1,4 +1,4 @@
-<?php //$Id: blocklib.php,v 1.129 2007/09/07 14:49:30 jmg324 Exp $
+<?php //$Id: blocklib.php,v 1.129.2.1 2007/10/19 17:52:03 stronk7 Exp $
 
 //This library includes all the necessary stuff to use blocks in course pages
 
@@ -1319,7 +1319,9 @@ function upgrade_blocks_plugins($continueto) {
         } else {    // block not installed yet, so install it
 
             // If it allows multiples, start with it enabled
-            $block->multiple = $blockobj->instance_allow_multiple();
+            if ($blockobj->instance_allow_multiple()) {
+                $block->multiple = 1;
+            }
 
             // Set the block cron on install
             $block->cron = !empty($blockobj->cron) ? $blockobj->cron : 0;

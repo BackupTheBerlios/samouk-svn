@@ -1,4 +1,4 @@
-<?php //$Id: index_field_form.php,v 1.4 2007/01/26 13:11:06 skodak Exp $
+<?php //$Id: index_field_form.php,v 1.4.4.1 2007/11/23 22:12:36 skodak Exp $
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
@@ -39,7 +39,7 @@ class field_form extends moodleform {
 
 
 /// perform some moodle validation
-    function validation ($data) {
+    function validation($data, $files) {
         return $this->field->define_validate($data);
     }
 }

@@ -1,4 +1,4 @@
-<?PHP // $Id: index.php,v 1.13 2007/07/05 04:55:36 mattc-catalyst Exp $
+<?PHP // $Id: index.php,v 1.13.2.1 2007/10/29 10:42:18 poltawski Exp $
 
 /// This page lists all the instances of wiki in a particular course
 /// Replace wiki with the name of your module
@@ -33,7 +33,7 @@
 /// Get all the appropriate data
 
     if (! $wikis = get_all_instances_in_course("wiki", $course)) {
-        notice("There are no wikis", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strwikis), "../../course/view.php?id=$course->id");
         die;
     }
 

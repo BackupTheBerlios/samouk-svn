@@ -136,14 +136,16 @@ class mod_forum_mod_form extends moodleform_mod {
     }
 
     function definition_after_data(){
-        $mform    =& $this->_form;
-        $type=&$mform->getElement('type');
-        $typevalue=$mform->getElementValue('type');
+        parent::definition_after_data();
+        $mform     =& $this->_form;
+        $type      =& $mform->getElement('type');
+        $typevalue = $mform->getElementValue('type');
+
         //we don't want to have these appear as possible selections in the form but
         //we want the form to display them if they are set.
         if ($typevalue[0]=='news'){
             $type->addOption(get_string('namenews', 'forum'), 'news');
-            $type->setHelpButton(array('forumtypenews', get_string('forumtypenews', 'forum'), 'forum'));
+            $type->setHelpButton(array('forumtypenews', get_string('forumtype', 'forum'), 'forum'));
             $type->freeze();
             $type->setPersistantFreeze(true);
         }

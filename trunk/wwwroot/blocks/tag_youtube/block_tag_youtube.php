@@ -1,6 +1,7 @@
-<?php 
+<?php // $id$
 
 require_once($CFG->dirroot.'/tag/lib.php');
+require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->libdir . '/magpie/rss_cache.inc');
 require_once($CFG->libdir . '/phpxml/xml.php');
 
@@ -27,13 +28,15 @@ class block_tag_youtube extends block_base {
         return true;
     }
 
-    function get_content() {
+    function preferred_width() {
+        return 140;
+    } 
 
+    function get_content() {
 
         if ($this->content !== NULL) {
             return $this->content;
         }
-
 
         if(!empty($this->config->playlist)){
             //videos from a playlist
@@ -55,7 +58,6 @@ class block_tag_youtube extends block_base {
         $this->content->footer = '';
 
         return $this->content;
-
     }
 
     function get_videos_by_playlist(){
@@ -72,7 +74,6 @@ class block_tag_youtube extends block_base {
         $request .= "&per_page={$numberofvideos}";
 
         return $this->fetch_request($request);
-
     }
 
     function get_videos_by_tag(){
@@ -94,7 +95,6 @@ class block_tag_youtube extends block_base {
         $request .= "&per_page={$numberofvideos}";
 
         return $this->fetch_request($request);
-
     }
 
     function get_videos_by_tag_and_category(){
@@ -133,14 +133,13 @@ class block_tag_youtube extends block_base {
 
             $xmlobj = XML_unserialize($cached_response);
             return $this->render_video_list($xmlobj);
-
         }
 
         if ( $cache_status == 'STALE' ) {
             $cached_response = $cache->get( $request );
         }
 
-        $response = file_get_contents($request);
+        $response = download_file_content($request);
 
         if(empty($response)){
             $response = $cached_response;
@@ -156,24 +155,20 @@ class block_tag_youtube extends block_base {
     function render_video_list($xmlobj){
 
         $text = '';
-        $text .= '<table class="yt-video-entry">';
+        $text .= '<ul class="yt-video-entry unlist img-text">';
         $videos = $xmlobj['ut_response']['video_list']['video'];
 
         foreach($videos as $video){
-            $text .= '<tr>';
-            $text .= '<td>';
+            $text .= '<li>';
+            $text .= '<div class="clearfix">';
             $text .= '<a href="'. s($video['url']) . '">';
-            $text .= '<img alt="'.s($video['title']).'" class="youtube-thumb" title="'.s($video['title']).'" style="padding:3px;" src="' . $video['thumbnail_url'] . '"/>' ;
-            $text .= "</a>";
-            $text .= "</td>";
-            $text .= '<td>';
-            $text .= '<a href="'. s($video['url']) . '">'.s($video['title']). '</a>';
-            $text .= '<br/>';
+            $text .= '<img alt="" class="youtube-thumb" src="'. $video['thumbnail_url'] .'" /></a>';
+            $text .= '</div><span><a href="'. s($video['url']) . '">'.s($video['title']).'</a></span>';
+            $text .= '<div>';
             $text .= format_time($video['length_seconds']);
-            $text .= '</td>';
-            $text .= '</tr>';
+            $text .= "</div></li>\n";
         }
-        $text .= '</table>';
+        $text .= "</ul><div class=\"clearer\"></div>\n";
 
         return $text;
     }

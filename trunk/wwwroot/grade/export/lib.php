@@ -1,4 +1,4 @@
-<?php
+<?php // $Id: lib.php,v 1.45.2.4 2007/12/05 07:49:21 toyomoyo Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -44,6 +44,9 @@ class grade_export {
     var $export_feedback; // export feedback
     var $userkey;         // export using private user key
 
+    var $updatedgradesonly; // only export updated grades
+    var $displaytype; // display type (e.g. real, percentages, letter) for exports
+    var $decimalpoints; // number of decimal points for exports
     /**
      * Constructor should set up all the private variables ready to be pulled
      * @param object $course
@@ -53,7 +56,7 @@ class grade_export {
      * @param boolean $export_letters
      * @note Exporting as letters will lead to data loss if that exported set it re-imported.
      */
-    function grade_export($course, $groupid=0, $itemlist='', $export_feedback=false, $export_letters=false) {
+    function grade_export($course, $groupid=0, $itemlist='', $export_feedback=false, $updatedgradesonly = false, $displaytype = GRADE_DISPLAY_TYPE_REAL, $decimalpoints = 2) {
         $this->course = $course;
         $this->groupid = $groupid;
         $this->grade_items = grade_item::fetch_all(array('courseid'=>$this->course->id));
@@ -73,10 +76,13 @@ class grade_export {
             }
         }
 
-        $this->export_letters  = $export_letters;
         $this->export_feedback = $export_feedback;
         $this->userkey         = '';
         $this->previewrows     = false;
+        $this->updatedgradesonly = $updatedgradesonly;
+        
+        $this->displaytype = $displaytype;
+        $this->decimalpoints = $decimalpoints;
     }
 
     /**
@@ -146,14 +152,7 @@ class grade_export {
      * @return string
      */
     function format_grade($grade) {
-        $displaytype = null;
-        if ($this->export_letters) {
-            $displaytype = GRADE_DISPLAY_TYPE_LETTER;
-        } else {
-            $displaytype = GRADE_DISPLAY_TYPE_REAL;
-        }
-
-        return grade_format_gradevalue($grade->finalgrade, $this->grade_items[$grade->itemid], false, $displaytype, null);
+        return grade_format_gradevalue($grade->finalgrade, $this->grade_items[$grade->itemid], false, $this->displaytype, $this->decimalpoints);
     }
 
     /**
@@ -221,22 +220,44 @@ class grade_export {
         $gui->init();
         while ($userdata = $gui->next_user()) {
             // number of preview rows
-            if ($this->previewrows and $this->previewrows < ++$i) {
+            if ($this->previewrows and $this->previewrows <= $i) {
                 break;
             }
             $user = $userdata->user;
-
-            echo '<tr>';
-            echo "<td>$user->firstname</td><td>$user->lastname</td><td>$user->idnumber</td><td>$user->institution</td><td>$user->department</td><td>$user->email</td>";
+            
+            $gradeupdated = false; // if no grade is update at all for this user, do not display this row
+            $rowstr = '';
             foreach ($this->columns as $itemid=>$unused) {
                 $gradetxt = $this->format_grade($userdata->grades[$itemid]);
-                echo "<td>$gradetxt</td>";
+                
+                // get the status of this grade, and put it through track to get the status
+                $g = new grade_export_update_buffer();
+                $grade_grade = new grade_grade(array('itemid'=>$itemid, 'userid'=>$user->id));
+                $status = $g->track($grade_grade);
 
+                if ($this->updatedgradesonly && ($status == 'nochange' || $status == 'unknown')) {
+                    $rowstr .= '<td>'.get_string('unchangedgrade', 'grades').'</td>';
+                } else {
+                    $rowstr .= "<td>$gradetxt</td>";
+                    $gradeupdated = true;
+                }
+                
                 if ($this->export_feedback) {
-                    echo '<td>'.$this->format_feedback($userdata->feedbacks[$itemid]).'</td>';
+                    $rowstr .=  '<td>'.$this->format_feedback($userdata->feedbacks[$itemid]).'</td>';
                 }
             }
+
+            // if we are requesting updated grades only, we are not interested in this user at all            
+            if (!$gradeupdated && $this->updatedgradesonly) {
+                continue; 
+            }
+
+            echo '<tr>';
+            echo "<td>$user->firstname</td><td>$user->lastname</td><td>$user->idnumber</td><td>$user->institution</td><td>$user->department</td><td>$user->email</td>";           
+            echo $rowstr;
             echo "</tr>";
+            
+            $i++; // increment the counter
         }
         echo '</table>';
         $gui->close();
@@ -249,11 +270,14 @@ class grade_export {
     function get_export_params() {
         $itemids = array_keys($this->columns);
 
-        $params = array('id'             =>$this->course->id,
-                        'groupid'        =>$this->groupid,
-                        'itemids'        =>implode(',', $itemids),
-                        'export_letters' =>$this->export_letters,
-                        'export_feedback'=>$this->export_feedback);
+        $params = array('id'                =>$this->course->id,
+                        'groupid'           =>$this->groupid,
+                        'itemids'           =>implode(',', $itemids),
+                        'export_letters'    =>$this->export_letters,
+                        'export_feedback'   =>$this->export_feedback,
+                        'updatedgradesonly' =>$this->updatedgradesonly,
+                        'displaytype'       =>$this->displaytype,
+                        'decimalpoints'     =>$this->decimalpoints);
 
         return $params;
     }
@@ -325,6 +349,7 @@ class grade_export_update_buffer {
      * @return string $status (unknow, new, regrade, nochange)
      */
     function track($grade_grade) {
+
         if (empty($grade_grade->exported) or empty($grade_grade->timemodified)) {
             if (is_null($grade_grade->finalgrade)) {
                 // grade does not exist yet

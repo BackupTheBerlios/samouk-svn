@@ -1,8 +1,8 @@
-<?php // $Id: import.php,v 1.28 2007/08/17 12:49:32 skodak Exp $
+<?php // $Id: import.php,v 1.28.2.1 2007/10/12 16:09:42 tjhunt Exp $
 /**
  * Imports lesson pages
  *
- * @version $Id: import.php,v 1.28 2007/08/17 12:49:32 skodak Exp $
+ * @version $Id: import.php,v 1.28.2.1 2007/10/12 16:09:42 tjhunt Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -35,13 +35,7 @@
     $strimportquestions = get_string("importquestions", "lesson");
     $strlessons = get_string("modulenameplural", "lesson");
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strlesson, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($lesson->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strimportquestions, 'link' => '', 'type' => 'title');
-            
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($strimportquestions, $cm);
     print_header_simple("$strimportquestions", " $strimportquestions", $navigation);
 
     if ($form = data_submitted()) {   /// Filename

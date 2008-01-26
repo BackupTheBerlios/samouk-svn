@@ -1,14 +1,13 @@
-<?php // $Id: editlib.php,v 1.54 2007/08/09 21:52:34 jamiesensei Exp $
+<?php // $Id: editlib.php,v 1.54.2.3 2007/11/26 04:42:25 scyrma Exp $
 /**
-* Functions used by edit.php to edit quizzes
-*
-* @version $Id: editlib.php,v 1.54 2007/08/09 21:52:34 jamiesensei Exp $
-* @author Martin Dougiamas and many others. This has recently been extensively
-*         rewritten by members of the Serving Mathematics project
-*         {@link http://maths.york.ac.uk/serving_maths}
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * Functions used by edit.php to edit quizzes
+ *
+ * @author Martin Dougiamas and many others. This has recently been extensively
+ *         rewritten by members of the Serving Mathematics project
+ *         {@link http://maths.york.ac.uk/serving_maths}
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
 
 require_once("locallib.php");
 
@@ -354,7 +353,7 @@ function quiz_print_question_list($quiz, $pageurl, $allowdelete=true, $showbreak
     echo ' onchange="getElementById(\'showbreaks\').submit(); return true;" />';
     print_string('reordertool', 'quiz');
     echo ' ';
-    helpbutton('reorderingtool', get_string('reorderingtool', 'quiz'), 'quiz');
+    helpbutton('reorderingtool', get_string('reordertool', 'quiz'), 'quiz');
     
     echo '<div class="quizquestionlistcontrols"><input type="submit" name="repaginate" value="'. get_string('go') .'" /></div>';
     echo '</fieldset>';

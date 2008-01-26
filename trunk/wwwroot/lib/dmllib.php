@@ -1,4 +1,4 @@
-<?php // $Id: dmllib.php,v 1.110 2007/10/03 12:04:02 moodler Exp $
+<?php // $Id: dmllib.php,v 1.116.2.14 2008/01/09 04:09:00 scyrma Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-3001 Martin Dougiamas        http://dougiamas.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas     http://dougiamas.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -38,7 +38,7 @@
 /// GLOBAL CONSTANTS /////////////////////////////////////////////////////////
 
 $empty_rs_cache = array();   // Keeps copies of the recordsets used in one invocation
-$metadata_cache = array();   // Keeps copies of the MetaColumns() for each table used in one invocations
+$metadata_cache = array();   // Kereeps copies of the MetaColumns() for each table used in one invocations
 
 $rcache = new StdClass;      // Cache simple get_record results
 $rcache->data   = array();
@@ -100,7 +100,7 @@ function execute_sql($command, $feedback=true) {
             notify('<strong>' . get_string('error') . '</strong>');
         }
         // these two may go to difference places
-        debugging($db->ErrorMsg() .'<br /><br />'. $command);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($command));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $command");
@@ -306,13 +306,18 @@ function record_exists_sql($sql) {
     $limitfrom = 0; /// Number of records to skip
     $limitnum  = 1; /// Number of records to retrieve
 
-    $rs = get_recordset_sql($sql, $limitfrom, $limitnum);
-
-    if ($rs && $rs->RecordCount() > 0) {
-        return true;
-    } else {
+    if (!$rs = get_recordset_sql($sql, $limitfrom, $limitnum)) {
         return false;
     }
+
+    if (rs_EOF($rs)) {
+        $result = false;
+    } else {
+        $result = true;
+    }
+
+    rs_close($rs);
+    return $result;
 }
 
 /**
@@ -418,7 +423,7 @@ function get_record($table, $field1, $value1, $field2='', $value2='', $field3=''
     // If we're caching records, store this one
     // (supposing we got something - we don't cache failures)
     if ($docache) {
-        if (isset($record)) {
+        if ($record !== false) {
             rcache_set($table, $value1, $record);
         } else {
             rcache_releaseforfill($table, $value1);
@@ -485,11 +490,11 @@ function get_record_sql($sql, $expectmultiple=false, $nolimit=false) {
     } else if ($recordcount == 1) {    // Found one record
     /// DIRTY HACK to retrieve all the ' ' (1 space) fields converted back
     /// to '' (empty string) for Oracle. It's the only way to work with
-    /// all those NOT NULL DEFAULT '' fields until we definetively delete them
+    /// all those NOT NULL DEFAULT '' fields until we definitively delete them
         if ($CFG->dbfamily == 'oracle') {
             array_walk($rs->fields, 'onespace2empty');
         }
-    /// End od DIRTY HACK
+    /// End of DIRTY HACK
         return (object)$rs->fields;
 
     } else {                          // Error: found more than one record
@@ -539,8 +544,9 @@ function get_record_select($table, $select='', $fields='*') {
  *
  * If $fields is specified, only those fields are returned.
  *
- * This function is internal to datalib, and should NEVER should be called directly
- * from general Moodle scripts.  Use get_record, get_records etc.
+ * Since this method is a little less readable, use of it should be restricted to 
+ * code where it's possible there might be large datasets being returned.  For known 
+ * small datasets use get_records - it leads to simpler code.
  *
  * If you only want some of the records, specify $limitfrom and $limitnum.
  * The query will skip the first $limitfrom records (according to the sort
@@ -634,8 +640,9 @@ function get_recordset_list($table, $field='', $values='', $sort='', $fields='*'
 
 /**
  * Get a number of records as an ADODB RecordSet.  $sql must be a complete SQL query.
- * This function is internal to datalib, and should NEVER should be called directly
- * from general Moodle scripts.  Use get_record, get_records etc.
+ * Since this method is a little less readable, use of it should be restricted to 
+ * code where it's possible there might be large datasets being returned.  For known 
+ * small datasets use get_records_sql - it leads to simpler code.
  *
  * The return type is as for @see function get_recordset.
  *
@@ -676,7 +683,7 @@ function get_recordset_sql($sql, $limitfrom=null, $limitnum=null) {
         $rs = $db->Execute($sql);
     }
     if (!$rs) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql with limits ($limitfrom, $limitnum)");
@@ -695,10 +702,12 @@ function get_recordset_sql($sql, $limitfrom=null, $limitnum=null) {
  * @return mixed mixed an array of objects, or false if an error occured or the RecordSet was empty.
  */
 function recordset_to_array($rs) {
-
     global $CFG;
 
-    if ($rs && $rs->RecordCount() > 0) {
+    $debugging = debugging('', DEBUG_DEVELOPER);
+
+    if ($rs && !rs_EOF($rs)) {
+        $objects = array();
     /// First of all, we are going to get the name of the first column
     /// to introduce it back after transforming the recordset to assoc array
     /// See http://docs.moodle.org/en/XMLDB_Problems, fetch mode problem.
@@ -713,6 +722,9 @@ function recordset_to_array($rs) {
                 }
             /// End of DIRTY HACK
                 $record[$firstcolumn->name] = $key;/// Re-add the assoc field
+                if ($debugging && array_key_exists($key, $objects)) {
+                    debugging("Did you remember to make the first column something unique in your call to get_records? Duplicate value '$key' found in column '".$firstcolumn->name."'.", DEBUG_DEVELOPER);
+                }
                 $objects[$key] = (object) $record; /// To object
             }
             return $objects;
@@ -725,6 +737,9 @@ function recordset_to_array($rs) {
                     array_walk($record, 'onespace2empty');
                 }
             /// End of DIRTY HACK
+                if ($debugging && array_key_exists($record[$firstcolumn->name], $objects)) {
+                    debugging("Did you remember to make the first column something unique in your call to get_records? Duplicate value '".$record[$firstcolumn->name]."' found in column '".$firstcolumn->name."'.", DEBUG_DEVELOPER);
+                }
                 $objects[$record[$firstcolumn->name]] = (object) $record; /// The key is the first column value (like Assoc)
             }
             return $objects;
@@ -811,6 +826,15 @@ function rs_fetch_next_record(&$rs) {
     }
 
     return $rec;
+}
+
+/**
+ * Returns true if no more records found
+ * @param ADORecordSet the recordset
+ * @return bool
+ */
+function rs_EOF($rs) {
+    return $rs->EOF;
 }
 
 /**
@@ -930,7 +954,7 @@ function get_records_sql($sql, $limitfrom='', $limitnum='') {
 function recordset_to_menu($rs) {
     global $CFG;
     $menu = array();
-    if ($rs && $rs->RecordCount() > 0) {
+    if ($rs && !rs_EOF($rs)) {
         $keys = array_keys($rs->fields);
         $key0=$keys[0];
         $key1=$keys[1];
@@ -1081,7 +1105,7 @@ function get_field_sql($sql) {
 /// Strip potential LIMIT uses arriving here, debugging them (MDL-7173)
     $newsql = preg_replace('/ LIMIT [0-9, ]+$/is', '', $sql);
     if ($newsql != $sql) {
-        debugging('Incorrect use of LIMIT clause (not cross-db) in call to get_field_sql(): ' . $sql, DEBUG_DEVELOPER);
+        debugging('Incorrect use of LIMIT clause (not cross-db) in call to get_field_sql(): ' . s($sql), DEBUG_DEVELOPER);
         $sql = $newsql;
     }
 
@@ -1138,7 +1162,7 @@ function get_fieldset_sql($sql) {
 
     $rs = $db->Execute($sql);
     if (!$rs) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql");
@@ -1146,7 +1170,7 @@ function get_fieldset_sql($sql) {
         return false;
     }
 
-    if ( $rs->RecordCount() > 0 ) {
+    if ( !rs_EOF($rs) ) {
         $keys = array_keys($rs->fields);
         $key0 = $keys[0];
         $results = array();
@@ -1161,8 +1185,10 @@ function get_fieldset_sql($sql) {
             array_walk($results, 'onespace2empty');
         }
         /// End of DIRTY HACK
+        rs_close($rs);
         return $results;
     } else {
+        rs_close($rs);
         return false;
     }
 }
@@ -1274,9 +1300,10 @@ function set_field_select($table, $newfield, $newvalue, $select, $localcall = fa
     }
 
 /// Arriving here, standard update
-    $rs = $db->Execute('UPDATE '. $CFG->prefix . $table .' SET '.$update.' '.$select);
+    $sql = 'UPDATE '. $CFG->prefix . $table .' SET '.$update.' '.$select;
+    $rs = $db->Execute($sql);
     if (!$rs) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql");
@@ -1322,9 +1349,10 @@ function delete_records($table, $field1='', $value1='', $field2='', $value2='', 
 
     $select = where_clause($field1, $value1, $field2, $value2, $field3, $value3);
 
-    $rs = $db->Execute('DELETE FROM '. $CFG->prefix . $table .' '. $select);
+    $sql = 'DELETE FROM '. $CFG->prefix . $table .' '. $select;
+    $rs = $db->Execute($sql);
     if (!$rs) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql");
@@ -1359,9 +1387,10 @@ function delete_records_select($table, $select='') {
         $select = 'WHERE '.$select;
     }
 
-    $rs = $db->Execute('DELETE FROM '. $CFG->prefix . $table .' '. $select);
+    $sql = 'DELETE FROM '. $CFG->prefix . $table .' '. $select;
+    $rs = $db->Execute($sql);
     if (!$rs) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql");
@@ -1382,7 +1411,7 @@ function delete_records_select($table, $select='') {
  * @param string $table The database table to be checked against.
  * @param object $dataobject A data object with values for one or more fields in the record
  * @param bool $returnid Should the id of the newly created record entry be returned? If this option is not requested then true/false is returned.
- * @param string $primarykey The primary key of the table we are inserting into (almost always "id")
+ * @param string $primarykey (obsolete) This is now forced to be 'id'. 
  */
 function insert_record($table, $dataobject, $returnid=true, $primarykey='id') {
 
@@ -1500,7 +1529,7 @@ function insert_record($table, $dataobject, $returnid=true, $primarykey='id') {
 
 /// Run the SQL statement
     if (!$rs = $db->Execute($insertSQL)) {
-        debugging($db->ErrorMsg() .'<br /><br />'.$insertSQL);
+        debugging($db->ErrorMsg() .'<br /><br />'.s($insertSQL));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $insertSQL");
@@ -1587,7 +1616,7 @@ function update_record($table, $dataobject) {
     }
 
     // Remove this record from record cache since it will change
-    if ($CFG->rcache === true) {
+    if (!empty($CFG->rcache)) { // no === here! breaks upgrade
         rcache_unset($table, $dataobject->id);
     }
 
@@ -1652,9 +1681,9 @@ function update_record($table, $dataobject) {
                 $update .= ', ';
             }
         }
-        
+
         if (!$rs = $db->Execute('UPDATE '. $CFG->prefix . $table .' SET '. $update .' WHERE id = \''. $dataobject->id .'\'')) {
-            debugging($db->ErrorMsg() .'<br /><br />UPDATE '. $CFG->prefix . $table .' SET '. $update .' WHERE id = \''. $dataobject->id .'\'');
+            debugging($db->ErrorMsg() .'<br /><br />UPDATE '. $CFG->prefix . $table .' SET '. s($update) .' WHERE id = \''. $dataobject->id .'\'');
             if (!empty($CFG->dblogerror)) {
                 $debug=array_shift(debug_backtrace());
                 error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  UPDATE $CFG->prefix$table SET $update WHERE id = '$dataobject->id'");
@@ -1792,6 +1821,94 @@ function sql_concat_join($separator="' '", $elements=array()) {
 }
 
 /**
+ * Returns the proper SQL to know if one field is empty.
+ *
+ * Note that the function behavior strongly relies on the
+ * parameters passed describing the field so, please,  be accurate
+ * when speciffying them.
+ *
+ * Also, note that this function is not suitable to look for
+ * fields having NULL contents at all. It's all for empty values!
+ *
+ * This function should be applied in all the places where conditins of
+ * the type:
+ *
+ *     ... AND fieldname = '';
+ *
+ * are being used. Final result should be:
+ *
+ *     ... AND ' . sql_isempty('tablename', 'fieldname', true/false, true/false);
+ *
+ * (see parameters description below)
+ *
+ * @param string $tablename name of the table (without prefix). Not used for now but can be
+ *                          necessary in the future if we want to use some introspection using
+ *                          meta information against the DB. /// TODO ///
+ * @param string $fieldname name of the field we are going to check
+ * @param boolean $nullablefield to specify if the field us nullable (true) or no (false) in the DB
+ * @param boolean $textfield to specify if it is a text (also called clob) field (true) or a varchar one (false)
+ * @return string the sql code to be added to check for empty values
+ */
+function sql_isempty($tablename, $fieldname, $nullablefield, $textfield) {
+
+    global $CFG;
+
+    $sql = $fieldname . " = ''";
+
+    switch ($CFG->dbfamily) {
+        case 'mssql':
+            if ($textfield) {
+                $sql = sql_compare_text($fieldname) . " = ''";
+            }
+            break;
+        case 'oracle':
+            if ($nullablefield) {
+                $sql = $fieldname . " IS NULL";                     /// empties in nullable fields are stored as
+            } else {                                                /// NULLs
+                if ($textfield) {
+                    $sql = sql_compare_text($fieldname) . " = ' '"; /// oracle_dirty_hack inserts 1-whitespace
+                } else {                                            /// in NOT NULL varchar and text columns so
+                    $sql =  $fieldname . " = ' '";                  /// we need to look for that in any situation
+                }
+            }
+            break;
+    }
+
+    return ' ' . $sql . ' '; /// Adding spaces to avoid wrong SQLs due to concatenation
+}
+
+/**
+ * Returns the proper SQL to know if one field is not empty.
+ *
+ * Note that the function behavior strongly relies on the
+ * parameters passed describing the field so, please,  be accurate
+ * when speciffying them.
+ *
+ * This function should be applied in all the places where conditions of
+ * the type:
+ *
+ *     ... AND fieldname != '';
+ *
+ * are being used. Final result should be:
+ *
+ *     ... AND ' . sql_isnotempty('tablename', 'fieldname', true/false, true/false);
+ *
+ * (see parameters description below)
+ *
+ * @param string $tablename name of the table (without prefix). Not used for now but can be
+ *                          necessary in the future if we want to use some introspection using
+ *                          meta information against the DB. /// TODO ///
+ * @param string $fieldname name of the field we are going to check
+ * @param boolean $nullablefield to specify if the field us nullable (true) or no (false) in the DB
+ * @param boolean $textfield to specify if it is a text (also called clob) field (true) or a varchar one (false)
+ * @return string the sql code to be added to check for non empty values
+ */
+function sql_isnotempty($tablename, $fieldname, $nullablefield, $textfield) {
+
+    return ' ( NOT ' . sql_isempty($tablename, $fieldname, $nullablefield, $textfield) . ') ';
+}
+
+/**
  * Returns the proper SQL to do IS NULL
  * @uses $CFG
  * @param string $fieldname The field to add IS NULL to
@@ -1893,6 +2010,50 @@ function sql_order_by_text($fieldname, $numchars=32) {
         default:
             return $fieldname;
     }
+}
+
+/**
+ * Returns the SQL to be used in order to CAST one CHAR column to INTEGER.
+ *
+ * Be aware that the CHAR column you're trying to cast contains really
+ * int values or the RDBMS will throw an error!
+ *
+ * @param string fieldname the name of the field to be casted
+ * @param boolean text to specify if the original column is one TEXT (CLOB) column (true). Defaults to false.
+ * @return string the piece of SQL code to be used in your statement.
+ */
+function sql_cast_char2int($fieldname, $text=false) {
+
+    global $CFG;
+
+    $sql = '';
+
+    switch ($CFG->dbfamily) {
+        case 'mysql':
+            $sql = ' CAST(' . $fieldname . ' AS SIGNED) ';
+            break;
+        case 'postgres':
+            $sql = ' CAST(' . $fieldname . ' AS INT) ';
+            break;
+        case 'mssql':
+            if (!$text) {
+                $sql = ' CAST(' . $fieldname . ' AS INT) ';
+            } else {
+                $sql = ' CAST(' . sql_compare_text($fieldname) . ' AS INT) ';
+            }
+            break;
+        case 'oracle':
+            if (!$text) {
+                $sql = ' CAST(' . $fieldname . ' AS INT) ';
+            } else {
+                $sql = ' CAST(' . sql_compare_text($fieldname) . ' AS INT) ';
+            }
+            break;
+        default:
+            $sql = ' ' . $fieldname . ' ';
+    }
+
+    return $sql;
 }
 
 /**
@@ -2057,8 +2218,9 @@ function column_type($table, $column) {
 
     if (defined('MDL_PERFDB')) { global $PERF ; $PERF->dbqueries++; };
 
-    if(!$rs = $db->Execute('SELECT '.$column.' FROM '.$CFG->prefix.$table.' WHERE 1=2')) {
-        debugging($db->ErrorMsg() .'<br /><br />'. $sql);
+    $sql = 'SELECT '.$column.' FROM '.$CFG->prefix.$table.' WHERE 1=2';
+    if(!$rs = $db->Execute($sql)) {
+        debugging($db->ErrorMsg() .'<br /><br />'. s($sql));
         if (!empty($CFG->dblogerror)) {
             $debug=array_shift(debug_backtrace());
             error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $sql");
@@ -2101,8 +2263,7 @@ function execute_sql_arr($sqlarr, $continue=true, $feedback=true) {
 /**
  * This internal function, called from setup.php, sets all the configuration
  * needed to work properly against any DB. It setups connection encoding
- * and some other variables. Also, ir defines the $CFG->dbfamily variable
- * to handle conditional code better than using $CFG->dbtype directly.
+ * and some other variables.
  *
  * This function must contain the init code needed for each dbtype supported.
  */
@@ -2142,8 +2303,6 @@ function configure_dbconnection() {
         ///       or to turn off magic_quotes to allow Moodle to do it properly
             break;
     }
-/// Finally define dbfamily
-    set_dbfamily();
 }
 
 /**
@@ -2374,7 +2533,7 @@ function db_update_lobs ($table, $sqlcondition, &$clobs, &$blobs) {
             if (!$db->UpdateClob($CFG->prefix.$table, $key, $value, $sqlcondition)) {
                 $status = false;
                 $statement = "UpdateClob('$CFG->prefix$table', '$key', '" . substr($value, 0, 100) . "...', '$sqlcondition')";
-                debugging($db->ErrorMsg() ."<br /><br />$statement");
+                debugging($db->ErrorMsg() ."<br /><br />".s($statement));
                 if (!empty($CFG->dblogerror)) {
                     $debug=array_shift(debug_backtrace());
                     error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $statement");
@@ -2396,7 +2555,7 @@ function db_update_lobs ($table, $sqlcondition, &$clobs, &$blobs) {
             if(!$db->UpdateBlob($CFG->prefix.$table, $key, $value, $sqlcondition)) {
                 $status = false;
                 $statement = "UpdateBlob('$CFG->prefix$table', '$key', '" . substr($value, 0, 100) . "...', '$sqlcondition')";
-                debugging($db->ErrorMsg() ."<br /><br />$statement");
+                debugging($db->ErrorMsg() ."<br /><br />".s($statement));
                 if (!empty($CFG->dblogerror)) {
                     $debug=array_shift(debug_backtrace());
                     error_log("SQL ".$db->ErrorMsg()." in {$debug['file']} on line {$debug['line']}. STATEMENT:  $statement");
@@ -2424,7 +2583,7 @@ function rcache_set($table, $id, $rec) {
     global $CFG, $MCACHE, $rcache;
 
     if ($CFG->cachetype === 'internal') {
-        $rcache->data[$table][$id] = $rec;
+        $rcache->data[$table][$id] = clone($rec);
     } else {
         $key   = $table . '|' . $id;
 
@@ -2488,7 +2647,7 @@ function rcache_get($table, $id) {
     if ($CFG->cachetype === 'internal') {
         if (isset($rcache->data[$table][$id])) {
             $rcache->hits++;
-            return $rcache->data[$table][$id];
+            return clone($rcache->data[$table][$id]);
         } else {
             $rcache->misses++;
             return false;

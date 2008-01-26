@@ -1,4 +1,4 @@
-<?php // $Id: timezoneimport.php,v 1.10 2007/04/30 17:08:35 skodak Exp $
+<?php // $Id: timezoneimport.php,v 1.10.4.4 2007/12/31 15:24:22 stronk7 Exp $
 
     // Automatic update of Timezones from a new source
     
@@ -6,7 +6,7 @@
     require_once($CFG->libdir.'/adminlib.php');
     require_once($CFG->libdir.'/filelib.php');
     require_once($CFG->libdir.'/olson.php');
-
+    
     admin_externalpage_setup('timezoneimport');
 
     $ok = optional_param('ok', 0, PARAM_BOOL);
@@ -23,9 +23,9 @@
     if (!$ok or !confirm_sesskey()) {
         $message = '<br /><br />';
         $message .= $CFG->dataroot.'/temp/olson.txt<br />';
-        $message .= $CFG->dataroot.'/temp/timezones.txt<br />';
-        $message .= '<a href="http://download.moodle.org/timezones/">http://download.moodle.org/timezones/</a><br />';
-        $message .= '<a href="'.$CFG->wwwroot.'/lib/timezones.txt">'.$CFG->dirroot.'/lib/timezones.txt</a><br />';
+        $message .= $CFG->dataroot.'/temp/timezone.txt<br />';
+        $message .= '<a href="http://download.moodle.org/timezone/">http://download.moodle.org/timezone/</a><br />';
+        $message .= '<a href="'.$CFG->wwwroot.'/lib/timezone.txt">'.$CFG->dirroot.'/lib/timezone.txt</a><br />';
         $message .= '<br />';
 
         $message = get_string("configintrotimezones", 'admin', $message);
@@ -53,7 +53,7 @@
 
 /// Next, look for a CSV file locally
 
-    $source = $CFG->dataroot.'/temp/timezones.txt';
+    $source = $CFG->dataroot.'/temp/timezone.txt';
     if (!$importdone and is_readable($source)) {
         if ($timezones = get_records_csv($source, 'timezone')) {
             update_timezone_records($timezones);
@@ -62,26 +62,22 @@
     }
 
 /// Otherwise, let's try moodle.org's copy
-
-    $source = 'http://download.moodle.org/timezones/';
-    if (!$importdone and ini_get('allow_url_fopen')) {
-        if (is_readable($source) && $contents = file_get_contents($source)) {  // Grab whole page
-            if ($file = fopen($CFG->dataroot.'/temp/timezones.txt', 'w')) {            // Make local copy
-                fwrite($file, $contents);
-                fclose($file);
-                if ($timezones = get_records_csv($CFG->dataroot.'/temp/timezones.txt', 'timezone')) {  // Parse it
-                    update_timezone_records($timezones);
-                    $importdone = $source;
-                }
-                unlink($CFG->dataroot.'/temp/timezones.txt');
+    $source = 'http://download.moodle.org/timezone/';
+    if (!$importdone && ($content=download_file_content($source))) {
+        if ($file = fopen($CFG->dataroot.'/temp/timezone.txt', 'w')) {            // Make local copy
+            fwrite($file, $content);
+            fclose($file);
+            if ($timezones = get_records_csv($CFG->dataroot.'/temp/timezone.txt', 'timezone')) {  // Parse it
+                update_timezone_records($timezones);
+                $importdone = $source;
             }
+            unlink($CFG->dataroot.'/temp/timezone.txt');
         }
     }
 
 
 /// Final resort, use the copy included in Moodle
-
-    $source = $CFG->dirroot.'/lib/timezones.txt';
+    $source = $CFG->dirroot.'/lib/timezone.txt';
     if (!$importdone and is_readable($source)) {  // Distribution file
         if ($timezones = get_records_csv($source, 'timezone')) {
             update_timezone_records($timezones);
@@ -102,6 +98,9 @@
 
         $timezonelist = array();
         foreach ($timezones as $timezone) {
+            if (is_array($timezone)) {
+                $timezone = (object)$timezone;
+            }
             if (isset($timezonelist[$timezone->name])) {
                 $timezonelist[$timezone->name]++;
             } else {

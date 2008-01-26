@@ -1,4 +1,4 @@
-<?php // $Id: scorm_12lib.php,v 1.11 2007/07/23 15:38:37 poltawski Exp $
+<?php // $Id: scorm_12lib.php,v 1.11.2.3 2007/11/15 08:40:03 bobopinna Exp $
 
 function scorm_eval_prerequisites($prerequisites,$usertracks) {
     $element = '';
@@ -213,6 +213,7 @@ function scorm_get_toc($user,$scorm,$liststyle,$currentorg='',$scoid='',$mode='n
         
         foreach ($scoes as $sco) {
             $isvisible = false;
+            $sco->title = stripslashes($sco->title);
             if ($optionaldatas = scorm_get_sco($sco->id, SCO_DATA)) {
                 if (!isset($optionaldatas->isvisible) || (isset($optionaldatas->isvisible) && ($optionaldatas->isvisible == 'true'))) {
                     $isvisible = true;
@@ -338,11 +339,11 @@ function scorm_get_toc($user,$scorm,$liststyle,$currentorg='',$scoid='',$mode='n
                         if ($sco->id == $scoid) {
                             $result->prerequisites = false;
                         }
-                        $result->toc .= $statusicon.'&nbsp;'.$sco->title."</li>\n";
+                        $result->toc .= $statusicon.'&nbsp;'.format_string($sco->title)."</li>\n";
                     }
                 }
             } else {
-                $result->toc .= '&nbsp;'.$sco->title."</li>\n";
+                $result->toc .= '&nbsp;'.format_string($sco->title)."</li>\n";
             }
             if (($nextsco !== false) && ($nextid == 0) && ($findnext)) {
                 if (!empty($nextsco->launch)) {
@@ -355,7 +356,10 @@ function scorm_get_toc($user,$scorm,$liststyle,$currentorg='',$scoid='',$mode='n
         }
         
         if ($play) {
-            $sco = scorm_get_sco($scoid);
+            // it is possible that scoid is still not set, in this case we dont want an empty object
+            if ($scoid) {
+                $sco = scorm_get_sco($scoid);
+            }
             $sco->previd = $previd;
             $sco->nextid = $nextid;
             $result->sco = $sco;

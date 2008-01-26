@@ -1,4 +1,4 @@
-<?php // $Id: mod_form.php,v 1.26 2007/09/26 10:13:23 tjhunt Exp $
+<?php // $Id: mod_form.php,v 1.28.2.3 2007/11/23 22:13:44 skodak Exp $
 require_once ($CFG->dirroot.'/course/moodleform_mod.php');
 
 require_once("$CFG->dirroot/mod/quiz/locallib.php");
@@ -24,11 +24,11 @@ class mod_quiz_mod_form extends moodleform_mod {
 
 //-------------------------------------------------------------------------------
         $mform->addElement('header', 'timinghdr', get_string('timing', 'form'));
-        $mform->addElement('date_time_selector', 'timeopen', get_string("quizopen", "quiz"), array('optional'=>true));
-        $mform->setHelpButton('timeopen', array('timeopen', get_string('quizopens', 'quiz'), 'quiz'));
+        $mform->addElement('date_time_selector', 'timeopen', get_string('quizopen', 'quiz'), array('optional'=>true));
+        $mform->setHelpButton('timeopen', array('timeopen', get_string('quizopen', 'quiz'), 'quiz'));
 
-        $mform->addElement('date_time_selector', 'timeclose', get_string("quizcloses", "quiz"), array('optional'=>true));
-        $mform->setHelpButton('timeclose', array('timeopen', get_string('quizcloses', 'quiz'), 'quiz'));
+        $mform->addElement('date_time_selector', 'timeclose', get_string('quizclose', 'quiz'), array('optional'=>true));
+        $mform->setHelpButton('timeclose', array('timeopen', get_string('quizclose', 'quiz'), 'quiz'));
 
 
         $timelimitgrp=array();
@@ -140,8 +140,8 @@ class mod_quiz_mod_form extends moodleform_mod {
         $mform->addElement('hidden', 'grade', $CFG->quiz_maximumgrade);
 
 //-------------------------------------------------------------------------------
-        $mform->addElement('header', 'reviewoptionshdr', get_string("reviewoptions", "quiz"));
-        $mform->setHelpButton('reviewoptionshdr', array("review2", get_string("allowreview","quiz"), "quiz"));
+        $mform->addElement('header', 'reviewoptionshdr', get_string('reviewoptionsheading', 'quiz'));
+        $mform->setHelpButton('reviewoptionshdr', array('reviewoptions', get_string('reviewoptionsheading','quiz'), 'quiz'));
         $mform->setAdvanced('reviewoptionshdr', $CFG->quiz_fix_review);
 
         $immediatelyoptionsgrp=array();
@@ -237,7 +237,8 @@ class mod_quiz_mod_form extends moodleform_mod {
         $mform->setType('feedbackboundaries', PARAM_NOTAGS);
 
         $nextel=$this->repeat_elements($repeatarray, $numfeedbacks-1,
-                    array(), 'boundary_repeats', 'boundary_add_fields', 3);
+                array(), 'boundary_repeats', 'boundary_add_fields', 3,
+                get_string('addmoreoverallfeedbacks', 'quiz'), true);
 
         //put some extra elements in before the button
         $insertEl = &MoodleQuickForm::createElement('text', "feedbacktext[$nextel]", get_string('feedback', 'quiz'), array('size' => 50));
@@ -308,11 +309,8 @@ class mod_quiz_mod_form extends moodleform_mod {
         }
     }
 
-    function validation($data){
-        $errors = parent::validation($data);
-        if ($errors === true) {
-            $errors = array();
-        }
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         // Check open and close times are consistent.
         if ($data['timeopen'] != 0 && $data['timeclose'] != 0 && $data['timeclose'] < $data['timeopen']) {

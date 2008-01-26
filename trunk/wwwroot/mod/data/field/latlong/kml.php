@@ -57,13 +57,11 @@ require_course_login($course, true, $cm);
 
 /// If it's hidden then it's don't show anything.  :)
 if (empty($cm->visible) and !has_capability('moodle/course:viewhiddenactivities',get_context_instance(CONTEXT_MODULE, $cm->id))) {
-    $navlinks = array();
-    $navlinks[] = array('name' => $strdatabases, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-        
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($data->name), "", $navigation,
-        "", "", true, '', navmenu($course, $cm));
+        "", "", true, '', 
+    	// kowy - 2007-01-12 - add standard logout box 
+		user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
     notice(get_string("activityiscurrentlyhidden"));
 }
 

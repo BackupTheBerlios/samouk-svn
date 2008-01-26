@@ -1,4 +1,4 @@
-<?php // $Id: event.php,v 1.73 2007/10/03 04:21:53 toyomoyo Exp $
+<?php // $Id: event.php,v 1.74.2.2 2007/12/28 18:57:46 stronk7 Exp $
 
 /////////////////////////////////////////////////////////////////////////////
 //                                                                         //
@@ -217,13 +217,14 @@
                 if (count($err) == 0) {
                     $form->timemodified = time();
 
-                    if ($form->repeat) {
-                        $fetch = get_record_sql('SELECT 1, MAX(repeatid) AS repeatid FROM '.$CFG->prefix.'event');
-                        $form->repeatid = empty($fetch) ? 1 : $fetch->repeatid + 1;
-                    }
-
                     /// Get the event id for the log record.
                     $eventid = insert_record('event', $form, true);
+                    
+                    /// Use the event id as the repeatid to link repeat entries together
+                    if ($form->repeat) {
+                        $form->repeatid = $form->id = $eventid;
+                        update_record('event', $form);         // update the row, to set its repeatid        	
+                    }
 
                     /// Log the event entry.
                     add_to_log($form->courseid, 'calendar', 'add', 'event.php?action=edit&amp;id='.$eventid, stripslashes($form->name));
@@ -619,14 +620,14 @@ function calendar_add_event_allowed($event) {
             return has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_COURSE, $event->courseid));
 
         case 'group':
-            if (! groups_group_exists($event->groupid)) { //TODO:check.
-                return false;
-            }
-            // this is ok because if you have this capability at course level, you should be able
-            // to edit group calendar too
-            // there is no need to check membership, because if you have this capability
-            // you will have a role in this group context
-            return has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_GROUP, $event->groupid));
+            // Allow users to add/edit group events if:
+            // 1) They have manageentries (= entries for whole course)
+            // 2) They have managegroupentries AND are in the group
+            $group = get_record('groups', 'id', $event->groupid);         
+            return $group && (
+                has_capability('moodle/calendar:manageentries', get_context_instance(CONTEXT_COURSE, $group->courseid)) ||
+                (has_capability('moodle/calendar:managegroupentries', get_context_instance(CONTEXT_COURSE, $group->courseid))
+                    && groups_is_member($event->groupid)));
 
         case 'user':
             if ($event->userid == $USER->id) {

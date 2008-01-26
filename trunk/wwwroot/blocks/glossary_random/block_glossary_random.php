@@ -1,4 +1,4 @@
-<?php // $Id: block_glossary_random.php,v 1.20 2006/10/24 02:36:13 moodler Exp $
+<?php // $Id: block_glossary_random.php,v 1.20.6.2 2008/01/08 16:46:41 poltawski Exp $
 
 define('BGR_RANDOMLY',     '0');
 define('BGR_LASTMODIFIED', '1');
@@ -161,6 +161,21 @@ class block_glossary_random extends block_base {
             return $this->content;
         }
 
+        $glossaryid = $this->config->glossary;
+
+        if(! $glossary = get_record('glossary', 'id', $glossaryid, 'course', $this->course->id) ){
+            // we can get here if the glossary has been deleted, so
+            // unconfigure the glossary from the block..
+            $this->config->glossary = 0;
+            $this->config->cache = '';
+            $this->instance_config_commit();
+
+            $this->content->text   = get_string('notyetconfigured','block_glossary_random');
+            $this->content->footer = '';
+            return $this->content;
+        }
+
+
         if (empty($this->config->cache)) {
             $this->config->cache = '';
         }
@@ -173,8 +188,6 @@ class block_glossary_random extends block_base {
         $this->content->text = $this->config->cache;
 
         // place link to glossary in the footer if the glossary is visible
-        $glossaryid = $this->config->glossary;
-        $glossary=get_record('glossary', 'id', $glossaryid);
 
         //Create a temp valid module structure (course,id)
         $tempmod->course = $this->course->id;

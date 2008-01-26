@@ -1,4 +1,4 @@
-<?php // $Id: importppt.php,v 1.22 2007/08/17 12:49:32 skodak Exp $
+<?php // $Id: importppt.php,v 1.22.2.1 2007/10/12 16:09:42 tjhunt Exp $
 /**
  * This is a very rough importer for powerpoint slides
  * Export a powerpoint presentation with powerpoint as html pages
@@ -8,7 +8,7 @@
  * 
  * The script supports book and lesson.
  *
- * @version $Id: importppt.php,v 1.22 2007/08/17 12:49:32 skodak Exp $
+ * @version $Id: importppt.php,v 1.22.2.1 2007/10/12 16:09:42 tjhunt Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package lesson
  **/
@@ -44,13 +44,7 @@
     $strimportppt = get_string("importppt", "lesson");
     $strlessons = get_string("modulenameplural", "lesson");
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strlessons, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($mod->name,true), 'link' => "$CFG->wwwroot/mod/$modname/view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strimportppt, 'link' => '', 'type' => 'title');
-            
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($strimportppt, $cm);
     print_header_simple("$strimportppt", " $strimportppt", $navigation);
 
     if ($form = data_submitted()) {   /// Filename

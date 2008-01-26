@@ -1,4 +1,4 @@
-<?php // $Id: edit.php,v 1.31 2007/07/05 04:55:31 mattc-catalyst Exp $
+<?php // $Id: edit.php,v 1.31.2.1 2007/10/12 16:09:47 tjhunt Exp $
 
     require_once("../../config.php");
 
@@ -75,12 +75,7 @@
         $entry->format = $defaultformat;
     }
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strjournals, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($journal->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $stredit, 'link' => '', 'type' => 'action');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($stredit, $cm);
     print_header_simple(format_string($journal->name), "", $navigation, "",
                   "", true, "", navmenu($course, $cm));
 

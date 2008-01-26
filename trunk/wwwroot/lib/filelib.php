@@ -1,32 +1,236 @@
-<?php //$Id: filelib.php,v 1.50 2007/09/25 14:59:16 nfreear Exp $
-
-require_once($CFG->libdir.'/libcurlemu/libcurlemu.inc.php'); // might be moved to setup.php later
+<?php //$Id: filelib.php,v 1.50.2.7 2007/12/31 23:16:56 skodak Exp $
 
 define('BYTESERVING_BOUNDARY', 's1k2o3d4a5k6s7'); //unique string constant
 
 /**
- * Fetches content of file from Internet (using proxy if defined).
+ * Fetches content of file from Internet (using proxy if defined). Uses cURL extension if present.
+ * Due to security concerns only downloads from http(s) sources are supported.
  *
+ * @param string $url file url starting with http(s)://
+ * @param array $headers http headers, null if none
+ * @param array $postdata array means use POST request with given parameters
+ * @param bool $fullresponse return headers, responses, etc in a similar way snoopy does
+ * @param int $timeout connection timeout
  * @return mixed false if request failed or content of the file as string if ok.
  */
-function download_file_content($url) {
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HEADER, false);
-    if (!empty($CFG->proxyhost)) {
-        curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, true);
-        if (empty($CFG->proxyport)) {
-            curl_setopt($ch, CURLOPT_PROXY, $CFG->proxy);
-        } else {
-            curl_setopt($ch, CURLOPT_PROXY, $CFG->proxy.':'.$CFG->proxyport);
-        }
-        if(!empty($CFG->proxyuser) and !empty($CFG->proxypassword)) {
-            curl_setopt($ch, CURLOPT_PROXYUSERPWD, $CFG->proxyuser.':'.$CFG->proxypassword);
+function download_file_content($url, $headers=null, $postdata=null, $fullresponse=false, $timeout=20) {
+    global $CFG;
+
+    // some extra security
+    $newlines = array("\r", "\n");
+    if (is_array($headers) ) {
+        foreach ($headers as $key => $value) {
+            $headers[$key] = str_replace($newlines, '', $value);
         }
     }
-    $result = curl_exec($ch);
-    curl_close($ch);
-    return $result;
+    $url = str_replace($newlines, '', $url);
+    if (!preg_match('|^https?://|i', $url)) {
+        if ($fullresponse) {
+            $response = new object();
+            $response->status        = 0;
+            $response->headers       = array();
+            $response->response_code = 'Invalid protocol specified in url';
+            $response->results       = '';
+            $response->error         = 'Invalid protocol specified in url';
+            return $response;
+        } else {
+            return false;
+        }
+    }
+
+
+    if (!extension_loaded('curl') or ($ch = curl_init($url)) === false) {
+        require_once($CFG->libdir.'/snoopy/Snoopy.class.inc');
+        $snoopy = new Snoopy();
+        $snoopy->read_timeout = $timeout;
+        $snoopy->proxy_host   = $CFG->proxyhost;
+        $snoopy->proxy_port   = $CFG->proxyport;
+        if (!empty($CFG->proxyuser) and !empty($CFG->proxypassword)) {
+            // this will probably fail, but let's try it anyway
+            $snoopy->proxy_user     = $CFG->proxyuser;
+            $snoopy->proxy_password = $CFG->proxypassword;
+        }
+        if (is_array($headers) ) {
+            $client->rawheaders = $headers;
+        }
+
+        if (is_array($postdata)) {
+            $fetch = @$snoopy->fetch($url, $postdata); // use more specific debug code bellow
+        } else {
+            $fetch = @$snoopy->fetch($url); // use more specific debug code bellow
+        }
+
+        if ($fetch) {
+            if ($fullresponse) {
+                //fix header line endings
+                foreach ($snoopy->headers as $key=>$unused) {
+                    $snoopy->headers[$key] = trim($snoopy->headers[$key]);
+                }
+                $response = new object();
+                $response->status        = $snoopy->status;
+                $response->headers       = $snoopy->headers;
+                $response->response_code = trim($snoopy->response_code);
+                $response->results       = $snoopy->results;
+                $response->error         = $snoopy->error;
+                return $response;
+
+            } else if ($snoopy->status != 200) {
+                debugging("Snoopy request for \"$url\" failed, http response code: ".$snoopy->response_code, DEBUG_ALL);
+                return false;
+
+            } else {
+                return $snoopy->results;
+            }
+        } else {
+            if ($fullresponse) {
+                $response = new object();
+                $response->status        = $snoopy->status;
+                $response->headers       = array();
+                $response->response_code = $snoopy->response_code;
+                $response->results       = '';
+                $response->error         = $snoopy->error;
+                return $response;
+            } else {
+                debugging("Snoopy request for \"$url\" failed with: ".$snoopy->error, DEBUG_ALL);
+                return false;
+            }
+        }
+    }
+
+    // set extra headers
+    if (is_array($headers) ) {
+        $headers2 = array();
+        foreach ($headers as $key => $value) {
+            $headers2[] = "$key: $value";
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers2);
+    }
+
+    // use POST if requested
+    if (is_array($postdata)) {
+        foreach ($postdata as $k=>$v) {
+            $postdata[$k] = urlencode($k).'='.urlencode($v);
+        }
+        $postdata = implode('&', $postdata);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
+    }
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+    if (!ini_get('open_basedir') and !ini_get('safe_mode')) {
+        // TODO: add version test for '7.10.5'
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+    }
+
+    if (!empty($CFG->proxyhost)) {
+        // SOCKS supported in PHP5 only
+        if (!empty($CFG->proxytype) and ($CFG->proxytype == 'SOCKS5')) {
+            if (defined('CURLPROXY_SOCKS5')) {
+                curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+            } else {
+                curl_close($ch);
+                if ($fullresponse) {
+                    $response = new object();
+                    $response->status        = '0';
+                    $response->headers       = array();
+                    $response->response_code = 'SOCKS5 proxy is not supported in PHP4';
+                    $response->results       = '';
+                    $response->error         = 'SOCKS5 proxy is not supported in PHP4';
+                    return $response;
+                } else {
+                    debugging("SOCKS5 proxy is not supported in PHP4.", DEBUG_ALL);
+                    return false;
+                }
+            }
+        }
+
+        curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, false);
+
+        if (empty($CFG->proxyport)) {
+            curl_setopt($ch, CURLOPT_PROXY, $CFG->proxyhost);
+        } else {
+            curl_setopt($ch, CURLOPT_PROXY, $CFG->proxyhost.':'.$CFG->proxyport);
+        }
+
+        if (!empty($CFG->proxyuser) and !empty($CFG->proxypassword)) {
+            curl_setopt($ch, CURLOPT_PROXYUSERPWD, $CFG->proxyuser.':'.$CFG->proxypassword);
+            if (defined('CURLOPT_PROXYAUTH')) {
+                // any proxy authentication if PHP 5.1
+                curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM);
+            }
+        }
+    }
+
+    $data = curl_exec($ch);
+
+    // try to detect encoding problems
+    if ((curl_errno($ch) == 23 or curl_errno($ch) == 61) and defined('CURLOPT_ENCODING')) {
+        curl_setopt($ch, CURLOPT_ENCODING, 'none');
+        $data = curl_exec($ch);
+    }
+
+    if (curl_errno($ch)) {
+        $error    = curl_error($ch);
+        $error_no = curl_errno($ch);
+        curl_close($ch);
+
+        if ($fullresponse) {
+            $response = new object();
+            if ($error_no == 28) {
+                $response->status    = '-100'; // mimic snoopy
+            } else {
+                $response->status    = '0';
+            }
+            $response->headers       = array();
+            $response->response_code = $error;
+            $response->results       = '';
+            $response->error         = $error;
+            return $response;
+        } else {
+            debugging("cURL request for \"$url\" failed with: $error ($error_no)", DEBUG_ALL);
+            return false;
+        }
+
+    } else {
+        $info = curl_getinfo($ch);
+        curl_close($ch);
+
+        if (empty($info['http_code'])) {
+            // for security reasons we support only true http connections (Location: file:// exploit prevention)
+            $response = new object();
+            $response->status        = '0';
+            $response->headers       = array();
+            $response->response_code = 'Unknown cURL error';
+            $response->results       = ''; // do NOT change this!
+            $response->error         = 'Unknown cURL error';
+
+        } else {
+            // strip redirect headers and get headers array and content
+            $data = explode("\r\n\r\n", $data, $info['redirect_count'] + 2);
+            $results = array_pop($data);
+            $headers = array_pop($data);
+            $headers = explode("\r\n", trim($headers));
+
+            $response = new object();;
+            $response->status        = (string)$info['http_code'];
+            $response->headers       = $headers;
+            $response->response_code = $headers[0];
+            $response->results       = $results;
+            $response->error         = '';
+        }
+
+        if ($fullresponse) {
+            return $response;
+        } else if ($info['http_code'] != 200) {
+            debugging("cURL request for \"$url\" failed, HTTP response code: ".$response->response_code, DEBUG_ALL);
+            return false;
+        } else {
+            return $response->results;
+        }
+    }
 }
 
 /**
@@ -334,6 +538,11 @@ function send_file($path, $filename, $lifetime=86400 , $filter=0, $pathisstring=
     //error should be better than "weird" empty lines for admins/users
     //TODO: should we remove all those @ before the header()? Are all of the values supported on all servers?
     header('Last-Modified: '. gmdate('D, d M Y H:i:s', $lastmodified) .' GMT');
+
+    // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup
+    if (check_browser_version('MSIE')) {
+        $filename = urlencode($filename);
+    }
 
     if ($forcedownload) {
         @header('Content-Disposition: attachment; filename='.$filename);

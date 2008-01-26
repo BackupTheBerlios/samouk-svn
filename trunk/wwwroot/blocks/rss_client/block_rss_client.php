@@ -1,4 +1,4 @@
-<?php //$Id: block_rss_client.php,v 1.77 2007/09/03 10:26:44 poltawski Exp $
+<?php //$Id: block_rss_client.php,v 1.77.2.2 2007/12/20 16:25:17 skodak Exp $
 
 /*******************************************************************
 * This file contains one class which defines a block for display on
@@ -6,7 +6,7 @@
 * of a remote RSS news feed in your web site.
 *
 * @author Daryl Hawes
-* @version  $Id: block_rss_client.php,v 1.77 2007/09/03 10:26:44 poltawski Exp $
+* @version  $Id: block_rss_client.php,v 1.77.2.2 2007/12/20 16:25:17 skodak Exp $
 * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
 * @package base
 ******************************************************************/
@@ -96,7 +96,11 @@
             }
         }
 
-        $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        if (empty($this->instance->pinned)) {
+            $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        } else {
+            $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+        }
 
         if (has_capability('block/rss_client:createsharedfeeds', $context)
                     || has_capability('block/rss_client:createprivatefeeds', $context)) {
@@ -275,7 +279,7 @@
             // if the feed has a title
             if (!empty($feedtitle) and ($feedtitle != '<a href="'. $rss->channel['link'] .'"></a>')) {
                 // set the block's title to the feed's title
-                $this->title = $feedtitle;
+                $this->title = strip_tags($feedtitle);
             }
         }
         return $returnstring;

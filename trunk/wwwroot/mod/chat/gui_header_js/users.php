@@ -1,4 +1,4 @@
-<?php  // $Id: users.php,v 1.12 2007/08/27 02:28:37 mattc-catalyst Exp $
+<?php  // $Id: users.php,v 1.13.2.1 2007/12/14 21:22:47 skodak Exp $
 
     $nomoodlecookie = true;     // Session not needed!
 
@@ -18,7 +18,7 @@
     }
 
     //Get the user theme and enough info to be used in chat_format_message() which passes it along to
-    if (!$USER = get_record('user','id',$chatuser->userid,'','','','','id, lang, theme, username, timezone')) {
+    if (!$USER = get_record('user','id',$chatuser->userid)) { // no optimisation here, it would break again in future!
         error('User does not exist!');
     }
     $USER->description = '';
@@ -135,7 +135,8 @@
         echo '</td></tr>';
     }
     // added 2 </div>s, xhtml strict complaints
-    echo '</table></div></div></body></html>';
+    echo '</table>';
+    print_footer('empty');
 
     //
     // Support HTTP Keep-Alive by printing Content-Length

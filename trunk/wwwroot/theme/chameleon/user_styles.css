@@ -33,6 +33,12 @@ a.dimmed:visited {
 table.generaltable {
   background-color: #EEEEEE;
 }
+span.arrow {
+  font-family: Arial, Helvetica, Courier, sans-serif; 
+}
+p.arrow_button input {
+  font-family: Arial, Helvetica, Courier, sans-serif; 
+}
 img.resize {
   width: 1em;
   height: 1em;
@@ -237,14 +243,10 @@ td.courseboxcontent {
 .sideblock .content .message {
   text-align: left;
 }
-.sideblock .header .hide-show img.hide-show-image {
-  background-image: url(../../pix/t/switch_minus.gif);
-  background-repeat: no-repeat;
+.sideblock .header .hide-show-image {
   margin-top: 0;
 }
-.sideblock.hidden .header .hide-show img.hide-show-image {
-  background-image: url(../../pix/t/switch_plus.gif);
-  background-repeat: no-repeat;
+.sideblock.hidden .header .hide-show-image {
   margin-top: 2px;
 }
 #calendar .event_global {

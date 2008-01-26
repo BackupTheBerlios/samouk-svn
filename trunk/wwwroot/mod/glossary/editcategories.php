@@ -1,4 +1,4 @@
-<?php  // $Id: editcategories.php,v 1.41 2007/08/17 12:49:31 skodak Exp $
+<?php  // $Id: editcategories.php,v 1.41.3 2008/01/21 18:15:00 kowy Exp $
 
 /// This page allows to edit entries categories for a particular instance of glossary
 
@@ -56,7 +56,8 @@
 
     print_header_simple(format_string($glossary->name), "", $navigation,
                         "", "", true, update_module_button($cm->id, $course->id, $strglossary),
-                        navmenu($course, $cm));
+                        // kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     if ( $hook >0 ) {
 
@@ -208,8 +209,8 @@
                </td>
                <td style="width:10%" align="center"><b>
                <?php
-                echo "<a href=\"editcategories.php?id=$cm->id&amp;action=delete&amp;mode=cat&amp;hook=$category->id\"><img  alt=\"" . get_string("delete") . "\"src=\"../../pix/t/delete.gif\" class=\"iconsmall\" /></a> ";
-                echo "<a href=\"editcategories.php?id=$cm->id&amp;action=edit&amp;mode=cat&amp;hook=$category->id\"><img  alt=\"" . get_string("edit") . "\" src=\"../../pix/t/edit.gif\" class=\"iconsmall\" /></a>";
+                echo "<a href=\"editcategories.php?id=$cm->id&amp;action=delete&amp;mode=cat&amp;hook=$category->id\"><img  alt=\"" . get_string("delete") . "\"src=\"{$CFG->pixpath}/t/delete.gif\" class=\"iconsmall\" /></a> ";
+                echo "<a href=\"editcategories.php?id=$cm->id&amp;action=edit&amp;mode=cat&amp;hook=$category->id\"><img  alt=\"" . get_string("edit") . "\" src=\"{$CFG->pixpath}/t/edit.gif\" class=\"iconsmall\" /></a>";
                ?>
                </b></td>
              </tr>

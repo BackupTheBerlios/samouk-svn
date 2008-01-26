@@ -1,4 +1,4 @@
-<?php  // $Id: templates.php,v 1.68 2007/08/20 14:04:10 skodak Exp $
+<?php  // $Id: templates.php,v 1.68.3 2008/01/21 04:42:24 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -94,14 +94,11 @@
     $meta .= '//]]>'."\n";
     $meta .= '</script>'."\n";
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strdata, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-    
+    $navigation = build_navigation('', $cm);
     print_header_simple($data->name, '', $navigation,
                         '', $meta, true, update_module_button($cm->id, $course->id, get_string('modulename', 'data')),
-                        navmenu($course, $cm), '', $bodytag);
+                        // kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm), '', $bodytag);
 
     print_heading(format_string($data->name));
 
@@ -200,7 +197,7 @@
     if ($mode != 'csstemplate' and $mode != 'jstemplate') {
         // Add all the available fields for this data.
         echo '<label for="availabletags">'.get_string('availabletags','data').'</label>';
-        helpbutton('tags', get_string('tags','data'), 'data');
+        helpbutton('tags', get_string('tags'), 'data');
         echo '<br />';
 
 

@@ -1,4 +1,4 @@
-<?php //$Id: index.php,v 1.2 2007/07/24 07:45:22 skodak Exp $
+<?php //$Id: index.php,v 1.3.2.1 2007/12/17 14:11:52 tjhunt Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 // NOTICE OF COPYRIGHT                                                   //
@@ -43,7 +43,7 @@ if ($reports = get_list_of_plugins('grade/report', 'CVS')) {     // Get all inst
 }
 
 if (empty($reports)) {
-    error('No reports accessible', $CFG->wwwroot.'/course/view.php:id='.$course->id); // TODO: localize
+    error('No reports accessible', $CFG->wwwroot.'/course/view.php?id='.$course->id); // TODO: localize
 }
 
 if (!isset($USER->grade_last_report)) {

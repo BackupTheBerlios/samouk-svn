@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.37 2007/08/17 19:09:23 nicolasconnault Exp $
+<?php // $Id: resource.class.php,v 1.37.2.1 2007/10/12 16:09:47 tjhunt Exp $
 
 class resource_text extends resource_base {
 
@@ -82,13 +82,11 @@ function display() {
                         "center", "", "", "20");
                 print_footer($course);
             } else {                           /// Make a page and a pop-up window
+                $navigation = build_navigation($this->navlinks, $cm);
 
-                $this->navlinks[] = array('name' => format_string($resource->name), 'link' => null, 'type' => 'misc');
-                $this->navigation = build_navigation($this->navlinks);
-
-                print_header($pagetitle, $course->fullname, $this->navigation,
+                print_header($pagetitle, $course->fullname, $navigation,
                         "", "", true, update_module_button($cm->id, $course->id, $this->strresource),
-                        navmenu($course, $cm));
+                        user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
                 echo "\n<script type=\"text/javascript\">";
                 echo "\n//<![CDATA[\n";
@@ -113,12 +111,11 @@ function display() {
         } else {    /// not a popup at all
 
             add_to_log($course->id, "resource", "view", "view.php?id={$cm->id}", $resource->id, $cm->id);
-            $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'title');
-            $this->navigation = build_navigation($this->navlinks);
+            $navigation = build_navigation($this->navlinks, $cm);
 
-            print_header($pagetitle, $course->fullname, $this->navigation,
+            print_header($pagetitle, $course->fullname, $navigation,
                     "", "", true, update_module_button($cm->id, $course->id, $this->strresource),
-                    navmenu($course, $cm));
+                    user_login_string($course).'<hr style="width:95%"/>'.navmenu($course, $cm));
 
             print_simple_box(format_text($resource->alltext, $resource->reference, $formatoptions, $course->id),
                     "center", "", "", "20");
@@ -157,40 +154,39 @@ function setup_preprocessing(&$defaults){
 }
 
 function setup_elements(&$mform) {
-    global $CFG, $RESOURCE_WINDOW_OPTIONS, $USER;
+    global $CFG, $RESOURCE_WINDOW_OPTIONS;
 
-    // show textarea for editing richtext page
-    $mform->addElement('htmleditor', 'alltext', get_string('fulltext', 'resource'), array('cols'=>85, 'rows'=>30));
+    $mform->addElement('textarea', 'alltext', get_string('fulltext', 'resource'), array('cols'=>85, 'rows'=>30));
     $mform->setType('alltext', PARAM_RAW);
     $mform->setHelpButton('alltext', array('reading', 'writing', 'richtext'), false, 'editorhelpbutton');
     $mform->addRule('alltext', get_string('required'), 'required', null, 'client');
 
-    $mform->addElement('hidden', 'reference', get_string('format'), null, false);
-    $mform->setDefault('reference', FORMAT_HTML);
+    $mform->addElement('format', 'reference', get_string('format'), null, false);
+    $mform->setDefault('reference', FORMAT_PLAIN);
 
-//    $mform->addElement('header', 'displaysettings', get_string('display', 'resource'));
-//
-//    $woptions = array(0 => get_string('pagewindow', 'resource'), 1 => get_string('newwindow', 'resource'));
-//    $mform->addElement('select', 'windowpopup', get_string('display', 'resource'), $woptions);
-//    $mform->setDefault('windowpopup', !empty($CFG->resource_popup));
-//
-//    $mform->addElement('checkbox', 'blockdisplay', get_string('showcourseblocks', 'resource'));
-//    $mform->setDefault('blockdisplay', 0);
-//    $mform->disabledIf('blockdisplay', 'windowpopup', 'eq', 1);
-//    $mform->setAdvanced('blockdisplay');
-//
-//    foreach ($RESOURCE_WINDOW_OPTIONS as $option) {
-//        if ($option == 'height' or $option == 'width') {
-//            $mform->addElement('text', $option, get_string('new'.$option, 'resource'), array('size'=>'4'));
-//            $mform->setDefault($option, $CFG->{'resource_popup'.$option});
-//            $mform->disabledIf($option, 'windowpopup', 'eq', 0);
-//        } else {
-//            $mform->addElement('checkbox', $option, get_string('new'.$option, 'resource'));
-//            $mform->setDefault($option, $CFG->{'resource_popup'.$option});
-//            $mform->disabledIf($option, 'windowpopup', 'eq', 0);
-//        }
-//        $mform->setAdvanced($option);
-//    }
+    $mform->addElement('header', 'displaysettings', get_string('display', 'resource'));
+
+    $woptions = array(0 => get_string('pagewindow', 'resource'), 1 => get_string('newwindow', 'resource'));
+    $mform->addElement('select', 'windowpopup', get_string('display', 'resource'), $woptions);
+    $mform->setDefault('windowpopup', !empty($CFG->resource_popup));
+
+    $mform->addElement('checkbox', 'blockdisplay', get_string('showcourseblocks', 'resource'));
+    $mform->setDefault('blockdisplay', 0);
+    $mform->disabledIf('blockdisplay', 'windowpopup', 'eq', 1);
+    $mform->setAdvanced('blockdisplay');
+
+    foreach ($RESOURCE_WINDOW_OPTIONS as $option) {
+        if ($option == 'height' or $option == 'width') {
+            $mform->addElement('text', $option, get_string('new'.$option, 'resource'), array('size'=>'4'));
+            $mform->setDefault($option, $CFG->{'resource_popup'.$option});
+            $mform->disabledIf($option, 'windowpopup', 'eq', 0);
+        } else {
+            $mform->addElement('checkbox', $option, get_string('new'.$option, 'resource'));
+            $mform->setDefault($option, $CFG->{'resource_popup'.$option});
+            $mform->disabledIf($option, 'windowpopup', 'eq', 0);
+        }
+        $mform->setAdvanced($option);
+    }
 }
 
 

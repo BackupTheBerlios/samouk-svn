@@ -1,4 +1,4 @@
-<?PHP // $Id: review.php,v 1.17 2007/08/17 12:49:35 skodak Exp $
+<?PHP // $Id: review.php,v 1.17.3 2008/01/21 16:09:37 kowy Exp $
 // This page prints a review of a particular quiz attempt
     require_once("../../config.php");
     require_once("lib.php");
@@ -54,14 +54,11 @@
     $title = format_string($course->shortname) . ": $hotpot->name";
     $heading = $course->fullname;
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strmodulenameplural, 'link' => 'index.php?id='.$course->id, 'type' => 'activity');
-    $navlinks[] = array('name' => get_string("review", "quiz"), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-    
-
+    $navigation = build_navigation('', $cm);
     $button = update_module_button($cm->id, $course->id, $strmodulename);
-    print_header($title, $heading, $navigation, "", "", true, $button, navmenu($course, $cm));
+    print_header($title, $heading, $navigation, "", "", true, $button, 
+    			// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
     print '<div id="overDiv" style="position:absolute; visibility:hidden; z-index:1000;"></div>'; // for overlib
     print_heading($hotpot->name);
     hotpot_print_attempt_summary($hotpot, $attempt);

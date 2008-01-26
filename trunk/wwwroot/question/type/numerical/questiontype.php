@@ -1,6 +1,6 @@
 <?php
 /**
- * @version $Id: questiontype.php,v 1.14 2007/04/24 23:37:32 tjhunt Exp $
+ * @version $Id: questiontype.php,v 1.14.4.6 2007/12/13 18:48:16 tjhunt Exp $
  * @author Martin Dougiamas and many others. Tim Hunt.
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package questionbank
@@ -39,7 +39,7 @@ class question_numerical_qtype extends question_shortanswer_qtype {
                                 "WHERE a.question = $question->id " .
                                 "    AND   a.id = n.answer " .
                                 "ORDER BY a.id ASC")) {
-            notify('Error: Missing question answer!');
+            notify('Error: Missing question answer for numerical question ' . $question->id . '!');
             return false;
         }
         $this->get_numerical_units($question);
@@ -60,12 +60,16 @@ class question_numerical_qtype extends question_shortanswer_qtype {
     }
 
     function get_numerical_units(&$question) {
-        if ($question->options->units = get_records('question_numerical_units',
+        if ($units = get_records('question_numerical_units',
                                          'question', $question->id, 'id ASC')) {
-            $question->options->units  = array_values($question->options->units);
+            $units  = array_values($units);
         } else {
-            $question->options->units = array();
+            $units = array();
         }
+        foreach ($units as $key => $unit) {
+            $units[$key]->multiplier = clean_param($unit->multiplier, PARAM_NUMBER);
+        }
+        $question->options->units = $units;
         return true;
     }
 
@@ -84,7 +88,6 @@ class question_numerical_qtype extends question_shortanswer_qtype {
      * Save the units and the answers associated with this question.
      */
     function save_question_options($question) {
-        
         // Get old versions of the objects
         if (!$oldanswers = get_records('question_answers', 'question', $question->id, 'id ASC')) {
             $oldanswers = array();
@@ -263,7 +266,8 @@ class question_numerical_qtype extends question_shortanswer_qtype {
 
     function get_correct_responses(&$question, &$state) {
         $correct = parent::get_correct_responses($question, $state);
-        if ($correct[''] != '*' && $unit = $this->get_default_numerical_unit($question)) {
+        $unit = $this->get_default_numerical_unit($question);
+        if (isset($correct['']) && $correct[''] != '*' && $unit) {
             $correct[''] .= ' '.$unit->unit;
         }
         return $correct;
@@ -432,7 +436,11 @@ class question_numerical_qtype extends question_shortanswer_qtype {
         $status = true;
 
         //Get the numerical array
-        $numericals = $info['#']['NUMERICAL'];
+        if (isset($info['#']['NUMERICAL'])) {
+            $numericals = $info['#']['NUMERICAL'];
+        } else {
+            $numericals = array();
+        }
 
         //Iterate over numericals
         for($i = 0; $i < sizeof($numericals); $i++) {

@@ -1,15 +1,14 @@
-<?php  // $Id: reviewquestion.php,v 1.16 2006/08/25 16:03:57 tjhunt Exp $
+<?php  // $Id: reviewquestion.php,v 1.16.10.3 2007/11/26 04:42:25 scyrma Exp $
 /**
-* This page prints a review of a particular question attempt
-*
-* @version $Id: reviewquestion.php,v 1.16 2006/08/25 16:03:57 tjhunt Exp $
-* @author Martin Dougiamas and many others. This has recently been completely
-*         rewritten by Alex Smith, Julian Sedding and Gustav Delius as part of
-*         the Serving Mathematics project
-*         {@link http://maths.york.ac.uk/serving_maths}
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-* @package quiz
-*/
+ * This page prints a review of a particular question attempt
+ *
+ * @author Martin Dougiamas and many others. This has recently been completely
+ *         rewritten by Alex Smith, Julian Sedding and Gustav Delius as part of
+ *         the Serving Mathematics project
+ *         {@link http://maths.york.ac.uk/serving_maths}
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package quiz
+ */
 
     require_once('../../config.php');
     require_once('locallib.php');
@@ -87,7 +86,6 @@
 /// Print the page header
 
     $strquizzes = get_string('modulenameplural', 'quiz');
-    $strreviewquestion  = get_string('reviewquestion', 'quiz');
 
     print_header();
 

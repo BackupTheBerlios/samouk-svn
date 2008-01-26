@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.38 2007/08/23 18:01:27 nicolasconnault Exp $
+<?php // $Id: index.php,v 1.38.2.1 2007/12/27 15:38:53 poltawski Exp $
 
     require_once("../config.php");
     require_once($CFG->libdir.'/adminlib.php');
@@ -107,15 +107,15 @@
         }
 
         if ($CFG->theme == $theme) {
-            echo "\t\t" . '<td valign="top" style="border-style:solid; border-width:1px; border-color=#555555">'."\n";
+            echo "\t\t" . '<td valign="top" style="border-style:solid; border-width:1px; border-color:#555555">'."\n";
         } else {
             echo "\t\t" . '<td valign="top">'."\n";
         }
 
         if (isset($THEME->sheets)) {
-            echo "\t\t\t" . '<p style="font-size:1.5em;font-style:bold;">'.$theme.'</p>'."\n";
+            echo "\t\t\t" . '<p style="font-size:1.5em;font-weight:bold;">'.$theme.'</p>'."\n";
         } else {
-            echo "\t\t\t" . '<p style="font-size:1.5em;font-style:bold;color:red;">'.$theme.' (Moodle 1.4)</p>'."\n";
+            echo "\t\t\t" . '<p style="font-size:1.5em;font-weight:bold;color:red;">'.$theme.' (Moodle 1.4)</p>'."\n";
         }
 
         if ($screenshot or $readme) {

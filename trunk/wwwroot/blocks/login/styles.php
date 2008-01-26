@@ -6,8 +6,12 @@
   display:inline;
 }
 
-.block_login .loginform .c1 input {
+.block_login .loginform .fld input {
   width:5em;
+}
+
+.block_login .loginform label {
+  padding-right: 4px;
 }
 
 .block_login .loginform div {

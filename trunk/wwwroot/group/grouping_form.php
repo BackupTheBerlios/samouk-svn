@@ -1,4 +1,4 @@
-<?php //$Id: grouping_form.php,v 1.1 2007/08/15 23:51:07 skodak Exp $
+<?php //$Id: grouping_form.php,v 1.1.2.2 2007/11/23 22:12:35 skodak Exp $
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
@@ -27,12 +27,12 @@ class grouping_form extends moodleform {
         $this->add_action_buttons();
     }
 
-    function validation($data) {
+    function validation($data, $files) {
         global $COURSE;
 
-        $errors = array();
+        $errors = parent::validation($data, $files);
 
-        $name = stripslashes($data['name']);
+        $name = trim(stripslashes($data['name']));
         if ($data['id'] and $grouping = get_record('groupings', 'id', $data['id'])) {
             if ($grouping->name != $name) {
                 if (groups_get_grouping_by_name($COURSE->id,  $name)) {
@@ -44,11 +44,7 @@ class grouping_form extends moodleform {
             $errors['name'] = get_string('groupingnameexists', 'group', $name);
         }
 
-        if (count($errors) > 0) {
-            return $errors;
-        } else {
-            return true;
-        }
+        return $errors;
     }
 
 }

@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.102 2007/08/27 21:52:36 mattc-catalyst Exp $
+<?php  // $Id: view.php,v 1.102.2.3 2008/01/10 14:07:17 poltawski Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -58,12 +58,7 @@ if ($action == 'delchoice') {
 
 
 /// Display the choice and possibly results
-    $navlinks = array();
-    $navlinks[] = array('name' => $strchoices, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($choice->name), 'link' => '', 'type' => 'activityinstance');
-    
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($choice->name), "", $navigation, "", "", true,
                   update_module_button($cm->id, $course->id, $strchoice), navmenu($course, $cm));
 
@@ -75,7 +70,7 @@ if ($action == 'delchoice') {
     groups_print_activity_menu($cm, 'view.php?id='.$id);
                                    
     if (has_capability('mod/choice:readresponses', $context)) {
-        choice_show_reportlink($choice, $course->id, $cm->id, $groupmode);
+        choice_show_reportlink($choice, $course->id, $cm, $groupmode);
     }
 
     echo '<div class="clearer"></div>';
@@ -92,10 +87,17 @@ if ($action == 'delchoice') {
 
 /// Print the form
 
-    if ($choice->timeopen > time() ) {
-        print_simple_box(get_string("notopenyet", "choice", userdate($choice->timeopen)), "center");
-        print_footer($course);
-        exit;
+    $timenow = time();
+    if ($choice->timeclose !=0) {
+        if ($choice->timeopen > $timenow ) {
+            print_simple_box(get_string("notopenyet", "choice", userdate($choice->timeopen)), "center");
+            print_footer($course);
+            exit;
+        } else if ($timenow > $choice->timeclose) {
+            print_simple_box(get_string("expired", "choice", userdate($choice->timeclose)), "center");
+            print_footer($course);
+            exit;
+        }
     }
 
     if ( (!$current or $choice->allowupdate) and 

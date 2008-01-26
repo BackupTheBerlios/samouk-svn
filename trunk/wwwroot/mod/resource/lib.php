@@ -1,73 +1,13 @@
-<?php  // $Id: lib.php,v 1.70 2007/08/16 17:38:50 nicolasconnault Exp $
-
-if (!isset($CFG->resource_framesize)) {
-    set_config("resource_framesize", 130);
-}
-
-if (!isset($CFG->resource_websearch)) {
-    set_config("resource_websearch", "http://google.com/");
-}
-
-if (!isset($CFG->resource_defaulturl)) {
-    set_config("resource_defaulturl", "http://");
-}
-
-if (!isset($CFG->resource_filterexternalpages)) {
-    set_config("resource_filterexternalpages", false);
-}
-
-if (!isset($CFG->resource_secretphrase)) {
-    set_config("resource_secretphrase", random_string(20));
-}
-
-if (!isset($CFG->resource_popup)) {
-    set_config("resource_popup", "");
-}
-
-if (!isset($CFG->resource_windowsettings)) {
-    set_config("resource_windowsettings", "0");
-}
-
-if (!isset($CFG->resource_parametersettings)) {
-    set_config("resource_parametersettings", "0");
-}
-
-if (!isset($CFG->resource_allowlocalfiles)) {
-    set_config("resource_allowlocalfiles", "0");
-}
-
-if (!isset($CFG->resource_hide_repository)) {
-    set_config("resource_hide_repository", "1");
-}
-
-if (!isset($CFG->resource_autofilerename)) {
-    set_config("resource_autofilerename", "1");
-}
-
-if (!isset($CFG->resource_blockdeletingfile)) {
-    set_config("resource_blockdeletingfile", "1");
-}
+<?php  // $Id: lib.php,v 1.70.3 2008/01/21 17:52:03 kowy Exp $
 
 define('RESOURCE_LOCALPATH', 'LOCALPATH');
 
+global $RESOURCE_WINDOW_OPTIONS; // must be global because it might be included from a function!
 $RESOURCE_WINDOW_OPTIONS = array('resizable', 'scrollbars', 'directories', 'location',
                                  'menubar', 'toolbar', 'status', 'width', 'height');
 
-foreach ($RESOURCE_WINDOW_OPTIONS as $popupoption) {
-    $popupoption = "resource_popup$popupoption";
-    if (!isset($CFG->$popupoption)) {
-        if ($popupoption == 'resource_popupheight') {
-            set_config($popupoption, 450);
-        } else if ($popupoption == 'resource_popupwidth') {
-            set_config($popupoption, 620);
-        } else {
-            set_config($popupoption, 'checked');
-        }
-    }
-}
-
-if (!empty($THEME->customcorners)) {
-    require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
+if (!isset($CFG->resource_hide_repository)) {
+    set_config("resource_hide_repository", "1");
 }
 
 /**
@@ -81,7 +21,6 @@ class resource_base {
     var $cm;
     var $course;
     var $resource;
-    var $navigation;
     var $navlinks;
 
     /**
@@ -96,6 +35,7 @@ class resource_base {
     function resource_base($cmid=0) {
 
         global $CFG, $COURSE;
+        $this->navlinks = array();
 
         if ($cmid) {
             if (! $this->cm = get_coursemodule_from_id('resource', $cmid)) {
@@ -113,14 +53,13 @@ class resource_base {
             $this->strresource  = get_string("modulename", "resource");
             $this->strresources = get_string("modulenameplural", "resource");
 
-            $this->navlinks[] = array('name' => $this->strresources, 'link' => "index.php?id={$this->course->id}", 'type' => 'activity');
-
             if (!$this->cm->visible and !has_capability('moodle/course:viewhiddenactivities', get_context_instance(CONTEXT_MODULE, $this->cm->id))) {
                 $pagetitle = strip_tags($this->course->shortname.': '.$this->strresource);
-                $this->navlinks[] = array('name' => $this->strresource, 'link' => '', 'type' => 'activityinstance');
-                $this->navigation = build_navigation($this->navlinks);
+                $navigation = build_navigation($this->navlinks, $this->cm);
 
-                print_header($pagetitle, $this->course->fullname, $this->navigation, "", "", true, '', navmenu($this->course, $this->cm));
+                print_header($pagetitle, $this->course->fullname, $navigation, "", "", true, '', 
+                			// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($this->course, $this->cm));
                 notice(get_string("activityiscurrentlyhidden"), "$CFG->wwwroot/course/view.php?id={$this->course->id}");
             }
 
@@ -145,6 +84,7 @@ class resource_base {
 
         global $CFG;
         global $USER;
+        global $THEME;
 
         require_once($CFG->libdir.'/blocklib.php');
         require_once($CFG->libdir.'/pagelib.php');
@@ -167,22 +107,45 @@ class resource_base {
         $morenavlinks = array($this->strresources   => 'index.php?id='.$this->course->id,
                                  $this->resource->name => '');
 
-        $PAGE->print_header($this->course->shortname.': %fullname%', $morenavlinks);
+        $PAGE->print_header($this->course->shortname.': %fullname%', $morenavlinks, "", "", 
+                            update_module_button($this->cm->id, $this->course->id, $this->strresource));
 
         echo '<table id="layout-table"><tr>';
-
-        if((blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing())) {
-            echo '<td style="width: '.$blocks_preferred_width.'px;" id="left-column">';
-            if (!empty($THEME->customcorners)) print_custom_corners_start();
-            blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-            if (!empty($THEME->customcorners)) print_custom_corners_end();
-            echo '</td>';
+    
+        $lt = (empty($THEME->layouttable)) ? array('left', 'middle', 'right') : $THEME->layouttable;
+        foreach ($lt as $column) {
+            $lt1[] = $column;
+            if ($column == 'middle') break;
         }
+        foreach ($lt1 as $column) {
+            switch ($column) {
+                case 'left':
+                    if((blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing())) {
+                        echo '<td style="width: '.$blocks_preferred_width.'px;" id="left-column">';
+                        print_container_start();
+                        blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
+                        print_container_end();
+                        echo '</td>';
+                    }
+                break;
 
-        echo '<td id="middle-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
-        echo '<div id="resource">';
+                case 'middle':
+                    echo '<td id="middle-column">';
+                    print_container_start(false, 'middle-column-wrap');
+                    echo '<div id="resource">';
+                break;
 
+                case 'right':
+                    if((blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $PAGE->user_is_editing())) {
+                        echo '<td style="width: '.$blocks_preferred_width.'px;" id="right-column">';
+                        print_container_start();
+                        blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
+                        print_container_end();
+                        echo '</td>';
+                    }
+                break;
+            }
+        }
     }
 
 
@@ -192,21 +155,48 @@ class resource_base {
     function display_course_blocks_end() {
 
         global $CFG;
+        global $THEME;
 
         $PAGE = $this->PAGE;
         $pageblocks = blocks_setup($PAGE);
         $blocks_preferred_width = bounded_number(180, blocks_preferred_width($pageblocks[BLOCK_POS_RIGHT]), 210);
+    
+        $lt = (empty($THEME->layouttable)) ? array('left', 'middle', 'right') : $THEME->layouttable;
+        foreach ($lt as $column) {
+            if ($column != 'middle') {
+                array_shift($lt);
+            } else if ($column == 'middle') {
+                break;
+            }
+        }
+        foreach ($lt as $column) {
+            switch ($column) {
+                case 'left':
+                    if((blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing())) {
+                        echo '<td style="width: '.$blocks_preferred_width.'px;" id="left-column">';
+                        print_container_start();
+                        blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
+                        print_container_end();
+                        echo '</td>';
+                    }
+                break;
 
-        echo '</div>';
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
-        echo '</td>';
+                case 'middle':
+                    echo '</div>';
+                    print_container_end();
+                    echo '</td>';
+                break;
 
-        if((blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $PAGE->user_is_editing())) {
-            echo '<td style="width: '.$blocks_preferred_width.'px;" id="right-column">';
-            if (!empty($THEME->customcorners)) print_custom_corners_start();
-            blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
-            if (!empty($THEME->customcorners)) print_custom_corners_end();
-            echo '</td>';
+                case 'right':
+                    if((blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $PAGE->user_is_editing())) {
+                        echo '<td style="width: '.$blocks_preferred_width.'px;" id="right-column">';
+                        print_container_start();
+                        blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
+                        print_container_end();
+                        echo '</td>';
+                    }
+                break;
+            }
         }
 
         echo '</tr></table>';
@@ -539,7 +529,7 @@ function resource_get_types() {
 
     $types = array();
 
-    $standardresources = array('text','textandvideo','html','file','directory');
+    $standardresources = array('text','html','file','directory');
     foreach ($standardresources as $resourcetype) {
         $type = new object();
         $type->modclass = MOD_CLASS_RESOURCE;
@@ -674,4 +664,12 @@ function resource_delete_warning($course, $files) {
     }
 }
 
+/**
+ * This function is used by the reset_course_userdata function in moodlelib.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
+ */
+function resource_reset_userdata($data) {
+    return array();
+}
 ?>

@@ -1,4 +1,4 @@
-<?PHP // $Id: data.php,v 1.53 2007/04/03 03:32:46 nicolasconnault Exp $ 
+<?PHP // $Id: data.php,v 1.53.4.2 2007/11/29 14:40:45 skodak Exp $ 
       // data.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -7,14 +7,14 @@ $string['add'] = 'Add entry';
 $string['addafield'] = 'Add a field';
 $string['addcomment'] = 'Add comment';
 $string['addentries'] = 'Add entries';
-$string['advancedsearch'] = 'Advanced Search';
 $string['addtemplate'] = 'Add template';
+$string['advancedsearch'] = 'Advanced search';
 $string['allowcomments'] = 'Allow comments?';
 $string['allowratings'] = 'Allow posts to be rated?';
 $string['alttext'] = 'Alternative text';
 $string['approve'] = 'Approve';
 $string['ascending'] = 'Ascending';
-$string['asearchtemplate'] = 'Advanced Search Template';
+$string['asearchtemplate'] = 'Advanced search template';
 $string['atmaxentry'] = 'You have entered the maximum number of entries allowed!';
 $string['autogenallforms'] = 'Generate all default templates';
 $string['autolinkurl'] = 'Autolink the URL';
@@ -58,7 +58,9 @@ $string['defaultfielddelimiter'] = '(default is the comma character)';
 $string['defaultfieldenclosure'] = '(default is none)';
 $string['defaultsortfield'] = 'Default sort field';
 $string['delete'] = 'Delete';
+$string['deleteallentries'] = 'Delete all entries';
 $string['deletecomment'] = 'Are you sure you want to delete this comment?';
+$string['deletenotenrolled'] = 'Delete entries by users not enrolled';
 $string['deleted'] = 'deleted';
 $string['deletefield'] = 'Delete an existing field';
 $string['deletewarning'] = 'Are you sure you want to delete this preset?';
@@ -210,6 +212,7 @@ $string['saveaspreset'] = 'Save as preset';
 $string['savesettings'] = 'Save settings';
 $string['savesuccess'] = 'Saved successfully. Your preset will now be available across the site.';
 $string['savetemplate'] = 'Save template';
+$string['search'] = 'Search';
 $string['sendinratings'] = 'Send in my latest ratings';
 $string['single'] = 'View single';
 $string['singletemplate'] = 'Single template';

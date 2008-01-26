@@ -1,4 +1,4 @@
-<?php  // $Id: lib.php,v 1.12 2007/01/02 09:33:07 skodak Exp $
+<?php  // $Id: lib.php,v 1.12.4.1 2007/11/29 14:40:49 skodak Exp $
 
 /// Library of functions and constants for module label
 
@@ -99,4 +99,14 @@ function label_get_types() {
 
     return $types;
 }
+
+/**
+ * This function is used by the reset_course_userdata function in moodlelib.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
+ */
+function label_reset_userdata($data) {
+    return array();
+}
+
 ?>

@@ -1,4 +1,4 @@
-<?php // $Id: markposts.php,v 1.16 2007/08/22 19:36:26 skodak Exp $
+<?php // $Id: markposts.php,v 1.16.3 2008/01/21 16:09:42 kowy Exp $
 
       //  Set tracking option for the forum.
 
@@ -32,14 +32,10 @@
             $wwwroot = str_replace('http:','https:', $wwwroot);
         }
 
-        $strforums = get_string('modulenameplural', 'forum');
-        $navlinks = array();
-        $navlinks[] = array('name' => $strforums, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($forum->name), 'link' => "view.php?f=$forum->id", 'type' => 'activityinstance');
-    
-        $navigation = build_navigation($navlinks);
-        
-        print_header($course->shortname, $course->fullname, $navigation, '', '', true, "", navmenu($course, $cm));
+        $navigation = build_navigation('', $cm);
+        print_header($course->shortname, $course->fullname, $navigation, '', '', true, "", 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         notice_yesno(get_string('noguesttracking', 'forum').'<br /><br />'.get_string('liketologin'),
                      $wwwroot, $_SERVER['HTTP_REFERER']);
         print_footer($course);

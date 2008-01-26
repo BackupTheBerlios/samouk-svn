@@ -17,8 +17,8 @@
  * Adds a specified user to a group
  * @param int $userid   The user id
  * @param int $groupid  The group id
- * @return boolean True if user added successfully or the user is already a 
- * member of the group, false otherwise. 
+ * @return boolean True if user added successfully or the user is already a
+ * member of the group, false otherwise.
  */
 function groups_add_member($groupid, $userid) {
     if (!groups_group_exists($groupid)) {
@@ -45,7 +45,7 @@ function groups_add_member($groupid, $userid) {
     $eventdata = new object();
     $eventdata->groupid = $groupid;
     $eventdata->userid = $userid;
-    events_trigger('group_user_added', $eventdata);      
+    events_trigger('group_user_added', $eventdata);
 
     return true;
 }
@@ -67,7 +67,7 @@ function groups_remove_member($groupid, $userid) {
 
     if (!delete_records('groups_members', 'groupid', $groupid, 'userid', $userid)) {
         return false;
-    }    
+    }
     //update group info
     set_field('groups', 'timemodified', time(), 'id', $groupid);
 
@@ -76,7 +76,7 @@ function groups_remove_member($groupid, $userid) {
 
 /**
  * Add a new group
- * @param object $data group properties (with magic quotes);
+ * @param object $data group properties (with magic quotes)
  * @param object $um upload manager with group picture
  * @return id of group or false if error
  */
@@ -86,6 +86,7 @@ function groups_create_group($data, $um=false) {
 
     $data->timecreated = time();
     $data->timemodified = $data->timecreated;
+    $data->name = trim($data->name);
     $id = insert_record('groups', $data);
 
     if ($id and $um) {
@@ -99,8 +100,22 @@ function groups_create_group($data, $um=false) {
 }
 
 /**
- * Add a new group
- * @param object $data group properties (with magic quotes);
+ * Add a new grouping
+ * @param object $data grouping properties (with magic quotes)
+ * @return id of grouping or false if error
+ */
+function groups_create_grouping($data) {
+    global $CFG;
+
+    $data->timecreated = time();
+    $data->timemodified = $data->timecreated;
+    $data->name = trim($data->name);
+    return insert_record('groupings', $data);
+}
+
+/**
+ * Update group
+ * @param object $data group properties (with magic quotes)
  * @param object $um upload manager with group picture
  * @return boolean success
  */
@@ -109,6 +124,7 @@ function groups_update_group($data, $um=false) {
     require_once("$CFG->libdir/gdlib.php");
 
     $data->timemodified = time();
+    $data->name = trim($data->name);
     $result = update_record('groups', $data);
 
     if ($result and $um) {
@@ -119,6 +135,18 @@ function groups_update_group($data, $um=false) {
     }
 
     return $result;
+}
+
+/**
+ * Update grouping
+ * @param object $data grouping properties (with magic quotes)
+ * @return boolean success
+ */
+function groups_update_grouping($data) {
+    global $CFG;
+    $data->timemodified = time();
+    $data->name = trim($data->name);
+    return update_record('groupings', $data);
 }
 
 /**
@@ -135,6 +163,8 @@ function groups_delete_group($groupid) {
         return false;
     }
 
+    // delete group calendar events
+    delete_records('event', 'groupid', $groupid);
     //first delete usage in groupings_groups
     delete_records('groupings_groups', 'groupid', $groupid);
     //delete members
@@ -145,6 +175,11 @@ function groups_delete_group($groupid) {
     return delete_records('groups', 'id', $groupid);
 }
 
+/**
+ * Delete grouping
+ * @param int $groupingid
+ * @return bool success
+ */
 function groups_delete_grouping($groupingid) {
     if (empty($groupingid)) {
         return false;
@@ -161,13 +196,18 @@ function groups_delete_grouping($groupingid) {
     return delete_records('groupings', 'id', $groupingid);
 }
 
+/**
+ * Remove all users from all groups in course
+ * @param int $courseid
+ * @param bool $showfeedback
+ * @return bool success
+ */
 function groups_delete_group_members($courseid, $showfeedback=false) {
     global $CFG;
 
-    $sql = "DELETE FROM {$CFG->prefix}groups_members
-             WHERE groupid in (SELECT id FROM {$CFG->prefix}groups g WHERE g.courseid = $courseid)";
+    $groupssql = "SELECT id FROM {$CFG->prefix}groups g WHERE g.courseid = $courseid";
+    delete_records_select('groups_members', "groupid IN ($groupssql)");
 
-    execute_sql($sql, false);
     if ($showfeedback) {
         notify(get_string('deleted').' groups_members');
     }
@@ -175,16 +215,40 @@ function groups_delete_group_members($courseid, $showfeedback=false) {
     return true;
 }
 
+/**
+ * Remove all groups from all groupings in course
+ * @param int $courseid
+ * @param bool $showfeedback
+ * @return bool success
+ */
+function groups_delete_groupings_groups($courseid, $showfeedback=false) {
+    global $CFG;
+
+    $groupssql = "SELECT id FROM {$CFG->prefix}groups g WHERE g.courseid = $courseid";
+    delete_records_select('groupings_groups', "groupid IN ($groupssql)");
+
+    if ($showfeedback) {
+        notify(get_string('deleted').' groupings_groups');
+    }
+
+    return true;
+}
+
+/**
+ * Delete all groups from course
+ * @param int $courseid
+ * @param bool $showfeedback
+ * @return bool success
+ */
 function groups_delete_groups($courseid, $showfeedback=false) {
     global $CFG;
     require_once($CFG->libdir.'/gdlib.php');
 
-    // delete any uses of groups
-    $sql = "DELETE FROM {$CFG->prefix}groupings_groups
-             WHERE groupid in (SELECT id FROM {$CFG->prefix}groups g WHERE g.courseid = $courseid)";
-    execute_sql($sql, false);
+    $groupssql = "SELECT id FROM {$CFG->prefix}groups g WHERE g.courseid = $courseid";
 
-    groups_delete_group_members($courseid, false);
+    // delete any uses of groups
+    groups_delete_groupings_groups($courseid, $showfeedback);
+    groups_delete_group_members($courseid, $showfeedback);
 
     // delete group pictures
     if ($groups = get_records('groups', 'courseid', $courseid)) {
@@ -192,6 +256,9 @@ function groups_delete_groups($courseid, $showfeedback=false) {
             delete_profile_image($group->id, 'groups');
         }
     }
+
+    // delete group calendar events
+    delete_records_select('event', "groupid IN ($groupssql)");
 
     delete_records('groups', 'courseid', $courseid);
     if ($showfeedback) {
@@ -201,6 +268,12 @@ function groups_delete_groups($courseid, $showfeedback=false) {
     return true;
 }
 
+/**
+ * Delete all groupings from course
+ * @param int $courseid
+ * @param bool $showfeedback
+ * @return bool success
+ */
 function groups_delete_groupings($courseid, $showfeedback=false) {
     global $CFG;
 
@@ -235,7 +308,7 @@ function groups_delete_groupings($courseid, $showfeedback=false) {
  * This function was changed to get_users_by_capability style
  * mostly because of the searchtext requirement
  */
-function groups_get_users_not_in_group($courseid, $groupid, $searchtext='') {
+function groups_get_users_not_in_group($courseid, $groupid, $searchtext='', $sort = 'u.lastname ASC') {
 
     global $CFG;
 
@@ -287,7 +360,7 @@ function groups_get_users_not_in_group($courseid, $groupid, $searchtext='') {
     $from   = " FROM {$CFG->prefix}user u
                 INNER JOIN {$CFG->prefix}role_assignments ra ON ra.userid = u.id
                 INNER JOIN {$CFG->prefix}role r ON r.id = ra.roleid";
-                
+
     $where  = " WHERE ra.contextid ".get_related_contexts_string($context)."
                   AND u.deleted = 0
                   AND ra.roleid in $roleids
@@ -296,8 +369,9 @@ function groups_get_users_not_in_group($courseid, $groupid, $searchtext='') {
                                    WHERE groupid = $groupid)
                   $wheresearch";
     $groupby = " GROUP BY u.id, u.firstname, u.lastname ";
-    
-    return get_records_sql($select.$from.$where.$groupby);
+    $orderby = " ORDER BY $sort";
+
+    return get_records_sql($select.$from.$where.$groupby.$orderby);
 }
 
 
@@ -308,9 +382,9 @@ function groups_get_users_not_in_group($courseid, $groupid, $searchtext='') {
  * @param string $orderby The colum to sort users by
  * @return array An array of the users
  */
-function groups_get_potental_members($courseid, $roleid = null, $orderby = 'lastname') {
+function groups_get_potential_members($courseid, $roleid = null, $orderby = 'lastname,firstname') {
 	global $CFG;
-    
+
     $context = get_context_instance(CONTEXT_COURSE, $courseid);
     $sitecontext = get_context_instance(CONTEXT_SYSTEM);
     $rolenames = array();
@@ -335,7 +409,7 @@ function groups_get_potental_members($courseid, $roleid = null, $orderby = 'last
             $rolenames[$role->id] = strip_tags(role_get_name($role, $context));   // Used in menus etc later on
         }
     }
-    
+
     $select = 'SELECT u.id, u.username, u.firstname, u.lastname, u.idnumber ';
     $from   = "FROM {$CFG->prefix}user u INNER JOIN
                {$CFG->prefix}role_assignments r on u.id=r.userid ";
@@ -354,22 +428,21 @@ function groups_get_potental_members($courseid, $roleid = null, $orderby = 'last
     } else {
         $listofcontexts = '('.$sitecontext->id.')'; // must be site
     }
-    
+
     if ($roleid) {
         $selectrole = " AND r.roleid = $roleid ";
     } else {
         $selectrole = " ";
     }
-    
+
     $where  = "WHERE (r.contextid = $context->id OR r.contextid in $listofcontexts)
-               AND u.deleted = 0 $selectrole                 
-               AND u.username != 'guest'
-               $adminroles
-               ";
+                     AND u.deleted = 0 $selectrole
+                     AND u.username != 'guest'
+                     $adminroles ";
     $order = "ORDER BY $orderby ";
-                    
+
     return(get_records_sql($select.$from.$where.$order));
-    
+
 }
 
 /**
@@ -379,34 +452,43 @@ function groups_get_potental_members($courseid, $roleid = null, $orderby = 'last
  * @return string the parsed format string
  */
 function groups_parse_name($format, $groupnumber) {
-    
     if (strstr($format, '@') !== false) { // Convert $groupnumber to a character series
-    	$tmp = $groupnumber;
-        $places = 1;
-        $serial = '';
-        
-        if ($groupnumber > 25) {
-            while (floor($groupnumber / pow(25, $places)) > 0) {
-        	   $places++;
-            }
-          
-        } else {
-        	$places = 1;
+        $letter = 'A';
+        for($i=0; $i<$groupnumber; $i++) {
+            $letter++;
         }
-        
-        for($i=$places;$i>0;$i--) {
-            if ($i>1) {
-                $serial .= chr(65+floor($tmp/ pow(26, $i)));
-                $tmp -= floor($tmp/ pow(26, $i))*pow(26, $i);
-            } else {
-            	$serial .= chr(65+$tmp%26);
-            }             
-        }
-        $str = preg_replace('/[@]/', $serial, $format);
+        $str = str_replace('@', $letter, $format);
     } else {
-    	$str = preg_replace('/[#]/', $groupnumber+1, $format);
+    	$str = str_replace('#', $groupnumber+1, $format);
     }
     return($str);
+}
+
+/**
+ * Assigns group into grouping
+ * @param int groupingid
+ * @param int groupid
+ * @return bool success
+ */
+function groups_assign_grouping($groupingid, $groupid) {
+    if (record_exists('groupings_groups', 'groupingid', $groupingid, 'groupid', $groupid)) {
+        return true;
+    }
+    $assign = new object();
+    $assign->groupingid = $groupingid;
+    $assign->groupid = $groupid;
+    $assign->timeadded = time();
+    return (bool)insert_record('groupings_groups', $assign);
+}
+
+/**
+ * Unassigns group grom grouping
+ * @param int groupingid
+ * @param int groupid
+ * @return bool success
+ */
+function groups_unassign_grouping($groupingid, $groupid) {
+    return delete_records('groupings_groups', 'groupingid', $groupingid, 'groupid', $groupid);
 }
 
 ?>

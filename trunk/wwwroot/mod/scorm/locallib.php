@@ -1,4 +1,4 @@
-<?php  // $Id: locallib.php,v 1.46 2007/08/28 02:54:38 mattc-catalyst Exp $
+<?php  // $Id: locallib.php,v 1.46.2.1 2007/11/05 07:29:59 toyomoyo Exp $
 
 /// Constants and settings for module scorm
 define('UPDATE_NEVER', '0');
@@ -237,6 +237,14 @@ function scorm_insert_track($userid,$scormid,$scoid,$attempt,$element,$value) {
         $track->timemodified = time();
         $id = insert_record('scorm_scoes_track',$track);
     }
+    
+    // MDL-9552, update the gradebook everything raw score is sent
+    if (strstr($element, '.score.raw')) {
+        $scorm = get_record('scorm', 'id', $scormid);
+        include_once('lib.php');
+        scorm_update_grades($scorm, $userid);    
+    }
+    
     return $id;
 }
 

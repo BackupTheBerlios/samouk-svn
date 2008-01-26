@@ -1,4 +1,4 @@
-<?php //$Id: restore.php,v 1.44 2007/09/24 15:50:34 skodak Exp $
+<?php //$Id: restore.php,v 1.44.2.2 2007/12/29 20:29:00 poltawski Exp $
     //This script is used to configure and execute the restore proccess.
 
     //Define some globals for all the script
@@ -55,7 +55,8 @@
             if (empty($to)) {
                 error("You need to be a teacher or admin user to use this page.", "$CFG->wwwroot/login/index.php");
             } else {
-                if (!has_capability('moodle/site:restore', get_context_instance(CONTEXT_COURSE, $to))) {
+                if (!has_capability('moodle/site:restore', get_context_instance(CONTEXT_COURSE, $to))
+                    && !has_capability('moodle/site:import',  get_context_instance(CONTEXT_COURSE, $to))) {
                     error("You need to be a teacher or admin user to use this page.", "$CFG->wwwroot/login/index.php");
                 }
             }
@@ -108,7 +109,7 @@
     if ($cancel) {
         print_header("$site->shortname: $strcourserestore", $site->fullname, $navigation);
         print_heading(get_string("restorecancelled"));
-        print_continue("$CFG->wwwroot/$CFG->admin/index.php");
+        print_continue("$CFG->wwwroot/course/view.php?id=".$id);
         print_footer();
         exit;
     }

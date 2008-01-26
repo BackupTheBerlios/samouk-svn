@@ -1,4 +1,4 @@
-<?php  // $Id: pending.php,v 1.11 2007/08/17 19:09:12 nicolasconnault Exp $
+<?php  // $Id: pending.php,v 1.11.2.1 2008/01/08 12:49:41 poltawski Exp $
        // allow the administrators to look through a list of course requests and either approve them or reject them.
 
     require_once('../config.php');
@@ -22,10 +22,13 @@
 
             // place at beginning of category
             fix_course_sortorder();
-            if (empty($CFG->defaultrequestedcategory)) {
-                $CFG->defaultrequestedcategory = 1; //yuk, but default to miscellaneous.
+
+            if (empty($CFG->defaultrequestcategory) or !record_exists('course_categories', 'id', $CFG->defaultrequestcategory)) {
+                // default to first top level directory, hacky but means things don't break
+                $CFG->defaultrequestcategory = get_field('course_categories', 'id', 'parent', '0');
             }
-            $course->category = $CFG->defaultrequestedcategory;
+
+            $course->category = $CFG->defaultrequestcategory;
             $course->sortorder = get_field_sql("SELECT min(sortorder)-1 FROM {$CFG->prefix}course WHERE category=$course->category");
             if (empty($course->sortorder)) {
                 $course->sortorder = 1000;

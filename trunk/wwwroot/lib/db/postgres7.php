@@ -1,4 +1,4 @@
-<?PHP  //$Id: postgres7.php,v 1.236 2007/10/05 15:06:38 skodak Exp $
+<?PHP  //$Id: postgres7.php,v 1.237 2007/10/10 12:19:42 skodak Exp $
 // THIS FILE IS DEPRECATED!  PLEASE DO NOT MAKE CHANGES TO IT!
 //
 // IT IS USED ONLY FOR UPGRADES FROM BEFORE MOODLE 1.7, ALL 
@@ -1500,7 +1500,7 @@ function main_upgrade($oldversion=0) {
         modify_database('', 'CREATE INDEX prefix_log_display_moduleaction ON prefix_log_display (module,action)');
         
         // Insert the records back in, sans duplicates.
-        if ($rs && $rs->RecordCount() > 0) {
+        if ($rs) {
             while (!$rs->EOF) {
                 $sql = "INSERT INTO {$CFG->prefix}log_display ".
                             "VALUES('', '".$rs->fields['module']."', ".
@@ -1511,6 +1511,7 @@ function main_upgrade($oldversion=0) {
                 execute_sql($sql, false);
                 $rs->MoveNext();
             }
+            rs_close($rs);
         }
     }
     

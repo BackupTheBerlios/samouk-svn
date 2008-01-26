@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.46 2007/08/28 02:54:39 mattc-catalyst Exp $
+<?php  // $Id: report.php,v 1.46.2.3 2007/11/14 12:59:16 bobopinna Exp $
 
 // This script uses installed report plugins to print quiz reports
 
@@ -64,30 +64,28 @@
         $strattempt  = get_string('attempt', 'scorm');
         $strname  = get_string('name');
         
-        $navlinks = array();
-        $navlinks[] = array('name' => $strscorms, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($scorm->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-        
         if (empty($b)) {
             if (empty($a)) {
-                $navigation = build_navigation($navlinks);
+                $navigation = build_navigation('', $cm);
                 print_header("$course->shortname: ".format_string($scorm->name), $course->fullname,$navigation,
                              '', '', true);
             } else {
                 
+                $navlinks = array();
                 $navlinks[] = array('name' => $strreport, 'link' => "report.php?id=$cm->id", 'type' => 'title');    
                 $navlinks[] = array('name' => "$strattempt $attempt - ".fullname($userdata), 'link' => '', 'type' => 'title');
-                $navigation = build_navigation($navlinks);
+                $navigation = build_navigation($navlinks, $cm);
                     
                 print_header("$course->shortname: ".format_string($scorm->name), $course->fullname,
                              $navigation, '', '', true);
             }
         } else {
-            
+
+            $navlinks = array();
             $navlinks[] = array('name' => $strreport, 'link' => "report.php?id=$cm->id", 'type' => 'title');    
             $navlinks[] = array('name' => "$strattempt $attempt - ".fullname($userdata), 'link' => "report.php?a=$a&user=$user&attempt=$attempt", 'type' => 'title');
             $navlinks[] = array('name' => $sco->title, 'link' => '', 'type' => 'title');
-            $navigation = build_navigation($navlinks);
+            $navigation = build_navigation($navlinks, $cm);
             
             print_header("$course->shortname: ".format_string($scorm->name), $course->fullname, $navigation,
                      '', '', true);
@@ -268,7 +266,7 @@
                 $elements = array('raw' => 'cmi.score.raw',
                                   'min' => 'cmi.score.min',
                                   'max' => 'cmi.score.max',
-                                  'status' => 'cmi.completition_status',
+                                  'status' => 'cmi.completion_status',
                                   'time' => 'cmi.total_time');
             } else {
                 $elements = array('raw' => 'cmi.core.score.raw',
@@ -315,7 +313,7 @@
                 $elements = array($interactionid,
                                   'cmi.interactions.'.$i.'.type',
                                   'cmi.interactions.'.$i.'.result',
-                                  'cmi.interactions.'.$i.'.student_response');
+                                  'cmi.interactions.'.$i.'.learner_response');
                 $row = array();
                 foreach ($elements as $element) {
                     if (isset($trackdata->$element)) {

@@ -1,4 +1,4 @@
-<?php  // $Id: tabs.php,v 1.6 2007/03/30 00:28:02 stronk7 Exp $
+<?php  // $Id: tabs.php,v 1.7 2007/10/09 21:43:29 iarenaza Exp $
     if (!isset($sortorder)) {
         $sortorder = '';
     }    
@@ -107,4 +107,4 @@
         break;
     } 
     echo '<hr />';
-?> 
+?>

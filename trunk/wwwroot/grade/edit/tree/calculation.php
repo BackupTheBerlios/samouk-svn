@@ -1,4 +1,27 @@
-<?php  //$Id: calculation.php,v 1.7 2007/08/14 06:05:07 nicolasconnault Exp $
+<?php  //$Id: calculation.php,v 1.9 2008/01/21 11:45:04 kowy Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once '../../../config.php';
 require_once $CFG->dirroot.'/grade/lib.php';
@@ -27,7 +50,7 @@ if (!$grade_item = grade_item::fetch(array('id'=>$id, 'courseid'=>$course->id)))
 }
 
 // module items and items without grade can not have calculation
-if (($grade_item->is_normal_item() and !$grade_item->is_outcome_item())
+if (($grade_item->is_external_item() and !$grade_item->is_outcome_item())
   or ($grade_item->gradetype != GRADE_TYPE_VALUE and $grade_item->gradetype != GRADE_TYPE_SCALE)) {
     redirect($returnurl, get_string('errornocalculationallowed', 'grades')); //TODO: localize
 }
@@ -84,7 +107,9 @@ $strcalculationedit = get_string('editcalculation', 'grades');
 
 $navigation = grade_build_nav(__FILE__, $strcalculationedit, array('courseid' => $courseid));
 
-print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcalculationedit, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcalculationedit, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 $mform->display();
 // Now show the gradetree with the idnumbers add/edit form
@@ -164,35 +189,9 @@ function get_grade_tree(&$gtree, $element, $current_itemid=null, $errors=null) {
         }
     }
 
-    $icon = '<img src="'.$CFG->wwwroot.'/pix/spacer.gif" class="icon" alt=""/>' . "\n";
+    $icon = $gtree->get_element_icon($element, true);
     $last = '';
-    $catcourseitem = false;
-
-    switch ($type) {
-        case 'item':
-            if ($object->itemtype == 'mod') {
-                $icon = '<img src="'.$CFG->modpixpath.'/'.$object->itemmodule.'/icon.gif" class="icon" alt="'
-                      . get_string('modulename', $object->itemmodule).'"/>' . "\n";
-            } else if ($object->itemtype == 'manual') {
-                //TODO: add manual grading icon
-                if (empty($object->outcomeid)) {
-                    $icon = '<img src="'.$CFG->pixpath.'/t/edit.gif" class="icon" alt="'
-                          . get_string('manualgrade', 'grades').'"/>' . "\n"; // TODO: localize
-                } else {
-                    $icon = '<img src="'.$CFG->pixpath.'/i/outcomes.gif" class="icon" alt="'
-                          . get_string('outcome', 'grades').'"/>' . "\n";
-                }
-            }
-            break;
-        case 'courseitem':
-        case 'categoryitem':
-            $icon = '<img src="'.$CFG->pixpath.'/i/category_grade.gif" class="icon" alt="'.get_string('categorygrade').'"/>' . "\n"; // TODO: localize
-            $catcourseitem = true;
-            break;
-        case 'category':
-            $icon = '<img src="'.$CFG->pixpath.'/f/folder.gif" class="icon" alt="'.get_string('category').'"/>' . "\n";
-            break;
-    }
+    $catcourseitem = ($element['type'] == 'courseitem' or $element['type'] == 'categoryitem');
 
     if ($type != 'category') {
         $return_string .= '<li class="'.$type.'">'.$icon.$name.'</li>' . "\n";

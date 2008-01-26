@@ -1,4 +1,4 @@
-<?PHP  // $Id: player.php,v 1.34 2007/07/05 04:55:34 mattc-catalyst Exp $
+<?PHP  // $Id: player.php,v 1.34.2.1 2007/11/23 16:41:19 skodak Exp $
 
 /// This page prints a particular instance of aicc/scorm package
 
@@ -287,8 +287,7 @@
         </div> <!-- SCORM box  -->
     </div> <!-- SCORM content -->
     <?php if (!empty($THEME->customcorners)) {
-        require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-        print_custom_corners_end();
+        print_container_end();
     } ?>
     <div class="clearer">&nbsp;</div>
 <?php print_footer(); ?>

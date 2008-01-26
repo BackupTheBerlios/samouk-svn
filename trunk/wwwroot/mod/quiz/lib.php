@@ -1,4 +1,4 @@
-<?php  // $Id: lib.php,v 1.281 2007/10/04 22:57:14 skodak Exp $
+<?php  // $Id: lib.php,v 1.282.2.7 2008/01/08 15:23:52 nicolasconnault Exp $
 /**
 * Library of functions for the quiz module.
 *
@@ -268,11 +268,11 @@ function quiz_get_user_grades($quiz, $userid=0) {
 
     $user = $userid ? "AND u.id = $userid" : "";
 
-    $sql = "SELECT u.id, u.id AS userid, g.grade AS rawgrade
-              FROM {$CFG->prefix}user u, {$CFG->prefix}quiz_grades g
-             WHERE u.id = g.userid AND g.quiz = $quiz->id
-                   $user";
-
+    $sql = "SELECT u.id, u.id AS userid, g.grade AS rawgrade, g.timemodified AS dategraded, MAX(a.timefinish) AS datesubmitted
+              FROM {$CFG->prefix}user u, {$CFG->prefix}quiz_grades g, {$CFG->prefix}quiz_attempts a
+             WHERE u.id = g.userid AND g.quiz = {$quiz->id} AND a.quiz = g.quiz AND u.id = a.userid
+                   $user
+          GROUP BY u.id, g.grade, g.timemodified";
     return get_records_sql($sql);
 }
 
@@ -289,15 +289,17 @@ function quiz_update_grades($quiz=null, $userid=0, $nullifnone=true) {
     }
 
     if ($quiz != null) {
-        quiz_grade_item_update($quiz);  // Recreate it if necessary
         if ($grades = quiz_get_user_grades($quiz, $userid)) {
-            grade_update('mod/quiz', $quiz->course, 'mod', 'quiz', $quiz->id, 0, $grades);
+            quiz_grade_item_update($quiz, $grades);
 
         } else if ($userid and $nullifnone) {
             $grade = new object();
             $grade->userid   = $userid;
             $grade->rawgrade = NULL;
-            grade_update('mod/quiz', $quiz->course, 'mod', 'quiz', $quiz->id, 0, $grade);
+            quiz_grade_item_update($quiz, $grade);
+
+        } else {
+            quiz_grade_item_update($quiz);
         }
 
     } else {
@@ -305,12 +307,11 @@ function quiz_update_grades($quiz=null, $userid=0, $nullifnone=true) {
                   FROM {$CFG->prefix}quiz a, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
                  WHERE m.name='quiz' AND m.id=cm.module AND cm.instance=a.id";
         if ($rs = get_recordset_sql($sql)) {
-            if ($rs->RecordCount() > 0) {
-                while ($quiz = rs_fetch_next_record($rs)) {
+            while ($quiz = rs_fetch_next_record($rs)) {
+                if ($quiz->grade != 0) {
+                    quiz_update_grades($quiz, 0, false);
+                } else {
                     quiz_grade_item_update($quiz);
-                    if ($quiz->grade != 0) {
-                        quiz_update_grades($quiz, 0, false);
-                    }
                 }
             }
             rs_close($rs);
@@ -322,9 +323,10 @@ function quiz_update_grades($quiz=null, $userid=0, $nullifnone=true) {
  * Create grade item for given quiz
  *
  * @param object $quiz object with extra cmidnumber
+ * @param mixed optional array/object of grade(s); 'reset' means reset grades in gradebook
  * @return int 0 if ok, error code otherwise
  */
-function quiz_grade_item_update($quiz) {
+function quiz_grade_item_update($quiz, $grades=NULL) {
     global $CFG;
     if (!function_exists('grade_update')) { //workaround for buggy PHP versions
         require_once($CFG->libdir.'/gradelib.php');
@@ -369,7 +371,12 @@ function quiz_grade_item_update($quiz) {
         $params['hidden'] = 0;
     }
 
-    return grade_update('mod/quiz', $quiz->course, 'mod', 'quiz', $quiz->id, 0, NULL, $params);
+    if ($grades  === 'reset') {
+        $params['reset'] = true;
+        $grades = NULL;
+    }
+
+    return grade_update('mod/quiz', $quiz->course, 'mod', 'quiz', $quiz->id, 0, $grades, $params);
 }
 
 /**
@@ -894,12 +901,37 @@ function quiz_question_list_instances($questionid) {
 /**
  * Implementation of the function for printing the form elements that control
  * whether the course reset functionality affects the quiz.
- * @param $course The course id of the course the user is thinking of resetting.
+ * @param $mform form passed by reference
  */
-function quiz_reset_course_form($course) {
-    echo '<p>';
-    print_checkbox('reset_quiz_attempts', 1, true, get_string('removeallquizattempts','quiz'));
-    echo '</p>';
+function quiz_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'forumheader', get_string('modulenameplural', 'quiz'));
+    $mform->addElement('advcheckbox', 'reset_quiz_attempts', get_string('removeallquizattempts','quiz'));
+}
+
+/**
+ * Course reset form defaults.
+ */
+function quiz_reset_course_form_defaults($course) {
+    return array('reset_quiz_attempts'=>1);
+}
+
+/**
+ * Removes all grades from gradebook
+ * @param int $courseid
+ * @param string optional type
+ */
+function quiz_reset_gradebook($courseid, $type='') {
+    global $CFG;
+
+    $sql = "SELECT q.*, cm.idnumber as cmidnumber, q.course as courseid
+              FROM {$CFG->prefix}quiz q, {$CFG->prefix}course_modules cm, {$CFG->prefix}modules m
+             WHERE m.name='quiz' AND m.id=cm.module AND cm.instance=q.id AND q.course=$courseid";
+
+    if ($quizs = get_records_sql($sql)) {
+        foreach ($quizs as $quiz) {
+            quiz_grade_item_update($quiz, 'reset');
+        }
+    }
 }
 
 /**
@@ -908,73 +940,63 @@ function quiz_reset_course_form($course) {
  * set and true.
  *
  * Also, move the quiz open and close dates, if the course start date is changing.
- *
- * @param $data the data submitted from the reset course forum.
- * @param $showfeedback whether to output progress information as the reset
- *      progresses.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
  */
-function quiz_delete_userdata($data, $showfeedback=true) {
-    global $CFG;
+function quiz_reset_userdata($data) {
+    global $CFG, $QTYPES;
+
+    $componentstr = get_string('modulenameplural', 'quiz');
+    $status = array();
 
     /// Delete attempts.
     if (!empty($data->reset_quiz_attempts)) {
-        $conditiononquizids = 'quiz IN (SELECT id FROM ' .
-                $CFG->prefix . 'quiz q WHERE q.course = ' . $data->courseid . ')';
-    
-        $attemptids = get_records_select('quiz_attempts', $conditiononquizids, '', 'id, uniqueid');
-        if ($attemptids) {
-            if ($showfeedback) {
-                echo '<div class="notifysuccess">', get_string('deletingquestionattempts', 'quiz');
-                $divider = ': ';
-            }
-            foreach ($attemptids as $attemptid) {
-                delete_attempt($attemptid->uniqueid);
-                if ($showfeedback) {
-                    echo $divider, $attemptid->uniqueid;
-                    $divider = ', ';
-                }
-            }
-            if ($showfeedback) {
-                echo "</div><br />\n";
+
+        $stateslistsql = "SELECT s.id
+                            FROM {$CFG->prefix}question_states s
+                                 INNER JOIN {$CFG->prefix}quiz_attempts qza ON s.attempt=qza.uniqueid
+                                 INNER JOIN {$CFG->prefix}quiz q ON qza.quiz=q.id
+                           WHERE q.course={$data->courseid}";
+
+        $attemptssql   = "SELECT a.uniqueid
+                            FROM {$CFG->prefix}quiz_attempts a, {$CFG->prefix}quiz q
+                           WHERE q.course={$data->courseid} AND a.quiz=q.id";
+
+        $quizessql     = "SELECT q.id
+                            FROM {$CFG->prefix}quiz q
+                           WHERE q.course={$data->courseid}";
+
+        if ($states = get_records_sql($stateslistsql)) {
+            //TODO: not sure if this works
+            $stateslist = implode(',', array_keys($states));
+            foreach ($QTYPES as $qtype) {
+                $qtype->delete_states($stateslist);
             }
         }
-        if (delete_records_select('quiz_grades', $conditiononquizids) && $showfeedback) {
-            notify(get_string('gradesdeleted','quiz'), 'notifysuccess');
+
+        delete_records_select('question_states', "attempt IN ($attemptssql)");
+        delete_records_select('question_sessions', "attemptid IN ($attemptssql)");
+        delete_records_select('question_attempts', "id IN ($attemptssql)");
+
+        // remove all grades from gradebook
+        if (empty($data->reset_gradebook_grades)) {
+            quiz_reset_gradebook($data->courseid);
         }
-        if (delete_records_select('quiz_attempts', $conditiononquizids) && $showfeedback) {
-            notify(get_string('attemptsdeleted','quiz'), 'notifysuccess');
-        }
+
+        delete_records_select('quiz_grades', "quiz IN ($quizessql)");
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('gradesdeleted','quiz'), 'error'=>false);
+
+        delete_records_select('quiz_attempts', "quiz IN ($quizessql)");
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('attemptsdeleted','quiz'), 'error'=>false);
     }
 
-    /// Update open and close dates
-    if (!empty($data->reset_start_date)) {
-        /// Work out offset.
-        $olddate = get_field('course', 'startdate', 'id', $data->courseid);
-        $olddate = usergetmidnight($olddate); // time part of $olddate should be zero
-        $newdate = make_timestamp($data->startyear, $data->startmonth, $data->startday);
-        $interval = $newdate - $olddate;
-        
-        /// Apply it to quizzes with an open or close date.
-        $success = true;
-        begin_sql();
-        $success = $success && execute_sql(
-                "UPDATE {$CFG->prefix}quiz
-                    SET timeopen = timeopen + $interval
-                    WHERE course = {$data->courseid} AND timeopen <> 0", false);
-        $success = $success && execute_sql(
-                "UPDATE {$CFG->prefix}quiz
-                    SET timeclose = timeclose + $interval
-                    WHERE course = {$data->courseid} AND timeclose <> 0", false);
-
-        if ($success) {
-            commit_sql();
-            if ($showfeedback) {
-                notify(get_string('openclosedatesupdated', 'quiz'), 'notifysuccess');
-            }
-        } else {
-            rollback_sql();
-        }
+    /// updating dates - shift may be negative too
+    if ($data->timeshift) {
+        shift_course_mod_dates('quiz', array('timeopen', 'timeclose'), $data->timeshift, $data->courseid);
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('openclosedatesupdated', 'quiz'), 'error'=>false);
     }
+
+    return $status;
 }
 
 /**
@@ -1014,7 +1036,7 @@ function quiz_print_overview($courses, &$htmlarray) {
         return array();
     }
 
-    if (!$quizs = get_all_instances_in_courses('quiz', $courses)) {
+    if (!$quizzes = get_all_instances_in_courses('quiz', $courses)) {
         return;
     }
 
@@ -1024,8 +1046,8 @@ function quiz_print_overview($courses, &$htmlarray) {
 
 /// We want to list quizzes that are currently available, and which have a close date.
 /// This is the same as what the lesson does, and the dabate is in MDL-10568.
-    $now = date();
-    foreach ($quizs as $quiz) {
+    $now = time();
+    foreach ($quizzes as $quiz) {
         if ($quiz->timeclose >= $now && $quiz->timeopen < $now) {
         /// Give a link to the quiz, and the deadline.
             $str = '<div class="quiz overview">' .
@@ -1038,15 +1060,9 @@ function quiz_print_overview($courses, &$htmlarray) {
             $context = get_context_instance(CONTEXT_MODULE, $quiz->coursemodule);
             if (has_capability('mod/quiz:viewreports', $context)) {
             /// For teacher-like people, show a summary of the number of student attempts.
-                $a = new stdClass;
-                if ($a->attemptnum = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0)) {
-                    $a->studentnum = count_records_select('quiz_attempts', "quiz = '$quiz->id' AND preview = '0'", 'COUNT(DISTINCT userid)');
-                } else {
-                    $a->studentnum = 0;
-                    $a->attemptnum = 0;
-                }
-                $a->studentstring  = $course->students;
-                $str .= '<div class="info">' . get_string('numattempts', 'quiz', $a) . '</div>';
+                // The $quiz objects returned by get_all_instances_in_course have the necessary $cm 
+                // fields set to make the following call work.
+                $str .= '<div class="info">' . quiz_num_attempt_summary($quiz, true) . '</div>';
             } else if (has_capability('mod/quiz:attempt', $context)){ // Student
             /// For student-like people, tell them how many attempts they have made.
                 if (isset($USER->id) && ($attempts = quiz_get_user_attempts($quiz->id, $USER->id))) {
@@ -1069,5 +1085,42 @@ function quiz_print_overview($courses, &$htmlarray) {
             }
         }
     }
+}
+
+/**
+ * Return a textual summary of the number of attemtps that have been made at a particular quiz,
+ * returns '' if no attemtps have been made yet, unless $returnzero is passed as true.
+ * @param object $quiz the quiz object. Only $quiz->id is used at the moment.
+ * @param object $cm the cm object. Only $cm->course, $cm->groupmode and $cm->groupingid fields are used at the moment.
+ * @param boolean $returnzero if false (default), when no attempts have been made '' is returned instead of 'Attempts: 0'.
+ * @param int $currentgroup if there is a concept of current group where this method is being called
+ *         (e.g. a report) pass it in here. Default 0 which means no current group.
+ * @return string a string like "Attempts: 123", "Attemtps 123 (45 from your groups)" or
+ *          "Attemtps 123 (45 from this group)".
+ */
+function quiz_num_attempt_summary($quiz, $cm, $returnzero = false, $currentgroup = 0) {
+    global $CFG, $USER;
+    $numattempts = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0);
+    if ($numattempts || $returnzero) {
+        if (groups_get_activity_groupmode($cm)) {
+            $a->total = $numattempts;
+            if ($currentgroup) {
+                $a->group = count_records_sql('SELECT count(1) FROM ' .
+                        $CFG->prefix . 'quiz_attempts qa JOIN ' .
+                        $CFG->prefix . 'groups_members gm ON qa.userid = gm.userid ' .
+                        'WHERE quiz = ' . $quiz->id . ' AND preview = 0 AND groupid = ' . $currentgroup);
+                return get_string('attemptsnumthisgroup', 'quiz', $a);
+            } else if ($groups = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid)) { 
+                $a->group = count_records_sql('SELECT count(1) FROM ' .
+                        $CFG->prefix . 'quiz_attempts qa JOIN ' .
+                        $CFG->prefix . 'groups_members gm ON qa.userid = gm.userid ' .
+                        'WHERE quiz = ' . $quiz->id . ' AND preview = 0 AND ' .
+                        'groupid IN (' . implode(',', array_keys($groups)) . ')');
+                return get_string('attemptsnumyourgroups', 'quiz', $a);
+            }
+        }
+        return get_string('attemptsnum', 'quiz', $numattempts);
+    }
+    return '';
 }
 ?>

@@ -1,4 +1,4 @@
-<?php  // $Id: import_form.php,v 1.5 2007/05/08 16:11:59 poltawski Exp $
+<?php  // $Id: import_form.php,v 1.5.2.1 2007/11/23 22:12:35 skodak Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -25,8 +25,8 @@ class course_import_activities_form_1 extends moodleform {
 
     }
 
-    function validation($data) {
-        return true;
+    function validation($data, $files) {
+        return parent::validation($data, $files);
     }
 
 }
@@ -52,7 +52,7 @@ class course_import_activities_form_2 extends moodleform {
 
     }
 
-    function validation($data) {
+    function validation($data, $files) {
         return true;
     }
 

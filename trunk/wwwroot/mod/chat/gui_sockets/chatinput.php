@@ -1,4 +1,4 @@
-<?php  // $Id: chatinput.php,v 1.11 2007/01/28 21:18:17 skodak Exp $
+<?php  // $Id: chatinput.php,v 1.11.4.1 2007/12/14 21:21:07 skodak Exp $
 
     $nomoodlecookie = true;     // Session not needed!
 
@@ -71,6 +71,6 @@ function reloadusers() {
         <input type="hidden" name="chat_msgidnr" value="0" />
         <input type="hidden" name="chat_sid" value="<?php echo $chat_sid ?>" />
     </form>
-</body>
-
-</html>
+<?php
+    print_footer('empty');
+?>

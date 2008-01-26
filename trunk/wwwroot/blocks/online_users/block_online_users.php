@@ -1,4 +1,4 @@
-<?php //$Id: block_online_users.php,v 1.54 2007/09/08 20:53:06 skodak Exp $
+<?php //$Id: block_online_users.php,v 1.54.2.1 2007/12/04 06:23:44 martinlanghoff Exp $
 
 /**
  * This block needs to be reworked.
@@ -89,7 +89,7 @@ class block_online_users extends block_base {
                 // user has a hidden role assigned at this context or any parent contexts,
                 // ignore this user
                 
-                $SQL = "SELECT id,id FROM {$CFG->prefix}role_assignments
+                $SQL = "SELECT id FROM {$CFG->prefix}role_assignments
                         WHERE userid = $puser->id
                         AND contextid $pcontext
                         AND hidden = 1";

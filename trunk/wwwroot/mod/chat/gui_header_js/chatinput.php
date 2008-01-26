@@ -1,4 +1,4 @@
-<?php  // $Id: chatinput.php,v 1.19 2007/01/28 21:18:17 skodak Exp $
+<?php  // $Id: chatinput.php,v 1.19.4.1 2007/12/14 21:21:08 skodak Exp $
 
     $nomoodlecookie = true;     // Session not needed!
 
@@ -59,7 +59,6 @@
         <input type="hidden" name="chat_sid" value="<?php echo $chat_sid ?>" />
         <input type="hidden" name="chat_message" />
     </form>
-</div>
-</div>
-</body>
-</html>
+<?php
+    print_footer('empty');
+?>

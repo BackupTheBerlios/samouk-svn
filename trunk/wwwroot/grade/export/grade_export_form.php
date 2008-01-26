@@ -1,4 +1,28 @@
-<?php // $Id: grade_export_form.php,v 1.24 2007/09/27 07:06:18 skodak Exp $
+<?php // $Id: grade_export_form.php,v 1.27.2.7 2007/12/11 05:42:08 toyomoyo Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
+
 require_once $CFG->libdir.'/formslib.php';
 
 class grade_export_form extends moodleform {
@@ -14,16 +38,42 @@ class grade_export_form extends moodleform {
 
         $mform->addElement('header', 'options', get_string('options', 'grades'));
 
-        $mform->addElement('advcheckbox', 'export_letters', get_string('exportletters', 'grades'));
-        $mform->setDefault('export_letters', 0);
-        $mform->setHelpButton('export_letters', array(false, get_string('exportletters', 'grades'),
-                false, true, false, get_string("exportlettershelp", 'grades')));
-
         $mform->addElement('advcheckbox', 'export_feedback', get_string('exportfeedback', 'grades'));
         $mform->setDefault('export_feedback', 0);
 
         $options = array('10'=>10, '20'=>20, '100'=>100, '1000'=>1000, '100000'=>100000);
         $mform->addElement('select', 'previewrows', get_string('previewrows', 'grades'), $options); 
+        
+        if (!empty($features['updategradesonly'])) {
+            $mform->addElement('advcheckbox', 'updatedgradesonly', get_string('updatedgradesonly', 'grades'));
+        }
+        /// selections for decimal points and format, MDL-11667, defaults to site settings, if set
+        //$default_gradedisplaytype = $CFG->grade_export_displaytype;
+        $options = array(GRADE_DISPLAY_TYPE_REAL       => get_string('real', 'grades'),
+                         GRADE_DISPLAY_TYPE_PERCENTAGE => get_string('percentage', 'grades'),
+                         GRADE_DISPLAY_TYPE_LETTER     => get_string('letter', 'grades'));
+        
+        /*
+        foreach ($options as $key=>$option) {
+            if ($key == $default_gradedisplaytype) {
+                $options[GRADE_DISPLAY_TYPE_DEFAULT] = get_string('defaultprev', 'grades', $option);
+                break;
+            }
+        }
+        */
+        $mform->addElement('select', 'display', get_string('gradeexportdisplaytype', 'grades'), $options);  
+        $mform->setDefault('display', $CFG->grade_export_displaytype);
+        
+        //$default_gradedecimals = $CFG->grade_export_decimalpoints;
+        $options = array(0=>0, 1=>1, 2=>2, 3=>3, 4=>4, 5=>5);
+        $mform->addElement('select', 'decimals', get_string('gradeexportdecimalpoints', 'grades'), $options);
+        $mform->setDefault('decimals', $CFG->grade_export_decimalpoints);
+        $mform->disabledIf('decimals', 'display', 'eq', GRADE_DISPLAY_TYPE_LETTER);
+        /*
+        if ($default_gradedisplaytype == GRADE_DISPLAY_TYPE_LETTER) {
+            $mform->disabledIf('decimals', 'display', "eq", GRADE_DISPLAY_TYPE_DEFAULT);
+        }
+        */
 
         if (!empty($features['includeseparator'])) {
             $radio = array();
@@ -62,23 +112,33 @@ class grade_export_form extends moodleform {
         }
 
         $mform->addElement('header', 'gradeitems', get_string('gradeitemsinc', 'grades'));
+        
+        $switch = grade_get_setting($COURSE->id, 'aggregationposition', $CFG->grade_aggregationposition);
 
-        if ($grade_items = grade_item::fetch_all(array('courseid'=>$COURSE->id))) {
+        // Grab the grade_seq for this course
+        $gseq = new grade_seq($COURSE->id, $switch);
+
+        if ($grade_items = $gseq->items) {
+            $needs_multiselect = false;
             foreach ($grade_items as $grade_item) {
                 if (!empty($features['idnumberrequired']) and empty($grade_item->idnumber)) {
                     $mform->addElement('advcheckbox', 'itemids['.$grade_item->id.']', $grade_item->get_name(), get_string('noidnumber', 'grades'));
                     $mform->hardFreeze('itemids['.$grade_item->id.']');
-
                 } else {
-                    $mform->addElement('advcheckbox', 'itemids['.$grade_item->id.']', $grade_item->get_name());
+                    $mform->addElement('advcheckbox', 'itemids['.$grade_item->id.']', $grade_item->get_name(), null, array('group' => 1));
                     $mform->setDefault('itemids['.$grade_item->id.']', 1);
+                    $needs_multiselect = true;
                 }
+            }
+            
+            if ($needs_multiselect) {
+                $this->add_checkbox_controller(1, null, null, 1); // 1st argument is group name, 2nd is link text, 3rd is attributes and 4th is original value
             }
         }
 
         $mform->addElement('hidden', 'id', $COURSE->id);
-
         $this->add_action_buttons(false, get_string('submit'));
+
     }
 }
 ?>

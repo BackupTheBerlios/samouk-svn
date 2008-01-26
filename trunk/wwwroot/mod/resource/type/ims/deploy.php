@@ -1,4 +1,4 @@
-<?php // $Id: deploy.php,v 1.23 2007/07/05 04:41:40 mattc-catalyst Exp $
+<?php // $Id: deploy.php,v 1.24.2.1 2007/10/12 16:09:47 tjhunt Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-3001 Martin Dougiamas        http://dougiamas.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas        http://dougiamas.com  //
 //           (C) 2001-3001 Eloy Lafuente (stronk7) http://contiento.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
@@ -64,9 +64,8 @@
         print_header($pagetitle, $course->fullname);
     } else {
 
-        $resource_obj->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activityinstance');
         $resource_obj->navlinks[] = array('name' => $strdeploy, 'link' => '', 'type' => 'action');
-        $navigation = build_navigation($resource_obj->navlinks);
+        $navigation = build_navigation($resource_obj->navlinks, $cm);
         print_header($pagetitle, $course->fullname, $navigation,
                      '', '', true, 
                      update_module_button($cm->id, $course->id, $resource_obj->strresource));

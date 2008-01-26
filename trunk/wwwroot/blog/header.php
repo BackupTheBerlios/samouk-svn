@@ -1,4 +1,4 @@
-<?php //$Id: header.php,v 1.41 2007/08/27 08:46:02 toyomoyo Exp $
+<?php //$Id: header.php,v 1.41.2.4 2008/01/09 17:23:45 tjhunt Exp $
 
 /// Sets up blocks and navigation for index.php
 
@@ -7,10 +7,6 @@ require_once($CFG->libdir .'/pagelib.php');
 require_once($CFG->dirroot .'/blog/blogpage.php');
 require_once($CFG->libdir .'/blocklib.php');
 require_once($CFG->dirroot .'/course/lib.php');
-
-if (!empty($THEME->customcorners)) {
-    require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-}
 
 $blockaction = optional_param('blockaction','', PARAM_ALPHA);
 $instanceid  = optional_param('instanceid', 0, PARAM_INT);
@@ -176,16 +172,19 @@ $navlinks = array();
             }
 
             if ($course->id != SITEID) {
-                if ($tagid || !empty($tag)) {
-                    $navlinks[] = array('name' => $course->shortname,
-                                        'link' => "$CFG->wwwroot/course/view.php?id=$course->id",
-                                        'type' => 'misc');
+                $coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);   // Course context
+                $systemcontext = get_context_instance(CONTEXT_SYSTEM);   // SYSTEM context
+
+                if (has_capability('moodle/course:viewparticipants', $coursecontext) || has_capability('moodle/site:viewparticipants', $systemcontext)) {
                     $navlinks[] = array('name' => $participants,
                                         'link' => "$CFG->wwwroot/user/index.php?id=$course->id",
                                         'type' => 'misc');
-                    $navlinks[] = array('name' => fullname($user),
-                                        'link' => "$CFG->wwwroot/user/view.php?id=$filterselect&amp;course=$course->id",
-                                        'type' => 'misc');
+                }
+                $navlinks[] = array('name' => fullname($user),
+                                    'link' => "$CFG->wwwroot/user/view.php?id=$filterselect&amp;course=$course->id",
+                                    'type' => 'misc');
+
+                if ($tagid || !empty($tag)) {
                     $navlinks[] = array('name' => $blogstring,
                                         'link' => "index.php?courseid=$course->id&amp;filtertype=user&amp;filterselect=$filterselect",
                                         'type' => 'misc');
@@ -195,22 +194,9 @@ $navlinks = array();
                     print_header("$course->shortname: $blogstring", $course->fullname, $navigation,'','',true,$PAGE->get_extra_header_string());
 
                 } else {
-                    $navlinks[] = array('name' => $course->shortname,
-                                        'link' => "$CFG->wwwroot/course/view.php?id=$course->id",
-                                        'type' => 'misc');
-                    $navlinks[] = array('name' => $participants,
-                                        'link' => "$CFG->wwwroot/user/index.php?id=$course->id",
-                                        'type' => 'misc');
-                    $navlinks[] = array('name' => fullname($user),
-                                        'link' => "$CFG->wwwroot/user/view.php?id=$filterselect&amp;course=$course->id",
-                                        'type' => 'misc');
                     $navlinks[] = array('name' => $blogstring, 'link' => null, 'type' => 'misc');
                     $navigation = build_navigation($navlinks);
-                    print_header("$course->shortname: $blogstring", $course->fullname,
-                            '<a href="'.$CFG->wwwroot.'/course/view.php?id='.$course->id.'">'.$course->shortname.'</a> ->
-                            <a href="'.$CFG->wwwroot.'/user/index.php?id='.$course->id.'">'.$participants.'</a> ->
-                            <a href="'.$CFG->wwwroot.'/user/view.php?id='.$filterselect.'&amp;course='.$course->id.'">'.fullname($user).'</a> ->
-                            '.$blogstring,'','',true,$PAGE->get_extra_header_string());
+                    print_header("$course->shortname: $blogstring", $course->fullname, $navigation,'','',true,$PAGE->get_extra_header_string());
                 }
 
             } else {
@@ -267,9 +253,9 @@ print '<tr valign="top">' . "\n";
 if (blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $editing) {
     print '<td style="vertical-align: top; width: '. $preferred_width_left .'px;" id="left-column">' . "\n";
     print '<!-- Begin left side blocks -->' . "\n";
-    if (!empty($THEME->customcorners)) print_custom_corners_start();
+    print_container_start();
     blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-    if (!empty($THEME->customcorners)) print_custom_corners_end();
+    print_container_end();
     print '<!-- End left side blocks -->' . "\n";
     print '</td>' . "\n";
 }
@@ -277,7 +263,7 @@ if (blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $editing) {
 /// Start main column
 print '<!-- Begin page content -->' . "\n";
 print '<td>';
-if (!empty($THEME->customcorners)) print_custom_corners_start();
+print_container_start();
 ?>
 <table width="100%">
 <tr>

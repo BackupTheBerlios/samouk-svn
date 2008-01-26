@@ -62,7 +62,7 @@ class question_edit_numerical_form extends question_edit_form {
         $mform->setType('unit', PARAM_NOTAGS);
 
         $repeated[] =& $mform->createElement('text', 'multiplier', get_string('multiplier', 'quiz'));
-        $mform->setType('multiplier', PARAM_NOTAGS);
+        $mform->setType('multiplier', PARAM_NUMBER);
 
         if (isset($this->question->options)){
             $countunits = count($this->question->options->units);
@@ -107,8 +107,8 @@ class question_edit_numerical_form extends question_edit_form {
         }
         parent::set_data($question);
     }
-    function validation($data){
-        $errors = parent::validation($data);
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
 
         // Check the answers.
         $answercount = 0;

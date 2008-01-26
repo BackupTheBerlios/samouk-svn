@@ -1,4 +1,4 @@
-<?php //$Id: block_html.php,v 1.8 2005/05/19 20:09:57 defacer Exp $
+<?php //$Id: block_html.php,v 1.8.22.2 2007/12/29 12:06:10 poltawski Exp $
 
 class block_html extends block_base {
 
@@ -34,6 +34,16 @@ class block_html extends block_base {
         unset($filteropt); // memory footprint
 
         return $this->content;
+    }
+
+    function backup_encode_absolute_links_in_config(&$config) {
+        $config->text = backup_encode_absolute_links($config->text);
+    }
+
+    function restore_decode_absolute_links_in_config(&$config) {
+        $oldtext = $config->text;
+        $config->text = restore_decode_absolute_links($oldtext);
+        return $config->text != $oldtext;
     }
 }
 ?>

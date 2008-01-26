@@ -1,4 +1,4 @@
-<?php   /// $Id: enrol.php,v 1.25 2007/09/19 07:17:23 martinlanghoff Exp $
+<?php   /// $Id: enrol.php,v 1.25.2.3 2008/01/06 23:18:08 martinlanghoff Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -146,7 +146,7 @@ function check_entry($form, $course) {
 
     $groupid = $this->check_group_entry($course->id, $form->password);
 
-    if (($form->password == $course->password) or ($groupid !== false) ) {
+    if ((stripslashes($form->password) == $course->password) or ($groupid !== false) ) {
 
         if (isguestuser()) { // only real user guest, do not use this for users with guest role
             $USER->enrolkey[$course->id] = true;
@@ -188,15 +188,16 @@ function check_entry($form, $course) {
 * @param    password  the submitted enrolment key
 */
 function check_group_entry ($courseid, $password) {
-    $ingroup = false;
-    if (($groups = groups_get_all_groups($courseid))) {
+
+    if ($groups = groups_get_all_groups($courseid)) {
         foreach ($groups as $group) {
-            if ( !empty($group->enrolmentkey) and ($password == $group->enrolmentkey) ) {
-                $ingroup = $group->id;
+            if ( !empty($group->enrolmentkey) and (stripslashes($password) == $group->enrolmentkey) ) {
+                return $group->id;
             }
         }
     }
-    return $ingroup;
+
+    return false;
 }
 
 
@@ -314,7 +315,7 @@ function cron() {
 
                 if ($a->current || $a->past) {
                     if ($teachers = get_users_by_capability($context, 'moodle/course:update',
-                                                            'u.*,ra.hidden', 'r.sortorder ASC',
+                                                            'u.*', 'u.username ASC',
                                                             '', '', '', '', false)) {
                         foreach ($teachers as $teacher) {
                             email_to_user($teacher, $admin, $a->coursename .' '. $strexpirynotify, $strexpirynotifyemail);
@@ -394,7 +395,7 @@ function print_enrolmentkeyfrom($course) {
     // (show the first person with update rights)
     if (!$contactslisted) {
         if ($teachers = get_users_by_capability(get_context_instance(CONTEXT_COURSE, $course->id), 'moodle/course:update',
-            'u.*,ra.hidden', 'r.sortorder ASC', 0, 1, '', '', false, true)) {
+            'u.*', 'u.id ASC', 0, 1, '', '', false, true)) {
             $teacher = array_shift($teachers);
         }
         if (!empty($teacher)) {

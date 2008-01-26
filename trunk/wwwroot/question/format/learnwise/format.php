@@ -1,4 +1,4 @@
-<?php    // $Id: format.php,v 1.4 2007/03/20 02:23:12 pichetp Exp $ 
+<?php    // $Id: format.php,v 1.4.4.1 2007/11/02 16:21:06 tjhunt Exp $ 
 // Alton College, Hampshire, UK - Tom Flannaghan, Andrew Walker
 // Imports learnwise multiple choice quizzes (single and multiple answers)
 // currently ignores the deduct attribute for multiple answer questions

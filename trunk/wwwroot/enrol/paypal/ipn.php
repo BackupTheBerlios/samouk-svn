@@ -1,4 +1,4 @@
-<?php  // $Id: ipn.php,v 1.21 2007/09/19 07:12:22 martinlanghoff Exp $
+<?php  // $Id: ipn.php,v 1.22 2007/10/09 12:49:57 skodak Exp $
 
 /**
 * Listens for Instant Payment Notification from PayPal
@@ -94,8 +94,6 @@
 
             if ($data->payment_status != "Completed" and $data->payment_status != "Pending") {
                 role_unassign(0, $data->userid, 0, $context->id);
-                // force accessinfo refresh for users visiting this context...
-                mark_context_dirty($context->path);
                 email_paypal_error_to_admin("Status not completed or pending. User unenrolled from course", $data);
                 die;
             }

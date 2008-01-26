@@ -1,4 +1,4 @@
-<?php  // $Id: enrol.php,v 1.28 2007/08/17 19:09:17 nicolasconnault Exp $
+<?php  // $Id: enrol.php,v 1.28.2.3 2008/01/07 20:56:20 poltawski Exp $
        // Implements all the main code for the PayPal plugin
 
 require_once("$CFG->dirroot/enrol/enrol.class.php");
@@ -125,7 +125,6 @@ function get_access_icons($course) {
     return $str;
 }
 
-
 /// Override the base class config_form() function
 function config_form($frm) {
     global $CFG;
@@ -199,6 +198,17 @@ function check_entry($form, $course) {
         $this->errormsg = $manual->errormsg;
     }
 }
+
+/**
+ * Provides method to print the enrolment key form code. This method is called
+ * from /enrol/manual/enrol.html if it's included
+ * @param  object a valid course object
+ */
+function print_enrolmentkeyfrom($course) {
+    $manual = enrolment_factory::factory('manual');
+    $manual->print_enrolmentkeyfrom($course);
+}
+
 
 } // end of class definition
 

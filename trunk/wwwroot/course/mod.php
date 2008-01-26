@@ -1,4 +1,4 @@
-<?php // $Id: mod.php,v 1.127 2007/09/06 01:35:37 mattc-catalyst Exp $
+<?php // $Id: mod.php,v 1.127.2.1 2007/12/26 21:40:01 poltawski Exp $
 
 //  Moves, adds, updates, duplicates or deletes modules in a course
 
@@ -675,7 +675,7 @@
         }
 
     } else {
-        error("No action was specfied");
+        error("No action was specified");
     }
 
     require_login($course->id); // needed to setup proper $COURSE

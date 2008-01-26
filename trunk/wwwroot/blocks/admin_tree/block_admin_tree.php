@@ -1,9 +1,9 @@
-<?php  // $Id: block_admin_tree.php,v 1.28 2007/10/02 15:33:09 skodak Exp $
+<?php  // $Id: block_admin_tree.php,v 1.28.2.3 2007/12/24 20:53:20 skodak Exp $
 
 class block_admin_tree extends block_base {
 
     var $currentdepth;
-    var $spancounter;
+    var $divcounter;
     var $tempcontent;
     var $pathtosection;
     var $expandjavascript;
@@ -14,7 +14,7 @@ class block_admin_tree extends block_base {
         $this->title = get_string('administrationsite');
         $this->version = 2006090300;
         $this->currentdepth = 0;
-        $this->spancounter = 1;
+        $this->divcounter = 1;
         $this->tempcontent = '';
         $this->section = (isset($PAGE->section) ? $PAGE->section : '');
         $this->pathtosection = array();
@@ -22,11 +22,8 @@ class block_admin_tree extends block_base {
     }
 
     function applicable_formats() {
-        if (block_admin_tree::has_admin_caps()) {
-            return array('site' => true, 'admin' => true, 'my' => true);
-        } else {
-            return array('site' => true);
-        }
+        //TODO: add 'my' only if user has role assigned in system or any course category context
+        return array('site' => true, 'admin' => true, 'my' => true);
     }
 
     function preferred_width() {
@@ -37,49 +34,51 @@ class block_admin_tree extends block_base {
         global $CFG;
         $strfolderopened = s(get_string('folderopened'));
 
-        for ($i = 0; $i < $this->currentdepth; $i++) {
-            $this->tempcontent .= "&nbsp; &nbsp;";
-        }
-        $this->tempcontent .= '<a href="#" onclick="toggle(\'vh_span' . $this->spancounter . '\');return false">';
-        $this->tempcontent .= '<span id="vh_span' . $this->spancounter . 'indicator"><img src="' . $CFG->wwwroot . '/blocks/admin_tree/open.gif" alt="'.$strfolderopened.'" /></span> ';
-        $this->tempcontent .= $visiblename . '</a><br /><span id="vh_span' . $this->spancounter . '">' . "\n";
+        $this->tempcontent .= '<div class="depth'.$this->currentdepth.'"><a href="#" onclick="toggle(\''.$this->divcounter.'\');return false">';
+        $this->tempcontent .= '<span id="vh_div'.$this->divcounter.'indicator"><img src="'.$CFG->wwwroot.'/blocks/admin_tree/open.gif" alt="'.$strfolderopened.'" /></span> ';
+        $this->tempcontent .= $visiblename.'</a></div><div id="vh_div'.$this->divcounter.'">'."\n";
         $this->currentdepth++;
-        $this->spancounter++;
+        $this->divcounter++;
     }
 
     function close_folder() {
         $this->currentdepth--;
-        $this->tempcontent .= "</span>\n";
+        $this->tempcontent .= "</div>\n";
     }
 
     function create_item($visiblename,$link,$icon,$class) {
         global $CFG;
-        for ($i = 0; $i < $this->currentdepth; $i++) {
-            $this->tempcontent .= "&nbsp; &nbsp;";
-        }
-        $this->tempcontent .= '<a class="'.$class.'" href="'.$link.'"><img src="'.$icon.'" alt="" />'.
-                               $visiblename.'</a><br />'."\n";
+        $this->tempcontent .= '<div class="depth'.$this->currentdepth.'"><a class="'.$class.'" href="'.$link.'"><img src="'.$icon.'" alt="" />'.
+                               $visiblename.'</a></div>'."\n";
     }
 
     function build_tree (&$content) {
         global $CFG;
         if (is_a($content, 'admin_settingpage')) {
-            if ($content->check_access() and !$content->is_hidden()) {
+            // show hidden pages in tree if hidden page active
+            if ($content->check_access() and (($content->name == $this->section) or !$content->is_hidden())) {
                 $class = ($content->name == $this->section) ? 'link current' : 'link';
-                $this->create_item($content->visiblename,$CFG->wwwroot.'/'.$CFG->admin.'/settings.php?section=' . $content->name,$CFG->wwwroot .'/blocks/admin_tree/item.gif', $class);
+                if ($content->is_hidden()) {
+                    $class .= ' hidden';
+                }
+                $this->create_item($content->visiblename, $CFG->wwwroot.'/'.$CFG->admin.'/settings.php?section='.$content->name, $CFG->wwwroot.'/blocks/admin_tree/item.gif', $class);
             }
         } else if (is_a($content, 'admin_externalpage')) {
-            if ($content->check_access() and !$content->is_hidden()) {
+            // show hidden pages in tree if hidden page active
+            if ($content->check_access() and (($content->name == $this->section) or !$content->is_hidden())) {
                 $class = ($content->name == $this->section) ? 'link current' : 'link';
-                $this->create_item($content->visiblename, $content->url, $CFG->wwwroot . '/blocks/admin_tree/item.gif', $class);
+                if ($content->is_hidden()) {
+                    $class .= ' hidden';
+                }
+                $this->create_item($content->visiblename, $content->url, $CFG->wwwroot.'/blocks/admin_tree/item.gif', $class);
             }
         } else if (is_a($content, 'admin_category')) {
             if ($content->check_access() and !$content->is_hidden()) {
 
                 // check if the category we're currently printing is a parent category for the current page; if it is, we
                 // make a note (in the javascript) that it has to be expanded after the page has loaded
-                if ($this->pathtosection[count($this->pathtosection) - 1] == $content->name) {
-                    $this->expandjavascript .= 'expand("vh_span' . ($this->spancounter) . '");' . "\n";
+                if ($this->section != '' and $this->pathtosection[count($this->pathtosection) - 1] == $content->name) {
+                    $this->expandjavascript .= 'expand('.$this->divcounter.');'."\n";
                     array_pop($this->pathtosection);
                 }
 
@@ -104,16 +103,17 @@ class block_admin_tree extends block_base {
             return $this->content;
         }
 
-        if (!($this->has_admin_caps())) {
+        if (isguestuser() or !isloggedin()) {
+            // these users can not change any settings
             $this->content = '';
             return '';
         }
 
         require_once($CFG->libdir.'/adminlib.php');
-        $adminroot = admin_get_root();
+        $adminroot =& admin_get_root(false, false); // settings not required - only pages
 
-        if ($this->pathtosection = $adminroot->path($this->section)) {
-            $this->pathtosection = array_reverse($this->pathtosection);
+        if ($current = $adminroot->locate($this->section, true)) {
+            $this->pathtosection = $current->path;
             array_pop($this->pathtosection);
         }
 
@@ -129,111 +129,95 @@ class block_admin_tree extends block_base {
         }
 
         if ($this->tempcontent !== '') {
-            $strfolderopened = s(get_string('folderopened'));
-            $strfolderclosed = s(get_string('folderclosed'));
+            $closedimg = '<img src="'.$CFG->wwwroot.'/blocks/admin_tree/closed.gif" alt="'.s(get_string('folderclosed')).'" />';
+            $openedimg = '<img src="'.$CFG->wwwroot.'/blocks/admin_tree/open.gif" alt="'.s(get_string('folderopened')).'" />';
 
-            $this->content = new stdClass;
-            $this->content->text  = '<script type="text/javascript">'."\n";
-            $this->content->text .= '//<![CDATA[' . "\n";
-            $this->content->text .= 'var vh_numspans = ' . ($this->spancounter - 1) . ';' . "\n";
-            $this->content->text .= 'var vh_content = new Array();' . "\n";
-            $this->content->text .= 'function getspan(spanid) {' . "\n";
-            $this->content->text .= '  if (document.getElementById) {' . "\n";
-            $this->content->text .= '    return document.getElementById(spanid);' . "\n";
-            $this->content->text .= '  } else if (window[spanid]) {' . "\n";
-            $this->content->text .= '    return window[spanid];' . "\n";
-            $this->content->text .= '  }' . "\n";
-            $this->content->text .= '  return null;' . "\n";
-            $this->content->text .= '}' . "\n";
+            $this->content = new object();
+            $this->content->text  = '
+<script type="text/javascript">
+//<![CDATA[
+var vh_numdivs = '.($this->divcounter - 1).';
+var parkplatz  = new Array();
+for (var i=1; i<=vh_numdivs; i++) {
+    parkplatz[i] = null;
+}
 
-            $this->content->text .= 'function toggle(spanid) {' . "\n";
-            $this->content->text .= '  if (getspan(spanid).innerHTML == "") {' . "\n";
-            $this->content->text .= '    getspan(spanid).innerHTML = vh_content[spanid];' . "\n";
-            $this->content->text .= '    getspan(spanid + "indicator").innerHTML = \'<img src="' . $CFG->wwwroot . '/blocks/admin_tree/open.gif" alt="'.$strfolderopened.'" />\';' . "\n";
-            $this->content->text .= '  } else {' . "\n";
-            $this->content->text .= '    vh_content[spanid] = getspan(spanid).innerHTML;' . "\n";
-            $this->content->text .= '    getspan(spanid).innerHTML = "";' . "\n";
-            $this->content->text .= '    getspan(spanid + "indicator").innerHTML = \'<img src="' . $CFG->wwwroot . '/blocks/admin_tree/closed.gif" alt="'.$strfolderclosed.'" />\';' . "\n";
-            $this->content->text .= '  }' . "\n";
-            $this->content->text .= '}' . "\n";
+function toggle(i) {
+    i = parseInt(i);
+    if (parkplatz[i] === null) {
+        collapse(i);
+    } else {
+        expand(i);
+    }
+}
 
-            $this->content->text .= 'function collapse(spanid) {' . "\n";
-            $this->content->text .= '  if (getspan(spanid).innerHTML !== "") {' . "\n";
-            $this->content->text .= '    vh_content[spanid] = getspan(spanid).innerHTML;' . "\n";
-            $this->content->text .= '    getspan(spanid).innerHTML = "";' . "\n";
-            $this->content->text .= '    getspan(spanid + "indicator").innerHTML = \'<img src="' . $CFG->wwwroot . '/blocks/admin_tree/closed.gif" alt="'.$strfolderclosed.'" />\';' . "\n";
-            $this->content->text .= '  }' . "\n";
-            $this->content->text .= '}' . "\n";
+function collapse(i) {
+    if (parkplatz[i] !== null) {
+        return;
+    }
+    var obj = document.getElementById("vh_div"+String(i));
+    if (obj === null) {
+        return;
+    }
+    var nothing = document.createElement("span");
+    nothing.setAttribute("id", "vh_div"+String(i));
+    parkplatz[i] = obj;
+    obj.parentNode.replaceChild(nothing, obj);
+    var icon = document.getElementById("vh_div"+String(i)+"indicator");
+    icon.innerHTML = "'.addslashes_js($closedimg).'";
+}
 
-            $this->content->text .= 'function expand(spanid) {' . "\n";
-            $this->content->text .= '  getspan(spanid).innerHTML = vh_content[spanid];' . "\n";
-            $this->content->text .= '  getspan(spanid + "indicator").innerHTML = \'<img src="' . $CFG->wwwroot . '/blocks/admin_tree/open.gif" alt="'.$strfolderopened.'" />\';' . "\n";
-            $this->content->text .= '}' . "\n";
+function expand(i) {
+    if (parkplatz[i] === null) {
+        return;
+    }
+    var nothing = document.getElementById("vh_div"+String(i));
+    var obj = parkplatz[i];
+    parkplatz[i] = null;
+    nothing.parentNode.replaceChild(obj, nothing);
+    var icon = document.getElementById("vh_div"+String(i)+"indicator");
+    icon.innerHTML = "'.addslashes_js($openedimg).'";
+}
 
-            $this->content->text .= 'function expandall() {' . "\n";
-            $this->content->text .= '  for (i = 1; i <= vh_numspans; i++) {' . "\n";
-            $this->content->text .= '    expand("vh_span" + String(i));' . "\n";
-            $this->content->text .= '  }' . "\n";
-            $this->content->text .= '}' . "\n";
+function expandall() {
+    for (i=1; i<=vh_numdivs; i++) {
+        expand(i);
+    }
+}
 
-            $this->content->text .= 'function collapseall() {' . "\n";
-            $this->content->text .= '  for (i = vh_numspans; i > 0; i--) {' . "\n";
-            $this->content->text .= '    collapse("vh_span" + String(i));' . "\n";
-            $this->content->text .= '  }' . "\n";
-            $this->content->text .= '}' . "\n";
+function collapseall() {
+    for (var i=vh_numdivs; i>0; i--) {
+        collapse(i);
+    }
+}
 
-            $this->content->text .= '//]]>' . "\n";
-            $this->content->text .= '</script>' . "\n";
-            $this->content->text .= '<div class="admintree">' . "\n";
+//]]>
+</script>
+<div class="admintree">
 
-            $this->content->text .= $this->tempcontent;
+'.$this->tempcontent.'
 
-            $this->content->text .= '</div>' . "\n";
-            $this->content->text .= '<script type="text/javascript">' . "\n";
-            $this->content->text .= '//<![CDATA[' . "\n";
-            $this->content->text .= 'collapseall();' . "\n";
-            $this->content->text .= $this->expandjavascript;
-
-            $this->content->text .= '//]]>' . "\n";
-            $this->content->text .= '</script>' . "\n";
-
-            $searchcontent = isset($CFG->adminsearchquery) ? $CFG->adminsearchquery : '';
+</div>
+<script type="text/javascript">
+//<![CDATA[
+collapseall();
+'.$this->expandjavascript.';
+//]]>
+</script>';
 
             $this->content->footer = '<div class="adminsearchform">'.
-                                     '<form action="'.$CFG->wwwroot.'/admin/search.php" method="get"><div>'.
+                                     '<form action="'.$CFG->wwwroot.'/'.$CFG->admin.'/search.php" method="get"><div>'.
                                      '<label for="query" class="accesshide">'.get_string('searchinsettings', 'admin').'</label>'.
-                                     '<input type="text" name="query" id="query" size="8" value="'.s($searchcontent).'" />'.
+                                     '<input type="text" name="query" id="query" size="8" value="'.s($adminroot->search).'" />'.
                                      '<input type="submit" value="'.get_string('search').'" /></div>'.
                                      '</form></div>';
         } else {
-            $this->content = new stdClass;
+            $this->content = new object();
             $this->content->text = '';
         }
 
         return $this->content;
 
-    }
-
-    /**
-     * Return true
-     * if $USER has any caps that mean we should
-     * display this block...
-     */
-    function has_admin_caps() {
-
-        $sysctx = get_context_instance(CONTEXT_SYSTEM);
-
-        return (has_capability('moodle/site:config',             $sysctx)
-                || has_capability('moodle/site:langeditmaster',  $sysctx)
-                || has_capability('moodle/site:langeditlocal',   $sysctx)
-                || has_capability('moodle/site:manageblocks',    $sysctx)
-                || has_capability('moodle/user:delete',          $sysctx)
-                || has_capability('moodle/user:update',          $sysctx)
-                || has_capability('moodle/user:create',          $sysctx)
-                || has_capability('moodle/grade:manage',         $sysctx)
-                || has_capability('moodle/grade:manageletters',  $sysctx)
-                || has_capability('moodle/grade:managescales',   $sysctx)
-                || has_capability('moodle/site:readallmessages', $sysctx));
     }
 }
 

@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.128 2007/07/05 04:55:30 mattc-catalyst Exp $
+<?php  // $Id: view.php,v 1.128.3 2008/01/21 15:03:30 kowy Exp $
 /// This page prints a particular instance of glossary
     require_once("../../config.php");
     require_once("lib.php");
@@ -224,25 +224,23 @@
     $strsearch = get_string("search");
     $strwaitingapproval = get_string('waitingapproval', 'glossary');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$id", 'type' => 'activityinstance');
-
 /// If we are in approval mode, prit special header
     if ($tab == GLOSSARY_APPROVAL_VIEW) {
         require_capability('mod/glossary:approve', $context);
 
-        $navlinks[] = array('name' => $strwaitingapproval, 'link' => '', 'type' => 'title');
-        $navigation = build_navigation($navlinks);
-
+        $navigation = build_navigation($strwaitingapproval, $cm);
         print_header_simple(format_string($glossary->name), "", $navigation, "", "", true,
-            update_module_button($cm->id, $course->id, $strglossary), navmenu($course, $cm));
+            update_module_button($cm->id, $course->id, $strglossary), 
+            // kowy - 2007-01-12 - add standard logout box 
+			user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
         print_heading($strwaitingapproval);
     } else { /// Print standard header
-        $navigation = build_navigation($navlinks);
+        $navigation = build_navigation('', $cm);
         print_header_simple(format_string($glossary->name), "", $navigation, "", "", true,
-            update_module_button($cm->id, $course->id, $strglossary), navmenu($course, $cm));
+            update_module_button($cm->id, $course->id, $strglossary), 
+            // kowy - 2007-01-12 - add standard logout box 
+			user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
     }
 
 /// All this depends if whe have $showcommonelements
@@ -288,7 +286,8 @@
         }
 
     /// Start to print glossary controls
-        print_box_start('glossarycontrol');
+//        print_box_start('glossarycontrol clearfix');
+        echo '<div class="glossarycontrol" style="text-align: right">';
         echo $availableoptions;
 
     /// If rss are activated at site and glossary level and this glossary has rss defined, show link
@@ -301,23 +300,28 @@
             } else {
                 $userid = $USER->id;
             }
-            print_box_start('rsslink');
+//            print_box_start('rsslink');
+            echo '<span class="wrap rsslink">';
             rss_print_link($course->id, $userid, "glossary", $glossary->id, $tooltiptext);
-            print_box_end();
+            echo '</span>';
+//            print_box_end();
         }
 
     /// The print icon
         if ( $showcommonelements and $mode != 'search') {
             if (has_capability('mod/glossary:manageentries', $context) or $glossary->allowprintview) {
-                print_box_start('printicon');
+//                print_box_start('printicon');
+                echo '<span class="wrap printicon">';
                 echo " <a title =\"". get_string("printerfriendly","glossary") ."\" href=\"print.php?id=$cm->id&amp;mode=$mode&amp;hook=".urlencode($hook)."&amp;sortkey=$sortkey&amp;sortorder=$sortorder&amp;offset=$offset\"><img class=\"icon\" src=\"print.gif\" alt=\"". get_string("printerfriendly","glossary") . "\" /></a>";
-                print_box_end();
+                echo '</span>';
+//                print_box_end();
             }
         }
     /// End glossary controls
-        print_box_end(); /// glossarycontrol
-
-        print_box('&nbsp;', 'clearer');
+//        print_box_end(); /// glossarycontrol
+        echo '</div>';
+        
+//        print_box('&nbsp;', 'clearer');
     }
 
 /// Info box
@@ -343,10 +347,10 @@
         } else {
             $fullsearchchecked = '';
         }
-        echo '<input type="checkbox" name="fullsearch" value="1" '.$fullsearchchecked.' alt="'.$strsearchindefinition.'" />';
+        echo '<input type="checkbox" name="fullsearch" id="fullsearch" value="1" '.$fullsearchchecked.' />';
         echo '<input type="hidden" name="mode" value="search" />';
         echo '<input type="hidden" name="id" value="'.$cm->id.'" />';
-        echo $strsearchindefinition;
+        echo '<label for="fullsearch">'.$strsearchindefinition.'</label>';
         echo '</td></tr></table>';
 
         echo '</form>';
@@ -439,17 +443,17 @@
                     $pivottoshow = $currentpivot;
                     if ( isset($entry->userispivot) ) {
                     // printing the user icon if defined (only when browsing authors)
-                        echo '<td align="left">';
+                        echo '<th align="left">';
 
                         $user = get_record("user","id",$entry->userid);
                         print_user_picture($user->id, $course->id, $user->picture);
                         $pivottoshow = fullname($user, has_capability('moodle/site:viewfullnames', get_context_instance(CONTEXT_COURSE, $course->id)));
                     } else {
-                        echo '<td align="center">';
+                        echo '<th >';
                     }
 
-                    echo "<strong> $pivottoshow</strong>" ;
-                    echo '</td></tr></table></div>';
+                    print_heading($pivottoshow);
+                    echo "</th></tr></table></div>\n";
 
                 }
             }

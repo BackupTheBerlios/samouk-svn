@@ -1,94 +1,147 @@
-<?php  //$Id: category_form.php,v 1.8 2007/09/15 13:23:28 skodak Exp $
+<?php  //$Id: category_form.php,v 1.9.2.11 2007/11/22 21:35:34 skodak Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once $CFG->libdir.'/formslib.php';
 
 class edit_category_form extends moodleform {
-    var $aggregation_types = array();
-    var $keepdrop_options = array();
 
     function definition() {
-        global $CFG;
+        global $CFG, $COURSE;
         $mform =& $this->_form;
 
-        $this->aggregation_types = array(GRADE_AGGREGATE_MEAN            =>get_string('aggregatemean', 'grades'),
-                                         GRADE_AGGREGATE_MEDIAN          =>get_string('aggregatemedian', 'grades'),
-                                         GRADE_AGGREGATE_MIN             =>get_string('aggregatemin', 'grades'),
-                                         GRADE_AGGREGATE_MAX             =>get_string('aggregatemax', 'grades'),
-                                         GRADE_AGGREGATE_MODE            =>get_string('aggregatemode', 'grades'),
-                                         GRADE_AGGREGATE_WEIGHTED_MEAN   =>get_string('aggregateweightedmean', 'grades'),
-                                         GRADE_AGGREGATE_EXTRACREDIT_MEAN=>get_string('aggregateextracreditmean', 'grades'));
+        $options = array(GRADE_AGGREGATE_MEAN            =>get_string('aggregatemean', 'grades'),
+                         GRADE_AGGREGATE_WEIGHTED_MEAN   =>get_string('aggregateweightedmean', 'grades'),
+                         GRADE_AGGREGATE_WEIGHTED_MEAN2  =>get_string('aggregateweightedmean2', 'grades'),
+                         GRADE_AGGREGATE_EXTRACREDIT_MEAN=>get_string('aggregateextracreditmean', 'grades'),
+                         GRADE_AGGREGATE_MEDIAN          =>get_string('aggregatemedian', 'grades'),
+                         GRADE_AGGREGATE_MIN             =>get_string('aggregatemin', 'grades'),
+                         GRADE_AGGREGATE_MAX             =>get_string('aggregatemax', 'grades'),
+                         GRADE_AGGREGATE_MODE            =>get_string('aggregatemode', 'grades'),
+                         GRADE_AGGREGATE_SUM             =>get_string('aggregatesum', 'grades'));
 
         // visible elements
-        $mform->addElement('header', 'general', get_string('gradecategory', 'grades'));
+        $mform->addElement('header', 'headercategory', get_string('gradecategory', 'grades'));
         $mform->addElement('text', 'fullname', get_string('categoryname', 'grades'));
+        $mform->addRule('fullname', null, 'required', null, 'client');
 
-        if ($CFG->grade_aggregation == -1) {
-
-            $mform->addElement('select', 'aggregation', get_string('aggregation', 'grades'), $this->aggregation_types);
-            $mform->setHelpButton('aggregation', array('aggregation', get_string('aggregation', 'grades'), 'grade'));
-            $mform->setDefault('aggregation', GRADE_AGGREGATE_MEAN);
-        } else {
-            $mform->addElement('static', 'aggregation', get_string('aggregation', 'grades'));
+        $mform->addElement('select', 'aggregation', get_string('aggregation', 'grades'), $options);
+        $mform->setHelpButton('aggregation', array('aggregation', get_string('aggregation', 'grades'), 'grade'));
+        if ((int)$CFG->grade_aggregation_flag & 2) {
+            $mform->setAdvanced('aggregation');
         }
 
-        if ($CFG->grade_aggregateonlygraded == -1) {
-            $mform->addElement('advcheckbox', 'aggregateonlygraded', get_string('aggregateonlygraded', 'grades'));
-            $mform->setHelpButton('aggregateonlygraded', array(false, get_string('aggregateonlygraded', 'grades'),
-                              false, true, false, get_string('aggregateonlygradedhelp', 'grades')));
-        } else {
-            $mform->addElement('static', 'aggregateonlygraded', get_string('aggregateonlygraded', 'grades'));
+        $mform->addElement('checkbox', 'aggregateonlygraded', get_string('aggregateonlygraded', 'grades'));
+        $mform->setHelpButton('aggregateonlygraded', array(false, get_string('aggregateonlygraded', 'grades'),
+                          false, true, false, get_string('aggregateonlygradedhelp', 'grades')));
+        $mform->disabledIf('aggregateonlygraded', 'aggregation', 'eq', GRADE_AGGREGATE_SUM);
+        if ((int)$CFG->grade_aggregateonlygraded_flag & 2) {
+            $mform->setAdvanced('aggregateonlygraded');
         }
 
-        if (!empty($CFG->enableoutcomes) && $CFG->grade_aggregateoutcomes == -1) {
-            $mform->addElement('advcheckbox', 'aggregateoutcomes', get_string('aggregateoutcomes', 'grades'));
+        if (empty($CFG->enableoutcomes)) {
+            $mform->addElement('hidden', 'aggregateoutcomes');
+            $mform->setType('aggregateoutcomes', PARAM_INT);
+        } else {
+            $mform->addElement('checkbox', 'aggregateoutcomes', get_string('aggregateoutcomes', 'grades'));
             $mform->setHelpButton('aggregateoutcomes', array(false, get_string('aggregateoutcomes', 'grades'),
                               false, true, false, get_string('aggregateoutcomeshelp', 'grades')));
-        } else {
-            $mform->addElement('static', 'aggregateoutcomes', get_string('aggregateoutcomes', 'grades'));
+            $mform->disabledIf('aggregateoutcomes', 'aggregation', 'eq', GRADE_AGGREGATE_SUM);
+            if ((int)$CFG->grade_aggregateoutcomes_flag & 2) {
+                $mform->setAdvanced('aggregateoutcomes');
+            }
         }
 
-        if ($CFG->grade_aggregatesubcats == -1) {
-            $mform->addElement('advcheckbox', 'aggregatesubcats', get_string('aggregatesubcats', 'grades'));
-            $mform->setHelpButton('aggregatesubcats', array(false, get_string('aggregatesubcats', 'grades'),
-                              false, true, false, get_string('aggregatesubcatshelp', 'grades')));
-        } else {
-            $mform->addElement('static', 'aggregatesubcats', get_string('aggregatesubcats', 'grades'));
+        $mform->addElement('advcheckbox', 'aggregatesubcats', get_string('aggregatesubcats', 'grades'));
+        $mform->setHelpButton('aggregatesubcats', array(false, get_string('aggregatesubcats', 'grades'),
+                          false, true, false, get_string('aggregatesubcatshelp', 'grades')));
+        if ((int)$CFG->grade_aggregatesubcats_flag & 2) {
+            $mform->setAdvanced('aggregatesubcats');
         }
 
-        $this->keepdrop_options = array();
-        $this->keepdrop_options[0] = get_string('none');
+        $options = array(0 => get_string('none'));
         for ($i=1; $i<=20; $i++) {
-            $this->keepdrop_options[$i] = $i;
+            $options[$i] = $i;
         }
 
-        $keepdrop_present = 0;
-
-        if ($CFG->grade_keephigh == -1) {
-            $mform->addElement('select', 'keephigh', get_string('keephigh', 'grades'), $this->keepdrop_options);
-            $mform->setHelpButton('keephigh', array(false, get_string('keephigh', 'grades'),
-                              false, true, false, get_string('keephighhelp', 'grades')));
-            $keepdrop_present++;
-        } else {
-            $mform->addElement('static', 'keephigh', get_string('keephigh', 'grades'));
+        $mform->addElement('select', 'keephigh', get_string('keephigh', 'grades'), $options);
+        $mform->setHelpButton('keephigh', array(false, get_string('keephigh', 'grades'),
+                          false, true, false, get_string('keephighhelp', 'grades')));
+        if ((int)$CFG->grade_keephigh_flag & 2) {
+            $mform->setAdvanced('keephigh');
         }
 
-        if ($CFG->grade_droplow == -1) {
-            $mform->addElement('select', 'droplow', get_string('droplow', 'grades'), $this->keepdrop_options);
-            $mform->setHelpButton('droplow', array(false, get_string('droplow', 'grades'),
-                              false, true, false, get_string('droplowhelp', 'grades')));
-            $mform->disabledIf('droplow', 'keephigh', 'noteq', 0);
-            $keepdrop_present++;
-        } else {
-            $mform->addElement('static', 'droplow', get_string('droplow', 'grades'));
+        $mform->addElement('select', 'droplow', get_string('droplow', 'grades'), $options);
+        $mform->setHelpButton('droplow', array(false, get_string('droplow', 'grades'),
+                          false, true, false, get_string('droplowhelp', 'grades')));
+        $mform->disabledIf('droplow', 'keephigh', 'noteq', 0);
+        if ((int)$CFG->grade_droplow_flag & 2) {
+            $mform->setAdvanced('droplow');
         }
 
-        if ($keepdrop_present == 2) {
-            $mform->disabledIf('keephigh', 'droplow', 'noteq', 0);
-            $mform->disabledIf('droplow', 'keephigh', 'noteq', 0);
+        $mform->disabledIf('keephigh', 'droplow', 'noteq', 0);
+        $mform->disabledIf('droplow', 'keephigh', 'noteq', 0);
+
+/// parent category related settings
+        $mform->addElement('header', 'headerparent', get_string('parentcategory', 'grades'));
+
+        $options = array();
+        $default = '';
+        $coefstring = '';
+        $categories = grade_category::fetch_all(array('courseid'=>$COURSE->id));
+        foreach ($categories as $cat) {
+            $cat->apply_forced_settings();
+            $options[$cat->id] = $cat->get_name();
+            if ($cat->is_course_category()) {
+                $default = $cat->id;
+            }
+            if ($cat->is_aggregationcoef_used()) {
+                if ($cat->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefweight') ? 'aggregationcoefweight' : 'aggregationcoef';
+
+                } else if ($cat->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                    $coefstring = ($coefstring=='' or $coefstring=='aggregationcoefextra') ? 'aggregationcoefextra' : 'aggregationcoef';
+
+                } else {
+                    $coefstring = 'aggregationcoef';
+                }
+            } else {
+                $mform->disabledIf('aggregationcoef', 'parentcategory', 'eq', $cat->id);
+            }
+        }
+        if (count($categories) > 1) {
+            $mform->addElement('select', 'parentcategory', get_string('gradecategory', 'grades'), $options);
         }
 
-        // user preferences
-        $mform->addElement('header', 'general', get_string('userpreferences', 'grades'));
+        if ($coefstring !== '') {
+            $mform->addElement('text', 'aggregationcoef', get_string($coefstring, 'grades'));
+            $mform->setHelpButton('aggregationcoef', array(false, get_string($coefstring, 'grades'),
+                                    false, true, false, get_string($coefstring.'help', 'grades')));
+        }
+
+/// user preferences
+        $mform->addElement('header', 'headerpreferences', get_string('myreportpreferences', 'grades'));
         $options = array(GRADE_REPORT_PREFERENCE_DEFAULT => get_string('default', 'grades'),
                          GRADE_REPORT_AGGREGATION_VIEW_FULL => get_string('fullmode', 'grades'),
                          GRADE_REPORT_AGGREGATION_VIEW_AGGREGATES_ONLY => get_string('aggregatesonly', 'grades'),
@@ -99,6 +152,7 @@ class edit_category_form extends moodleform {
         $mform->setHelpButton('pref_aggregationview', array(false, get_string('aggregationview', 'grades'),
                               false, true, false, get_string('configaggregationview', 'grades')));
         $mform->setDefault('pref_aggregationview', GRADE_REPORT_PREFERENCE_DEFAULT);
+        $mform->setAdvanced('pref_aggregationview');
 
         // hidden params
         $mform->addElement('hidden', 'id', 0);
@@ -119,45 +173,77 @@ class edit_category_form extends moodleform {
 
 /// tweak the form - depending on existing data
     function definition_after_data() {
-        global $CFG;
+        global $CFG, $COURSE;
 
         $mform =& $this->_form;
 
-        $checkbox_values = array(get_string('no'), get_string('yes'));
-
-        if ($CFG->grade_aggregation != -1) {
-            $agg_el =& $mform->getElement('aggregation');
-            $agg_el->setValue($this->aggregation_types[$CFG->grade_aggregation]);
+        $somecat = new grade_category();
+        foreach ($somecat->forceable as $property) {
+            if ((int)$CFG->{"grade_{$property}_flag"} & 1) {
+                if ($mform->elementExists($property)) {
+                    if (empty($CFG->grade_hideforcedsettings)) {
+                        $mform->hardFreeze($property);
+                    } else {
+                        if ($mform->elementExists($property)) {
+                            $mform->removeElement($property);
+                        }
+                    }
+                }
+            }
         }
 
-        if ($CFG->grade_aggregateonlygraded != -1) {
-            $agg_el =& $mform->getElement('aggregateonlygraded');
-            $agg_el->setValue($checkbox_values[$CFG->grade_aggregateonlygraded]);
-        }
-
-        if ($CFG->grade_aggregateoutcomes != -1) {
-            $agg_el =& $mform->getElement('aggregateoutcomes');
-            $agg_el->setValue($checkbox_values[$CFG->grade_aggregateoutcomes]);
-        }
-
-        if ($CFG->grade_aggregatesubcats != -1) {
-            $agg_el =& $mform->getElement('aggregatesubcats');
-            $agg_el->setValue($checkbox_values[$CFG->grade_aggregatesubcats]);
-        }
-
-        if ($CFG->grade_keephigh != -1) {
-            $agg_el =& $mform->getElement('keephigh');
-            $agg_el->setValue($this->keepdrop_options[$CFG->grade_keephigh]);
-        }
-
-        if ($CFG->grade_droplow != -1) {
-            $agg_el =& $mform->getElement('droplow');
-            $agg_el->setValue($this->keepdrop_options[$CFG->grade_droplow]);
+        if ($CFG->grade_droplow > 0) {
+            if ($mform->elementExists('keephigh')) {
+                $mform->removeElement('keephigh');
+            }
+        } else if ($CFG->grade_keephigh > 0) {
+            if ($mform->elementExists('droplow')) {
+                $mform->removeElement('droplow');
+            }
         }
 
         if ($id = $mform->getElementValue('id')) {
             $grade_category = grade_category::fetch(array('id'=>$id));
             $grade_item = $grade_category->load_grade_item();
+
+
+            // remove agg coef if not used
+            if ($grade_category->is_course_category()) {
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->removeElement('parentcategory');
+                }
+                if ($mform->elementExists('aggregationcoef')) {
+                    $mform->removeElement('aggregationcoef');
+                }
+
+            } else {
+                // if we wanted to change parent of existing category - we would have to verify there are no circular references in parents!!!
+                if ($mform->elementExists('parentcategory')) {
+                    $mform->hardFreeze('parentcategory');
+                }
+
+                $parent_category = $grade_category->get_parent_category();
+                $parent_category->apply_forced_settings();
+                if (!$parent_category->is_aggregationcoef_used()) {
+                    if ($mform->elementExists('aggregationcoef')) {
+                        $mform->removeElement('aggregationcoef');
+                    }
+                } else {
+                    //fix label if needed
+                    $agg_el =& $mform->getElement('aggregationcoef');
+                    $aggcoef = '';
+                    if ($parent_category->aggregation == GRADE_AGGREGATE_WEIGHTED_MEAN) {
+                        $aggcoef = 'aggregationcoefweight';
+                    } else if ($parent_category->aggregation == GRADE_AGGREGATE_EXTRACREDIT_MEAN) {
+                        $aggcoef = 'aggregationcoefextra';
+                    }
+                    if ($aggcoef !== '') {
+                        $agg_el->setLabel(get_string($aggcoef, 'grades'));
+                        $mform->setHelpButton('aggregationcoef', array(false, get_string($aggcoef, 'grades'),
+                                false, true, false, get_string($aggcoef.'help', 'grades')));
+                    }
+                }
+            }
 
             if ($grade_item->is_calculated()) {
                 // following elements are ignored when calculation formula used
@@ -181,6 +267,12 @@ class edit_category_form extends moodleform {
                 }
             }
         }
+
+        // no parent header for course category
+        if (!$mform->elementExists('aggregationcoef') and !$mform->elementExists('parentcategory')) {
+            $mform->removeElement('headerparent');
+        }
+
     }
 
 }

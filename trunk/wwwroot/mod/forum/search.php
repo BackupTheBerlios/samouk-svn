@@ -1,4 +1,4 @@
-<?php // $Id: search.php,v 1.86 2007/09/03 07:57:56 moodler Exp $
+<?php // $Id: search.php,v 1.86.3 2008/01/21 16:09:42 kowy Exp $
 
     require_once('../../config.php');
     require_once('lib.php');
@@ -97,16 +97,17 @@
     $strsearchresults = get_string("searchresults", "forum");
     $strpage = get_string("page");
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strforums, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    
     if (!$search || $showform) {
     
-        $crumns[] = array('name' => $strsearch, 'link' => '', 'type' => 'title');
+        $navlinks = array();
+        $navlinks[] = array('name' => $strforums, 'link' => "index.php?id=$course->id", 'type' => 'activity');
+        $navlinks[] = array('name' => $strsearch, 'link' => '', 'type' => 'title');
         $navigation = build_navigation($navlinks);
         
         print_header_simple("$strsearch", "", $navigation, 'search.words',
-                  "", "", "&nbsp;", navmenu($course));
+                  	"", "", "&nbsp;", 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
         forum_print_big_search_form($course);
         print_footer($course);
@@ -127,7 +128,9 @@
 
 
     if (!$posts = forum_search_posts($searchterms, $course->id, $page*$perpage, $perpage, $totalcount)) {
-        print_header_simple("$strsearchresults", "", $navigation, 'search.words', "", "", "&nbsp;", navmenu($course));
+        print_header_simple("$strsearchresults", "", $navigation, 'search.words', "", "", "&nbsp;", 
+        					// kowy - 2007-01-12 - add standard logout box 
+							user_login_string($course).'<hr style="width:95%">'.navmenu($course));
         print_heading(get_string("nopostscontaining", "forum", $search));
 
         if (!$individualparams) {
@@ -141,7 +144,9 @@
     }
     
     
-    print_header_simple("$strsearchresults", "", $navigation, '', "", "",  $searchform, navmenu($course));
+    print_header_simple("$strsearchresults", "", $navigation, '', "", "",  $searchform, 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     echo '<div class="reportlink">';
     echo '<a href="search.php?id='.$course->id.

@@ -120,6 +120,18 @@ $moodle_capabilities = array(
             'editingteacher' => CAP_ALLOW
         )
     ),
+    
+    'moodle/site:sendmessage' => array(
+
+        'riskbitmask' => RISK_PERSONAL,
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'legacy' => array(
+            'admin' => CAP_ALLOW,
+            'user' => CAP_ALLOW
+        )
+    ),   
 
     'moodle/site:approvecourse' => array(
 
@@ -631,6 +643,8 @@ $moodle_capabilities = array(
 
     'moodle/course:managegroups' => array(
 
+        'riskbitmask' => RISK_XSS,
+
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'legacy' => array(
@@ -721,6 +735,19 @@ $moodle_capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'legacy' => array(
             'user' => CAP_ALLOW,
+            'admin' => CAP_ALLOW
+        )
+    ),
+
+    'moodle/calendar:managegroupentries' => array(
+
+        'riskbitmask' => RISK_SPAM,
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'legacy' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
             'admin' => CAP_ALLOW
         )
     ),
@@ -980,7 +1007,7 @@ $moodle_capabilities = array(
     'moodle/grade:viewall' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
-        'contextlevel' => CONTEXT_COURSE,
+        'contextlevel' => CONTEXT_COURSE, // and CONTEXT_USER
         'legacy' => array(
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
@@ -991,7 +1018,7 @@ $moodle_capabilities = array(
 
     'moodle/grade:view' => array(
         'captype' => 'read',
-        'contextlevel' => CONTEXT_COURSE, // and CONTEXT_PERSONAL too
+        'contextlevel' => CONTEXT_COURSE,
         'legacy' => array(
             'student' => CAP_ALLOW
         )
@@ -1000,7 +1027,7 @@ $moodle_capabilities = array(
     'moodle/grade:viewhidden' => array(
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
-        'contextlevel' => CONTEXT_COURSE, // and CONTEXT_PERSONAL too
+        'contextlevel' => CONTEXT_COURSE,
         'legacy' => array(
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,

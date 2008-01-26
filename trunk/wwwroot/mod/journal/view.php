@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.54 2007/07/05 04:55:32 mattc-catalyst Exp $
+<?php  // $Id: view.php,v 1.54.2.1 2007/10/12 16:09:47 tjhunt Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -28,11 +28,7 @@
     $strjournal = get_string("modulename", "journal");
     $strjournals = get_string("modulenameplural", "journal");
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strjournals, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($journal->name), 'link' => '', 'type' => 'activityinstance');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation('', $cm);
     print_header_simple(format_string($journal->name), '', $navigation, '', '', true,
                   update_module_button($cm->id, $course->id, $strjournal), navmenu($course, $cm));
 

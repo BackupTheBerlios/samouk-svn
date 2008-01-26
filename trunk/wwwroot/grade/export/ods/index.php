@@ -1,4 +1,4 @@
-<?php  //$Id: index.php,v 1.26 2007/09/27 06:51:55 skodak Exp $
+<?php  //$Id: index.php,v 1.27.2.1 2007/12/07 01:40:45 toyomoyo Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -55,7 +55,7 @@ $mform = new grade_export_form(null, array('publishing' => true));
 
 // process post information
 if ($data = $mform->get_data()) {
-    $export = new grade_export_ods($course, groups_get_course_group($course));
+    $export = new grade_export_ods($course, groups_get_course_group($course), '', false, false, $data->display, $data->decimals);
 
     // print the grades on screen for feedbacks
     $export->process_form($data);

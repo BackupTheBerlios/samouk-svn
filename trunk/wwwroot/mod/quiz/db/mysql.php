@@ -1,4 +1,4 @@
-<?php // $Id: mysql.php,v 1.115 2007/04/12 15:34:47 stronk7 Exp $
+<?php // $Id: mysql.php,v 1.115.4.1 2007/11/02 16:20:25 tjhunt Exp $
 
 // THIS FILE IS DEPRECATED!  PLEASE DO NOT MAKE CHANGES TO IT!
 //

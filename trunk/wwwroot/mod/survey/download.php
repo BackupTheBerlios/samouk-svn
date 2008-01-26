@@ -1,4 +1,4 @@
-<?php // $Id: download.php,v 1.26 2007/08/28 00:12:01 mattc-catalyst Exp $
+<?php // $Id: download.php,v 1.27 2007/10/09 21:43:30 iarenaza Exp $
 
     require ("../../config.php");
 
@@ -309,4 +309,3 @@
 
 
 ?>
-

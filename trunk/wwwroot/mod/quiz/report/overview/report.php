@@ -2,7 +2,7 @@
 /**
  * This script lists student attempts
  *
- * @version $Id: report.php,v 1.98 2007/10/04 15:57:09 tjhunt Exp $
+ * @version $Id: report.php,v 1.98.2.6 2007/12/18 18:19:36 tjhunt Exp $
  * @author Martin Dougiamas, Tim Hunt and others.
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package quiz
@@ -50,6 +50,13 @@ class quiz_report extends quiz_default_report {
         $nocleanformatoptions = new stdClass;
         $nocleanformatoptions->noclean = true;
 
+        // Prepare list of available actions to perform on attempts - we only want to show the checkbox.
+        // Column on the table if there are options.
+        $attemptactions = array();
+        if (has_capability('mod/quiz:deleteattempts', $context)) {
+            $attemptactions['delete'] = get_string('delete');
+        }
+
         // Work out some display options - whether there is feedback, and whether scores should be shown.
         $hasfeedback = quiz_has_feedback($quiz->id) && $quiz->grade > 1.e-7 && $quiz->sumgrades > 1.e-7;
         $fakeattempt = new stdClass();
@@ -72,25 +79,19 @@ class quiz_report extends quiz_default_report {
         $reporturlwithoptions = $reporturl . '&amp;id=' . $cm->id . '&amp;noattempts=' . $noattempts .
                 '&amp;detailedmarks=' . $detailedmarks . '&amp;pagesize=' . $pagesize;
 
-        // Print information on the number of existing attempts
-        if (!$download) { //do not print notices when downloading
-            if ($attemptnum = count_records('quiz_attempts', 'quiz', $quiz->id, 'preview', 0)) {
-                $a = new stdClass;
-                $a->attemptnum = $attemptnum;
-                $a->studentnum = count_records_select('quiz_attempts',
-                        "quiz = '$quiz->id' AND preview = '0'", 'COUNT(DISTINCT userid)');
-                $a->studentstring = $course->students;
-
-                notify(get_string('numattempts', 'quiz', $a));
-            }
-        }
-
         /// find out current groups mode
         $currentgroup = groups_get_activity_group($cm, true);
 
         if ($groupmode = groups_get_activity_groupmode($cm)) {   // Groups are being used
             if (!$download) {
                 groups_print_activity_menu($cm, $reporturlwithoptions);
+            }
+        }
+
+        // Print information on the number of existing attempts
+        if (!$download) { //do not print notices when downloading
+            if ($strattemptnum = quiz_num_attempt_summary($quiz, $cm, false, $currentgroup)) {
+                echo '<div class="quizattemptcounts">' . $strattemptnum . '</div>';
             }
         }
 
@@ -101,16 +102,21 @@ class quiz_report extends quiz_default_report {
         }
 
         // Define table columns
-        $tablecolumns = array('checkbox', 'picture', 'fullname', 'timestart', 'timefinish', 'duration');
-        $tableheaders = array(NULL, '', get_string('name'), get_string('startedon', 'quiz'),
+        $tablecolumns = array('picture', 'fullname', 'timestart', 'timefinish', 'duration');
+        $tableheaders = array('', get_string('name'), get_string('startedon', 'quiz'),
                 get_string('timecompleted','quiz'), get_string('attemptduration', 'quiz'));
+
+        if (!empty($attemptactions)) {
+            array_unshift($tablecolumns, 'checkbox');
+            array_unshift($tableheaders, NULL);
+        }
 
         if ($showgrades) {
             $tablecolumns[] = 'sumgrades';
             $tableheaders[] = get_string('grade', 'quiz').'/'.$quiz->grade;
         }
 
-        if($detailedmarks) {
+        if ($detailedmarks) {
             // we want to display marks for all questions
             // Start by getting all questions
             $questionlist = quiz_questions_in_quiz($quiz->questions);
@@ -124,7 +130,7 @@ class quiz_report extends quiz_default_report {
                 error('No questions found');
             }
             $number = 1;
-            foreach($questionids as $key => $id) {
+            foreach ($questionids as $key => $id) {
                 if ($questions[$id]->length) {
                     // Only print questions of non-zero length
                     $tablecolumns[] = '$'.$id;
@@ -423,10 +429,10 @@ class quiz_report extends quiz_default_report {
         }
 
         // Build table rows
-
         if (!$download) {
             $table->initialbars($totalinitials>20);
         }
+
         if(!empty($attempts) || !empty($noattempts)) {
             if ($attempts) {
                 foreach ($attempts as $attempt) {
@@ -447,7 +453,9 @@ class quiz_report extends quiz_default_report {
                     // Username columns.
                     $row = array();
                     if (!$download) {
-                        $row[] = '<input type="checkbox" name="attemptid[]" value="'.$attempt->attempt.'" />';
+                        if (!empty($attemptactions)) {
+                            $row[] = '<input type="checkbox" name="attemptid[]" value="'.$attempt->attempt.'" />';
+                        }
                         $row[] = $picture;
                         $row[] = $userlink;
                     } else {
@@ -482,16 +490,19 @@ class quiz_report extends quiz_default_report {
                     }
 
                     // Grades columns.
-                    if ($showgrades && $attempt->sumgrades) {
-                        $grade = round($attempt->sumgrades / $quiz->sumgrades * $quiz->grade,$quiz->decimalpoints);
-                        if (!$download) {
-                            $row[] = '<a href="review.php?q='.$quiz->id.'&amp;attempt='.$attempt->attempt.'">'.$grade.'</a>';
+                    if ($showgrades) {
+                        if ($attempt->timefinish) {
+                            $grade = quiz_rescale_grade($attempt->sumgrades, $quiz);
+                            if (!$download) {
+                                $row[] = '<a href="review.php?q='.$quiz->id.'&amp;attempt='.$attempt->attempt.'">'.$grade.'</a>';
+                            } else {
+                                $row[] = $grade;
+                            }
                         } else {
-                            $row[] = $grade;
+                            $row[] = '-';
                         }
-                    } else {
-                        $row[] = '-';
                     }
+
                     if($detailedmarks) {
                         if(empty($attempt->attempt)) {
                             foreach($questionids as $questionid) {
@@ -553,14 +564,8 @@ class quiz_report extends quiz_default_report {
                 // Print table
                 $table->print_html();
 
-                // Prepare list of available options.
-                $options = array();
-                if (has_capability('mod/quiz:deleteattempts', $context)) {
-                    $options['delete'] = get_string('delete');
-                }
-
                 // Print "Select all" etc.
-                if (!empty($attempts) && !empty($options)) {
+                if (!empty($attempts) && !empty($attemptactions)) {
                     echo '<table id="commands">';
                     echo '<tr><td>';
                     echo '<a href="javascript:select_all_in(\'DIV\',null,\'tablecontainer\');">'.
@@ -568,7 +573,7 @@ class quiz_report extends quiz_default_report {
                     echo '<a href="javascript:deselect_all_in(\'DIV\',null,\'tablecontainer\');">'.
                             get_string('selectnone', 'quiz').'</a> ';
                     echo '&nbsp;&nbsp;';
-                    choose_from_menu($options, 'action', '', get_string('withselected', 'quiz'),
+                    choose_from_menu($attemptactions, 'action', '', get_string('withselected', 'quiz'),
                             'if(this.selectedIndex > 0) submitFormById(\'attemptsform\');');
                     echo '<noscript id="noscriptmenuaction" style="display: inline;"><div>';
                     echo '<input type="submit" value="'.get_string('go').'" /></div></noscript>';

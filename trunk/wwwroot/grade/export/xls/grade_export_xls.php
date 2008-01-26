@@ -1,4 +1,5 @@
-<?php
+<?php //$Id: grade_export_xls.php,v 1.13 2007/10/10 06:34:22 nicolasconnault Exp $
+
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //

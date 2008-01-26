@@ -1,4 +1,4 @@
-<?PHP // $Id: notes.php,v 1.4 2007/08/31 05:22:45 moodler Exp $
+<?PHP // $Id: notes.php,v 1.4.2.1 2007/11/29 14:40:48 skodak Exp $
       // note.php 
 $string['note'] = 'Note';
 $string['notes'] = 'Notes';
@@ -22,4 +22,5 @@ $string['personal'] = 'personal';
 $string['course'] = 'course';
 $string['site'] = 'site';
 $string['editnote'] = 'Edit note';
+$string['deletenotes'] = 'Delete all notes';
 ?>

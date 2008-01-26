@@ -1,4 +1,4 @@
-<?php // $Id: setuplib.php,v 1.21 2007/03/20 02:59:34 nicolasconnault Exp $ 
+<?php // $Id: setuplib.php,v 1.22.2.3 2007/12/20 23:16:51 stronk7 Exp $ 
       // These functions are required very early in the Moodle 
       // setup process, before any of the main libraries are 
       // loaded.
@@ -174,8 +174,8 @@ function setup_is_unicodedb() {
 
     switch ($dbfamily) {
         case 'mysql':
-            $rs = $db->Execute("SHOW VARIABLES LIKE 'character_set_database'");
-            if ($rs && $rs->RecordCount() > 0) {
+            $rs = $db->Execute("SHOW LOCAL VARIABLES LIKE 'character_set_database'");
+            if ($rs && !$rs->EOF) { // rs_EOF() not available yet
                 $records = $rs->GetAssoc(true);
                 $encoding = $records['character_set_database']['Value'];
                 if (strtoupper($encoding) == 'UTF8') {
@@ -186,7 +186,7 @@ function setup_is_unicodedb() {
         case 'postgres':
         /// Get PostgreSQL server_encoding value
             $rs = $db->Execute("SHOW server_encoding");
-            if ($rs && $rs->RecordCount() > 0) {
+            if ($rs && !$rs->EOF) { // rs_EOF() not available yet
                 $encoding = $rs->fields['server_encoding'];
                 if (strtoupper($encoding) == 'UNICODE' || strtoupper($encoding) == 'UTF8') {
                     $unicodedb = true;
@@ -200,7 +200,7 @@ function setup_is_unicodedb() {
         case 'oracle':
         /// Get Oracle DB character set value
             $rs = $db->Execute("SELECT parameter, value FROM nls_database_parameters where parameter = 'NLS_CHARACTERSET'");
-            if ($rs && $rs->RecordCount() > 0) {
+            if ($rs && !$rs->EOF) { // rs_EOF() not available yet
                 $encoding = $rs->fields['value'];
                 if (strtoupper($encoding) == 'AL32UTF8') {
                     $unicodedb = true;
@@ -213,7 +213,7 @@ function setup_is_unicodedb() {
 
 /**
  * This internal function sets and returns the proper value for $CFG->dbfamily based on $CFG->dbtype
- * It's called by configure_dbconnection() and at install time. Shouldn't be used
+ * It's called by preconfigure_dbconnection() and at install time. Shouldn't be used
  * in other places. Code should rely on dbfamily to perform conditional execution
  * instead of using dbtype directly. This allows quicker adoption of different
  * drivers going against the same DB backend.
@@ -253,6 +253,48 @@ function set_dbfamily() {
     }
 
     return $CFG->dbfamily;
+}
+
+/**
+ * This internal function, called from setup.php BEFORE stabilishing the DB
+ * connection, defines the $CFG->dbfamily global -by calling set_dbfamily()-
+ * and predefines some constants needed by ADOdb to switch some default
+ * behaviours.
+ *
+ * This function must contain all the pre-connection code needed for each
+ * dbtype supported.
+ */
+function preconfigure_dbconnection() {
+
+    global $CFG;
+
+/// Define dbfamily
+    set_dbfamily();
+
+/// Based on $CFG->dbfamily, set some ADOdb settings
+    switch ($CFG->dbfamily) {
+        /// list here family types where we know
+        /// the fieldnames will come in lowercase
+        /// so we can avoid expensive tolower()
+        case 'postgres':
+        case 'mysql':
+        case 'mssql':
+            define ('ADODB_ASSOC_CASE', 2);
+            break;
+        case 'oracle':
+            define ('ADODB_ASSOC_CASE', 0); /// Use lowercase fieldnames for ADODB_FETCH_ASSOC
+                                            /// (only meaningful for oci8po, it's the default
+                                            /// for other DB drivers so this won't affect them)
+            /// Row prefetching uses a bit of memory but saves a ton
+            /// of network latency. With current AdoDB and PHP, only
+            /// Oracle uses this setting.
+            define ('ADODB_PREFETCH_ROWS', 1000);
+            break;
+        default:
+            /// if we have to lowercase it, set to 0
+            /// - note that the lowercasing is very expensive
+            define ('ADODB_ASSOC_CASE', 0); //Use lowercase fieldnames for ADODB_FETCH_ASSOC
+    }
 }
 
 function init_memcached() {

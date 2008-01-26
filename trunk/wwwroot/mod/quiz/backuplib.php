@@ -1,4 +1,4 @@
-<?php //$Id: backuplib.php,v 1.62 2007/09/29 16:26:13 skodak Exp $
+<?php // $Id: backuplib.php,v 1.62.2.3 2007/12/21 15:38:38 tjhunt Exp $
     //This php script contains all the stuff to backup quizzes
 
 //This is the "graphical" structure of the quiz mod:
@@ -103,7 +103,7 @@
             //put the ids of the used questions from all these categories into the db.
             $status = $status && execute_sql("INSERT INTO {$CFG->prefix}backup_ids
                                        (backup_code, table_name, old_id, info)
-                                       SELECT '$backup_unique_code', 'question', q.id, ''
+                                       SELECT DISTINCT $backup_unique_code, 'question', q.id, ''
                                        FROM {$CFG->prefix}question q,
                                        $from
                                        {$CFG->prefix}question_categories qc,
@@ -139,7 +139,8 @@
             // those subcategories also need to be backed up. (The categories themselves
             // and their parents will already have been included.)
             $categorieswithrandom = get_records_sql("
-                    SELECT question.category AS id, SUM(question.questiontext) as questiontext
+                    SELECT question.category AS id, SUM(" .
+                            sql_cast_char2int('questiontext', true) . ") AS numqsusingsubcategories
                     FROM {$CFG->prefix}quiz_question_instances qqi,
                          $from
                          {$CFG->prefix}question question
@@ -151,7 +152,7 @@
             $randomselectedquestions = array();
             if ($categorieswithrandom) {
                 foreach ($categorieswithrandom as $category) {
-                    if ($category->questiontext){
+                    if ($category->numqsusingsubcategories > 0) {
                         $status = $status && quiz_backup_add_sub_categories($categories, $randomselectedquestions, $category->id);
                     }
                 }
@@ -582,6 +583,10 @@
         //Link to quiz view by moduleid
         $buscar="/(".$base."\/mod\/quiz\/view.php\?id\=)([0-9]+)/";
         $result= preg_replace($buscar,'$@QUIZVIEWBYID*$2@$',$result);
+
+        //Link to quiz view by quizid
+        $buscar="/(".$base."\/mod\/quiz\/view.php\?q\=)([0-9]+)/";
+        $result= preg_replace($buscar,'$@QUIZVIEWBYQ*$2@$',$result);
 
         return $result;
     }

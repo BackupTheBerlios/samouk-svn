@@ -1,4 +1,4 @@
-<?php  // $Id: upload.php,v 1.31 2007/07/05 04:55:38 mattc-catalyst Exp $
+<?php  // $Id: upload.php,v 1.32.2.1 2007/10/12 16:09:46 tjhunt Exp $
 
     require("../../config.php");
     require("lib.php");
@@ -23,12 +23,7 @@
     $strworkshop = get_string('modulename', 'workshop');
     $strsubmission = get_string('submission', 'workshop');
 
-    $navlinks = array();
-    $navlinks[] = array('name' => $strworkshops, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($workshop->name,true), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-    $navlinks[] = array('name' => $strsubmission, 'link' => '', 'type' => 'title');
-    $navigation = build_navigation($navlinks);
-
+    $navigation = build_navigation($strsubmission, $cm);
     print_header_simple(format_string($workshop->name)." : $strsubmission", "", $navigation,
                   "", "", true);
     $timenow = time();
@@ -121,4 +116,3 @@
     print_footer($course);
 
 ?>
-

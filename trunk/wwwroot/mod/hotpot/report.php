@@ -1,4 +1,4 @@
-<?PHP  // $Id: report.php,v 1.38 2007/10/02 07:46:51 gbateson Exp $
+<?PHP  // $Id: report.php,v 1.38.3 2008/01/21 16:09:37 kowy Exp $
 
 // This script uses installed report plugins to print quiz reports
 
@@ -405,11 +405,6 @@ function hotpot_print_report_heading(&$course, &$cm, &$hotpot, &$mode) {
     $title = format_string($course->shortname) . ": $hotpot->name";
     $heading = $course->fullname;
     
-    $navlinks = array();
-    $navlinks[] = array('name' => $strmodulenameplural, 'link' => 'index.php?id='.$course->id, 'type' => 'activity');
-    $navlinks[] = array('name' => $hotpot->name, 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-
-
     $modulecontext = get_context_instance(CONTEXT_MODULE, $cm->id);
     if (has_capability('mod/hotpot:viewreport',$modulecontext)) {
         if ($mode=='overview' || $mode=='simplestat' || $mode=='fullstat') {
@@ -418,17 +413,15 @@ function hotpot_print_report_heading(&$course, &$cm, &$hotpot, &$mode) {
             $module = "hotpot";
         }
 
-        $navlinks[] = array('name' => get_string("report$mode", $module), 'link' => '', 'type' => 'title');
-        
-
+        $navigation = build_navigation(get_string("report$mode", $module), $cm);
     } else {
-
-        $navlinks[] = array('name' => get_string("report", "quiz"), 'link' => '', 'type' => 'title');
+        $navigation = build_navigation(get_string("report", "quiz"), $cm);
     }
 
     $button = update_module_button($cm->id, $course->id, $strmodulename);
-    $navigation = build_navigation($navlinks);
-    print_header($title, $heading, $navigation, "", "", true, $button, navmenu($course, $cm));
+    print_header($title, $heading, $navigation, "", "", true, $button, 
+    			// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
     print_heading($hotpot->name);
 }

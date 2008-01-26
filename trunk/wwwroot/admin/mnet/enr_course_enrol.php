@@ -1,4 +1,4 @@
-<?PHP  // $Id: enr_course_enrol.php,v 1.8 2007/04/30 17:08:46 skodak Exp $
+<?PHP  // $Id: enr_course_enrol.php,v 1.8.4.1 2007/11/26 04:42:23 scyrma Exp $
        // enrol_config.php - allows admin to edit all enrollment variables
        //                    Yes, enrol is correct English spelling.
 
@@ -243,7 +243,6 @@
 $str = get_strings(array('enrolmentplugins', 'configuration', 'users', 'administration'));
 /// Get some language strings
 
-$strassignusers = get_string('assignusers', 'role');
 $strpotentialusers = get_string('potentialusers', 'role');
 $strexistingusers = get_string('existingusers', 'role');
 $straction = get_string('assignroles', 'role');

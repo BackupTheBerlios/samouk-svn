@@ -180,6 +180,11 @@
           <ON_OK message="questioncwqpfsok" />
         </FEEDBACK>
       </CUSTOM_CHECK>
+      <CUSTOM_CHECK file="lib/customcheckslib.php" function="php_check_register_globals" level="optional">
+        <FEEDBACK>
+          <ON_CHECK message="globalswarning" />
+        </FEEDBACK>
+      </CUSTOM_CHECK>
     </CUSTOM_CHECKS>
   </MOODLE>
   <MOODLE version="2.0" requires="1.9">
@@ -235,6 +240,11 @@
         <FEEDBACK>
           <ON_CHECK message="qtyperqpwillberemovedanyway" />
           <ON_OK message="qtyperqpwillberemoved" />
+        </FEEDBACK>
+      </CUSTOM_CHECK>
+      <CUSTOM_CHECK file="lib/customcheckslib.php" function="php_check_register_globals" level="optional">
+        <FEEDBACK>
+          <ON_CHECK message="globalswarning" />
         </FEEDBACK>
       </CUSTOM_CHECK>
     </CUSTOM_CHECKS>

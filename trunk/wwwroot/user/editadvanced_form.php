@@ -1,4 +1,4 @@
-<?php //$Id: editadvanced_form.php,v 1.13 2007/09/16 09:39:03 skodak Exp $
+<?php //$Id: editadvanced_form.php,v 1.14.2.1 2007/12/04 23:52:09 skodak Exp $
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
@@ -10,6 +10,8 @@ class user_editadvanced_form extends moodleform {
 
         $mform =& $this->_form;
         $this->set_upload_manager(new upload_manager('imagefile', false, false, null, false, 0, true, true, false));
+        //Accessibility: "Required" is bad legend text.
+        $strgeneral  = get_string('general');
         $strrequired = get_string('required');
 
         /// Add some extra hidden fields
@@ -17,7 +19,7 @@ class user_editadvanced_form extends moodleform {
         $mform->addElement('hidden', 'course', $COURSE->id);
 
         /// Print the required moodle fields first
-        $mform->addElement('header', 'moodle', $strrequired);
+        $mform->addElement('header', 'moodle', $strgeneral);
 
         $mform->addElement('text', 'username', get_string('username'), 'size="20"');
         $mform->addRule('username', $strrequired, 'required', null, 'client');
@@ -102,7 +104,7 @@ class user_editadvanced_form extends moodleform {
         profile_definition_after_data($mform);
     }
 
-    function validation($usernew) {
+    function validation($usernew, $files) {
         global $CFG;
 
         $usernew = (object)$usernew;
@@ -148,7 +150,7 @@ class user_editadvanced_form extends moodleform {
         }
 
         /// Next the customisable profile fields
-        $err += profile_validation($usernew);
+        $err += profile_validation($usernew, $files);
 
         if (count($err) == 0){
             return true;

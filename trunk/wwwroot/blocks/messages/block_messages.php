@@ -1,4 +1,4 @@
-<?PHP //$Id: block_messages.php,v 1.13 2007/01/09 23:45:28 skodak Exp $
+<?PHP //$Id: block_messages.php,v 1.13.4.1 2007/11/22 01:16:37 toyomoyo Exp $
 
 class block_messages extends block_base {
     function init() {
@@ -8,6 +8,10 @@ class block_messages extends block_base {
 
     function get_content() {
         global $USER, $CFG;
+
+        if (!$CFG->messaging) {
+            return ''; 
+        }
 
         if ($this->content !== NULL) {
             return $this->content;

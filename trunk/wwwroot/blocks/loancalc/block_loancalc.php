@@ -1,4 +1,4 @@
-<?php // $Id: block_loancalc.php,v 1.9 2007/01/10 06:44:15 vyshane Exp $
+<?php // $Id: block_loancalc.php,v 1.9.4.1 2007/10/22 20:37:53 arborrow Exp $
 
 class block_loancalc extends block_base {
 
@@ -15,7 +15,7 @@ class block_loancalc extends block_base {
         
         $this->content->text = '
         <script type="text/javascript">
-        <![CDATA[
+       // <![CDATA[
     function Next()
     {
         submitScreen("Next");
@@ -148,7 +148,7 @@ function comp(v) { // general entry point for all cases
 
     }
 } // function comp
-]]>
+//]]>
 </script>
 
 <h1></h1>

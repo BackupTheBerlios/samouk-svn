@@ -1,4 +1,4 @@
-<?php  // $Id: index.php,v 1.11 2007/09/26 12:25:16 nicolasconnault Exp $
+<?php  // $Id: index.php,v 1.12.3 2007/12/18 17:37:45 kowy Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -64,7 +64,7 @@ if (empty($eid)) {
     $object = $element['object'];
 }
 
-$switch = grade_report::get_pref('aggregationposition');
+$switch = grade_get_setting($course->id, 'aggregationposition', $CFG->grade_aggregationposition);
 
 $strgrades             = get_string('grades');
 $strgraderreport       = get_string('graderreport', 'grades');
@@ -77,6 +77,11 @@ $moving = false;
 switch ($action) {
     case 'delete':
         if ($eid) {
+            if ($element['type'] == 'item' and $object->is_external_item() and !$object->is_outcome_item() and $object->gradetype != GRADE_TYPE_NONE) {
+                // no deleting of external activities - they would be recreated anyway!
+                // exception is activity without grading
+                break;
+            }
             $confirm = optional_param('confirm', 0, PARAM_BOOL);
 
             if ($confirm and confirm_sesskey()) {
@@ -84,7 +89,9 @@ switch ($action) {
                 redirect($returnurl);
 
             } else {
-                print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcategoriesedit, $navigation, '', '', true, '', navmenu($course));
+                print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcategoriesedit, $navigation, '', '', true, '', 
+                					// kowy - 2007-01-12 - add standard logout box 
+									user_login_string($course).'<hr style="width:95%">'.navmenu($course));
                 $strdeletecheckfull = get_string('deletecheck', '', $object->get_name());
                 $optionsyes = array('eid'=>$eid, 'confirm'=>1, 'sesskey'=>sesskey(), 'id'=>$course->id, 'action'=>'delete');
                 $optionsno  = array('id'=>$course->id);
@@ -130,7 +137,9 @@ switch ($action) {
         break;
 }
 
-print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcategoriesedit, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgrades . ': ' . $strgraderreport, ': ' . $strcategoriesedit, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Print the plugin selector at the top
 print_grade_plugin_selector($courseid, 'edit', 'tree');
@@ -174,64 +183,33 @@ function print_grade_tree(&$gtree, $element, $moving, &$gpr, $switch, $switchedl
     $object = $element['object'];
     $eid    = $element['eid'];
 
+    $header = $gtree->get_element_header($element, true, true, true);
+
+    if ($object->is_hidden()) {
+        $header = '<span class="dimmed_text">'.$header.'</span>';
+    }
+
 /// prepare actions
     $actions = $gtree->get_edit_icon($element, $gpr);
+    $actions .= $gtree->get_calculation_icon($element, $gpr);
 
     if ($element['type'] == 'item' or ($element['type'] == 'category' and $element['depth'] > 1)) {
-        $actions .= '<a href="index.php?id='.$COURSE->id.'&amp;action=delete&amp;eid='
-                 . $eid.'&amp;sesskey='.sesskey().'"><img src="'.$CFG->pixpath.'/t/delete.gif" class="iconsmall" alt="'
-                 . $strdelete.'" title="'.$strdelete.'"/></a>';
+        if (!($element['type'] == 'item' and $object->is_external_item() and !$object->is_outcome_item() and $object->gradetype != GRADE_TYPE_NONE)) {
+            $actions .= '<a href="index.php?id='.$COURSE->id.'&amp;action=delete&amp;eid='
+                     . $eid.'&amp;sesskey='.sesskey().'"><img src="'.$CFG->pixpath.'/t/delete.gif" class="iconsmall" alt="'
+                     . $strdelete.'" title="'.$strdelete.'"/></a>';
+        }
         $actions .= '<a href="index.php?id='.$COURSE->id.'&amp;action=moveselect&amp;eid='
                  . $eid.'&amp;sesskey='.sesskey().'"><img src="'.$CFG->pixpath.'/t/move.gif" class="iconsmall" alt="'
                  . $strmove.'" title="'.$strmove.'"/></a>';
     }
 
+    $actions .= $gtree->get_hiding_icon($element, $gpr);
     $actions .= $gtree->get_locking_icon($element, $gpr);
 
-    $name = $object->get_name();
-
-    //TODO: improve outcome visualisation
-    if ($element['type'] == 'item' and !empty($object->outcomeid)) {
-        $name = $name.' ('.get_string('outcome', 'grades').')';
-    }
-
-    if ($object->is_hidden()) {
-        $name = '<span class="dimmed_text">'.$name.'</span>';
-    }
-    $actions .= $gtree->get_hiding_icon($element, $gpr);
-
-/// prepare icon
-    $icon = '<img src="'.$CFG->wwwroot.'/pix/spacer.gif" class="icon" alt=""/>';
-    $last = '';
-    $catcourseitem = false;
-    switch ($element['type']) {
-        case 'item':
-            if ($object->itemtype == 'mod') {
-                $icon = '<img src="'.$CFG->modpixpath.'/'.$object->itemmodule.'/icon.gif" class="icon" alt="'
-                      . get_string('modulename', $object->itemmodule).'"/>';
-            } else if ($object->itemtype == 'manual') {
-                //TODO: add manual grading icon
-                if (empty($object->outcomeid)) {
-                    $icon = '<img src="'.$CFG->pixpath.'/t/edit.gif" class="icon" alt="'
-                          . get_string('manualgrade', 'grades').'"/>'; // TODO: localize
-                } else {
-                    $icon = '<img src="'.$CFG->pixpath.'/i/outcomes.gif" class="icon" alt="'
-                          . get_string('outcome', 'grades').'"/>';
-
-                }
-            }
-            break;
-        case 'courseitem':
-        case 'categoryitem':
-            $icon = '<img src="'.$CFG->pixpath.'/i/category_grade.gif" class="icon" alt="'.get_string('categorygrade').'"/>'; // TODO: localize
-            $catcourseitem = true;
-            break;
-        case 'category':
-            $icon = '<img src="'.$CFG->pixpath.'/f/folder.gif" class="icon" alt="'.get_string('category').'"/>';
-            break;
-    }
-
 /// prepare move target if needed
+    $last = '';
+    $catcourseitem = ($element['type'] == 'courseitem' or $element['type'] == 'categoryitem');
     $moveto = '';
     if ($moving) {
         $actions = ''; // no action icons when moving
@@ -243,21 +221,21 @@ function print_grade_tree(&$gtree, $element, $moving, &$gpr, $switch, $switchedl
 /// print the list items now
     if ($moving == $eid) {
         // do not diplay children
-        echo '<li class="'.$element['type'].' moving">'.$icon.$name.'('.get_string('move').')</li>';
+        echo '<li class="'.$element['type'].' moving">'.$header.'('.get_string('move').')</li>';
 
     } else if ($element['type'] != 'category') {
         if ($catcourseitem and $switch) {
             if ($switchedlast) {
-                echo '<li class="'.$element['type'].'">'.$icon.$name.$actions.'</li>';
+                echo '<li class="'.$element['type'].'">'.$header.$actions.'</li>';
             } else {
                 echo $moveto;
             }
         } else {
-            echo '<li class="'.$element['type'].'">'.$icon.$name.$actions.'</li>'.$moveto;
+            echo '<li class="'.$element['type'].'">'.$header.$actions.'</li>'.$moveto;
         }
 
     } else {
-        echo '<li class="'.$element['type'].'">'.$icon.$name.$actions;
+        echo '<li class="'.$element['type'].'">'.$header.$actions;
         echo '<ul class="catlevel'.$element['depth'].'">';
         $last = null;
         foreach($element['children'] as $child_el) {

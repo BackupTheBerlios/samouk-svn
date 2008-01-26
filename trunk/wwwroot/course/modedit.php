@@ -1,4 +1,4 @@
-<?php // $Id: modedit.php,v 1.34 2007/09/08 20:53:06 skodak Exp $
+<?php // $Id: modedit.php,v 1.34.2.2 2007/11/19 07:10:48 moodler Exp $
 
 //  adds or updates modules in a course using new formslib
 
@@ -172,6 +172,7 @@
         }
     } else if ($fromform = $mform->get_data()) {
         if (empty($fromform->coursemodule)) { //add
+            $cm = null;
             if (! $course = get_record("course", "id", $fromform->course)) {
                 error("This course doesn't exist");
             }
@@ -212,15 +213,15 @@
             $fromform->groupmembersonly = 0;
         }
 
-        if (!isset($fromform->groupmode)) {
-            $fromform->groupmode = 0;
-        }
-
         if (!isset($fromform->name)) { //label
             $fromform->name = $fromform->modulename;
         }
 
         if (!empty($fromform->update)) {
+
+            if (!empty($course->groupmodeforce) or !isset($fromform->groupmode)) {
+                $fromform->groupmode = $cm->groupmode; // keep original
+            }
 
             $returnfromfunc = $updateinstancefunction($fromform);
             if (!$returnfromfunc) {
@@ -248,6 +249,10 @@
                        "$fromform->instance", $fromform->coursemodule);
 
         } else if (!empty($fromform->add)){
+
+            if (!empty($course->groupmodeforce) or !isset($fromform->groupmode)) {
+                $fromform->groupmode = 0; // do not set groupmode
+            }
 
             if (!course_allowed_module($course,$fromform->modulename)) {
                 error("This module ($fromform->modulename) has been disabled for this particular course");
@@ -425,6 +430,8 @@
 
         if (!empty($cm->id)) {
             $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+            $overridableroles = get_overridable_roles($context);
+            $assignableroles  = get_assignable_roles($context);
             $currenttab = 'update';
             include_once($CFG->dirroot.'/'.$CFG->admin.'/roles/tabs.php');
         }

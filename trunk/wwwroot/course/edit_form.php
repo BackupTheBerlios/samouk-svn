@@ -1,4 +1,4 @@
-<?php  //$Id: edit_form.php,v 1.37 2007/08/17 08:05:05 skodak Exp $
+<?php  //$Id: edit_form.php,v 1.37.2.2 2007/11/23 22:12:35 skodak Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 
@@ -256,9 +256,9 @@ class course_edit_form extends moodleform {
         $mform->addElement('header','', get_string('groups', 'group'));
 
         $choices = array();
-        $choices[NOGROUPS] = get_string('no');
-        $choices[SEPARATEGROUPS] = get_string('separate');
-        $choices[VISIBLEGROUPS] = get_string('visible');
+        $choices[NOGROUPS] = get_string('groupsnone', 'group');
+        $choices[SEPARATEGROUPS] = get_string('groupsseparate', 'group');
+        $choices[VISIBLEGROUPS] = get_string('groupsvisible', 'group');
         $mform->addElement('select', 'groupmode', get_string('groupmode'), $choices);
         $mform->setHelpButton('groupmode', array('groupmode', get_string('groupmode')), true);
         $mform->setDefault('groupmode', 0);
@@ -405,8 +405,8 @@ class course_edit_form extends moodleform {
         
 
 /// perform some extra moodle validation
-    function validation($data){
-        $errors= array();
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
         if ($foundcourses = get_records('course', 'shortname', $data['shortname'])) {
             if (!empty($data['id'])) {
                 unset($foundcourses[$data['id']]);
@@ -426,11 +426,7 @@ class course_edit_form extends moodleform {
             }
         }
 
-        if (0 == count($errors)){
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
     }
 }
 ?>

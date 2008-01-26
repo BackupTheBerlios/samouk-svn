@@ -99,6 +99,10 @@
                 $source = $CFG->dataroot."/$fromcoursefilesid/".$flipurls[$key];
                 $destination = $flipurls[$key];
                 if (($urlaction != QUESTION_FILEDONOTHING) && ($urlaction != QUESTION_FILEMOVELINKSONLY)){
+                    // Ensure the target folder exists.
+                    check_dir_exists(dirname($CFG->dataroot."/$tocoursefilesid/".$destination), true);
+
+                    // Then make sure the destination file name does not exist. If it does, change the name to be unique.
                     while (file_exists($CFG->dataroot."/$tocoursefilesid/".$destination)){
                         $matches = array();
                         //check for '_'. copyno after filename, before extension.
@@ -222,16 +226,8 @@
     $cattomove->contextto = $contexttostring;
     if (count($urls)){
         $defaults = array();
-        for ($default_key =0; $default_key < count($urls); $default_key++){
-            switch ($tocoursefilesid){
-                case SITEID:
-                    $defaults['urls'][$default_key] = QUESTION_FILEMOVE;
-                    break;
-                default :
-                    $defaults['urls'][$default_key] = QUESTION_FILECOPY;
-                    break;
-
-            }
+        for ($default_key = 0; $default_key < count($urls); $default_key++){
+            $defaults['urls'][$default_key] = QUESTION_FILECOPY;
         }
         $contextmoveform->set_data($defaults);
         //some parameters for get_string

@@ -1,4 +1,4 @@
-<?php // $Id: lib.php,v 1.59 2007/08/27 21:52:35 mattc-catalyst Exp $
+<?php // $Id: lib.php,v 1.59.2.8 2008/01/10 14:07:17 poltawski Exp $
 
 $COLUMN_HEIGHT = 300;
 
@@ -137,7 +137,7 @@ function choice_show_form($choice, $user, $cm) {
             $context = get_context_instance(CONTEXT_MODULE, $cm->id);
             if (!empty($countanswers)) {
                 foreach ($countanswers as $ca) { //only return enrolled users.
-                    if (has_capability('mod/choice:choose', $context)) {
+                    if (has_capability('mod/choice:choose', $context, $ca->userid, false)) {
                         $countans = $countans+1;
                     }
                 }
@@ -226,7 +226,7 @@ function choice_show_form($choice, $user, $cm) {
         echo "<input type=\"submit\" value=\"".get_string("savemychoice","choice")."\" />";
         
         if ($choice->allowupdate && $aaa = get_record('choice_answers', 'choiceid', $choice->id, 'userid', $user->id)) {
-            echo "<br /><a href='view.php?id=".$cm->id."&action=delchoice'>".get_string("removemychoice","choice")."</a>";
+            echo "<br /><a href='view.php?id=".$cm->id."&amp;action=delchoice'>".get_string("removemychoice","choice")."</a>";
         }
         
     } else {
@@ -243,7 +243,7 @@ function choice_user_submit_response($formanswer, $choice, $userid, $courseid, $
     if ($countanswers) {
         $countans = 0;
         foreach ($countanswers as $ca) { //only return enrolled users.
-            if (has_capability('mod/choice:choose', $context)) {
+            if (has_capability('mod/choice:choose', $context, $ca->userid, false)) {
                 $countans = $countans+1;
             }
         }
@@ -283,25 +283,27 @@ function choice_user_submit_response($formanswer, $choice, $userid, $courseid, $
 }
 
 
-function choice_show_reportlink($choice, $courseid, $cmid, $groupmode) {
-    //TODO: rewrite with SQL
-    $currentgroup = get_current_group($courseid);
-    if ($allanswers = get_records("choice_answers", "choiceid", $choice->id)) {
-        $responsecount = 0;
-        foreach ($allanswers as $aa) {
-            if ($groupmode and $currentgroup) {
-                if (groups_is_member($currentgroup, $aa->userid)) {
-                    $responsecount++;
-                }
-            } else {
-                $responsecount++;
-            }
-        }
+function choice_show_reportlink($choice, $courseid, $cm, $groupmode) {
+
+    if ($groupmode > 0) {
+        $currentgroup = groups_get_activity_group($cm);
     } else {
-        $responsecount = 0;
+        $currentgroup = 0;
     }
+
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    $availableusers = get_users_by_capability($context, 'mod/choice:choose', 'u.id', '','','',$currentgroup, '', false, true);
+
+    $responsecount = 0;
+
+    if(!empty($availableusers)){
+        // flatten the users to get a list of userids
+        $userids = implode( ', ', array_keys($availableusers));
+        $responsecount = count_records_select('choice_answers', "choiceid = {$choice->id} AND userid IN ( $userids );");
+    }
+
     echo '<div class="reportlink">';
-    echo "<a href=\"report.php?id=$cmid\">".get_string("viewallresponses", "choice", $responsecount)."</a>";
+    echo "<a href=\"report.php?id=$cm->id\">".get_string("viewallresponses", "choice", $responsecount)."</a>";
     echo '</div>';
 }
 
@@ -324,7 +326,7 @@ function choice_show_results($choice, $course, $cm, $forcepublish='') {
         $currentgroup = 0;
     }
 
-    $users = get_users_by_capability($context, 'mod/choice:choose', 'u.id, u.picture, u.firstname, u.lastname, u.idnumber', 'u.firstname ASC', '', '', $currentgroup, '', false);
+    $users = get_users_by_capability($context, 'mod/choice:choose', 'u.id, u.picture, u.firstname, u.lastname, u.idnumber', 'u.firstname ASC', '', '', $currentgroup, '', false, true);
 
     if (!empty($CFG->enablegroupings) && !empty($cm->groupingid) && !empty($users)) {
         $groupingusers = groups_get_grouping_members($cm->groupingid, 'u.id', 'u.id');
@@ -454,6 +456,8 @@ function choice_show_results($choice, $course, $cm, $forcepublish='') {
                     echo get_string("limit", "choice").":";
                     $choice_option = get_record("choice_options", "id", $optionid);
                     echo $choice_option->maxanswers;
+                } else {
+                    echo $columncount[$optionid];
                 }
                 echo "</td>";
                 $count++;
@@ -529,7 +533,7 @@ function choice_show_results($choice, $course, $cm, $forcepublish='') {
                 if ($maxcolumn) {
                     $height = $COLUMN_HEIGHT * ((float)$column[$optionid] / (float)$maxcolumn);
                 }
-                echo "<td valign=\"bottom\" align=\"center\" class=\"col$count data\">";
+                echo "<td style=\"vertical-align:bottom\" align=\"center\" class=\"col$count data\">";
                 echo "<img src=\"column.png\" height=\"$height\" width=\"49\" alt=\"\" />";
                 echo "</td>";
                 $count++;
@@ -658,6 +662,54 @@ function choice_get_view_actions() {
 
 function choice_get_post_actions() {
     return array('choose','choose again');
+}
+
+
+/**
+ * Implementation of the function for printing the form elements that control
+ * whether the course reset functionality affects the choice.
+ * @param $mform form passed by reference
+ */
+function choice_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'choiceheader', get_string('modulenameplural', 'choice'));
+    $mform->addElement('advcheckbox', 'reset_choice', get_string('removeresponses','choice'));
+}
+
+/**
+ * Course reset form defaults.
+ */
+function choice_reset_course_form_defaults($course) {
+    return array('reset_choice'=>1);
+}
+
+/**
+ * Actual implementation of the rest coures functionality, delete all the
+ * choice responses for course $data->courseid.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
+ */
+function choice_reset_userdata($data) {
+    global $CFG;
+
+    $componentstr = get_string('modulenameplural', 'choice');
+    $status = array();
+
+    if (!empty($data->reset_choice)) {
+        $choicessql = "SELECT ch.id
+                         FROM {$CFG->prefix}choice ch
+                        WHERE ch.course={$data->courseid}";
+
+        delete_records_select('choice_answers', "choiceid IN ($choicessql)");
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('removeresponses', 'choice'), 'error'=>false);
+    }
+
+    /// updating dates - shift may be negative too
+    if ($data->timeshift) {
+        shift_course_mod_dates('choice', array('timeopen', 'timeclose'), $data->timeshift, $data->courseid);
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('datechanged'), 'error'=>false);
+    }
+
+    return $status;
 }
 
 ?>

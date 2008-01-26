@@ -1,4 +1,4 @@
-<?PHP  // $Id: preferences.php,v 1.19 2007/10/04 05:13:28 toyomoyo Exp $
+<?PHP  // $Id: preferences.php,v 1.19.2.1 2007/10/15 04:46:06 toyomoyo Exp $
        // preferences.php - user prefs for calendar
 
     require_once('../config.php');
@@ -64,7 +64,7 @@
                             'link' => "$CFG->wwwroot/course/view.php?id=$course->id",
                             'type' => 'misc');
     }
-    $navlinks[] = array('name' => $strpreferences, 'link' => 'view.php', 'type' => 'misc');
+    $navlinks[] = array('name' => $strpreferences, 'link' => 'null', 'type' => 'misc');
     $navigation = build_navigation($navlinks);
 
     print_header("$site->shortname: $strcalendar: $strpreferences", $strcalendar, $navigation,

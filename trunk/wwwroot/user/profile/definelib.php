@@ -1,4 +1,4 @@
-<?php  //$Id: definelib.php,v 1.6 2007/08/15 13:37:52 ikawhero Exp $
+<?php  //$Id: definelib.php,v 1.7.2.2 2007/11/23 22:12:36 skodak Exp $
 
 class profile_define_base {
 
@@ -70,19 +70,15 @@ class profile_define_base {
      * @param   object   data from the add/edit profile field form
      * @return  array    associative array of error messages
      */
-    function define_validate($data) {
+    function define_validate($data, $files) {
 
         $data = (object)$data;
         $err = array();
 
-        $err += $this->define_validate_common($data);
-        $err += $this->define_validate_specific($data);
+        $err += $this->define_validate_common($data, $files);
+        $err += $this->define_validate_specific($data, $files);
 
-        if (count($err) == 0){
-            return true;
-        } else {
-            return $err;
-        }
+        return $err;
     }
 
     /**
@@ -92,7 +88,9 @@ class profile_define_base {
      * @param   object   data from the add/edit profile field form
      * @return  array    associative array of error messages
      */
-    function define_validate_common($data) {
+    function define_validate_common($data, $files) {
+        global $USER;
+        
         $err = array();
 
         /// Check the shortname was not truncated by cleaning
@@ -102,10 +100,13 @@ class profile_define_base {
         /// Check the shortname is unique
         } else if (($field = get_record('user_info_field', 'shortname', $data->shortname)) and ($field->id <> $data->id)) {
             $err['shortname'] = get_string('profileshortnamenotunique', 'admin');
+
+        /// Shortname must also be unique compared to the standard user fields
+        } else if (isset($USER->{$data->shortname})) {
+            $err['shortname'] = get_string('profileshortnamenotunique', 'admin');
         }
 
         /// No further checks necessary as the form class will take care of it
-
         return $err;
     }
 
@@ -115,7 +116,7 @@ class profile_define_base {
      * @param   object   data from the add/edit profile field form
      * @return  array    associative array of error messages
      */
-    function define_validate_specific($data) {
+    function define_validate_specific($data, $files) {
         /// do nothing - overwrite if necessary
         return array();
     }
@@ -366,9 +367,14 @@ function profile_list_datatypes() {
 
     if ($dirlist = get_directory_list($CFG->dirroot.'/user/profile/field', '', false, true, false)) {
         foreach ($dirlist as $type) {
-            $datatypes[$type] = get_string('profilefieldtype'.$type, 'admin');
+            $datatypes[$type] = get_string('profilefieldtype'.$type, 'profilefield_'.$type);
+            if (strpos($datatypes[$type], '[[') !== false) {
+                $datatypes[$type] = get_string('profilefieldtype'.$type, 'admin');
+            }
         }
     }
+    asort($datatypes);
+
     return $datatypes;
 }
 

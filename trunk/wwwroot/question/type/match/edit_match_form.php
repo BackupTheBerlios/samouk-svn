@@ -70,18 +70,18 @@ class question_edit_match_form extends question_edit_form {
         return 'match';
     }
 
-    function validation($data){
-        $errors = parent::validation($data);
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
         $answers = $data['subanswers'];
         $questions = $data['subquestions'];
         $questioncount = 0;
         foreach ($questions as $key => $question){
             $trimmedquestion = trim($question);
             $trimmedanswer = trim($answers[$key]);
-            if (!empty($trimmedanswer) && !empty($trimmedquestion)){
+            if ($trimmedanswer != '' && $trimmedquestion != ''){
                 $questioncount++;
             }
-            if (!empty($trimmedquestion) && empty($trimmedanswer)){
+            if ($trimmedquestion != '' && $trimmedanswer == ''){
                 $errors['subanswers['.$key.']'] = get_string('nomatchinganswerforq', 'qtype_match', $trimmedquestion);
             }
         }

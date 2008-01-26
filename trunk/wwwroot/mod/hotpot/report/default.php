@@ -1,4 +1,4 @@
-<?PHP  // $Id: default.php,v 1.13 2006/12/14 07:48:41 toyomoyo Exp $ 
+<?PHP  // $Id: default.php,v 1.13.4.1 2007/10/22 01:43:19 gbateson Exp $ 
 
 ////////////////////////////////////////////////////////////////////
 /// Default class for report plugins
@@ -389,6 +389,7 @@ class hotpot_default_report {
 
             $align = empty($table->align[$i]) ? '' : ' align="'.$table->align[$i].'"';
             $class = empty($table->class[$i]) ? $d : ' class="'.$table->class[$i].'"';
+            $class = ' class="'.(empty($table->class[$i]) ? $d : $table->class[$i]).'"';
             $size  = empty($table->size[$i])  ? '' : ' width="'.$table->size[$i].'"';
             $wrap  = empty($table->wrap[$i])  ? '' : ' nowrap="nowrap"';
 
@@ -472,7 +473,7 @@ class hotpot_default_report {
                             } else { // $cell is a string
                                 $text = $cell;
                             }
-                            print $td.$text."</td>\n";
+                            print $td.$text.(empty($table->fontsize[$col]) ? '' : '</font>')."</td>\n";
                         } else {
                             $skipcol[$col]--;
                         }

@@ -1,4 +1,4 @@
-<?php // $Id: user.php,v 1.30 2007/07/13 03:05:17 moodler Exp $
+<?php // $Id: user.php,v 1.30.2.1 2008/01/10 10:58:09 tjhunt Exp $
 
 // Display user activity reports for a course
 
@@ -40,7 +40,9 @@
     $fullname        = fullname($user, has_capability('moodle/site:viewfullnames', $syscontext));
 
     $navlinks = array();
-    $navlinks[] = array('name' => $strparticipants, 'link' => "$CFG->wwwroot/user/index.php?id=$course->id", 'type' => 'core');
+    if (has_capability('moodle/course:viewparticipants', get_context_instance(CONTEXT_COURSE, $course->id)) || has_capability('moodle/site:viewparticipants', $syscontext)) {
+        $navlinks[] = array('name' => $strparticipants, 'link' => "$CFG->wwwroot/user/index.php?id=$course->id", 'type' => 'core');
+    }
     $navlinks[] = array('name' => $fullname, 'link' => "$CFG->wwwroot/user/view.php?id=$user->id&amp;course=$course->id", 'type' => 'title');
     $navlinks[] = array('name' => $strforumposts, 'link' => '', 'type' => 'title');
     $navlinks[] = array('name' => $strmode, 'link' => '', 'type' => 'title');

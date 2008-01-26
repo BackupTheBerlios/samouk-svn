@@ -82,16 +82,13 @@ if ($editform->is_cancelled()) {
     $success = true;
 
     if ($data->id) {
-        $data->timemodified = time();
-        if (!update_record('groupings', $data)) {
-            error('Error updating group');
+        if (!groups_update_grouping($data)) {
+            error('Error updating grouping');
         }
 
     } else {
-        $data->timecreated = time();
-        $data->timemodified = $data->timecreated;
-        if (!$data->id = insert_record('groupings', $data)) {
-            error('Error updating grouping');
+        if (!groups_create_grouping($data)) {
+            error('Error creating grouping');
         }
     }
 
@@ -114,7 +111,9 @@ $navlinks = array(array('name'=>$strparticipants, 'link'=>$CFG->wwwroot.'/user/i
 $navigation = build_navigation($navlinks);
 
 /// Print header
-print_header_simple($strgroupings, ': '.$strgroupings, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgroupings, ': '.$strgroupings, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 
 print_heading($strheading);

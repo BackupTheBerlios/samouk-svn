@@ -1,4 +1,4 @@
-<?php  // $Id: signup_form.php,v 1.35 2007/08/20 08:30:39 ikawhero Exp $
+<?php  // $Id: signup_form.php,v 1.35.2.2 2007/12/27 11:17:58 poltawski Exp $
 
 require_once($CFG->libdir.'/formslib.php');
 require_once($CFG->dirroot.'/user/profile/lib.php');
@@ -56,7 +56,12 @@ class login_signup_form extends moodleform {
         $country = array_merge($default_country, $country);
         $mform->addElement('select', 'country', get_string('country'), $country);
         $mform->addRule('country', get_string('missingcountry'), 'required', null, 'server');
-        $mform->setDefault('country', '');
+
+        if( !empty($CFG->country) ){
+            $mform->setDefault('country', $CFG->country);
+        }else{
+            $mform->setDefault('country', '');
+        }
 
         profile_signup_fields($mform);
 
@@ -79,9 +84,9 @@ class login_signup_form extends moodleform {
         $mform->applyFilter('username', 'trim');
     }
 
-    function validation($data) {
+    function validation($data, $files) {
         global $CFG;
-        $errors = array();
+        $errors = parent::validation($data, $files);
 
         $authplugin = get_auth_plugin($CFG->registerauth);
 
@@ -122,15 +127,12 @@ class login_signup_form extends moodleform {
 
         }
 
+        $errmsg = '';
         if (!check_password_policy($data['password'], $errmsg)) {
             $errors['password'] = $errmsg;
         }
 
-        if (0 == count($errors)){
-            return true;
-        } else {
-            return $errors;
-        }
+        return $errors;
 
 
     }

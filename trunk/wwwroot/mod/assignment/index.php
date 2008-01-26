@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.35 2007/09/23 16:05:44 skodak Exp $
+<?php // $Id: index.php,v 1.35.1 2007/09/23 16:05:44 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -27,7 +27,9 @@
     $navlinks[] = array('name' => $strassignments, 'link' => '', 'type' => 'activity');
     $navigation = build_navigation($navlinks);
 
-    print_header_simple($strassignments, "", $navigation, "", "", true, "", navmenu($course));
+    print_header_simple($strassignments, "", $navigation, "", "", true, "", 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     if (! $assignments = get_all_instances_in_course("assignment", $course)) {
         notice(get_string('noassignments', 'assignment'), "../../course/view.php?id=$course->id");

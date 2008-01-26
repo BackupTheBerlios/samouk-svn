@@ -1,6 +1,6 @@
 <?PHP
 
-// version $Id: languages.php,v 1.6 2007/07/17 11:46:26 jgutierr25 Exp $
+// version $Id: languages.php,v 1.7 2007/10/09 21:43:28 iarenaza Exp $
 
 // List of CAS langages.
 
@@ -15,4 +15,3 @@ $CASLANGUAGES = array (
 "french" => "French");
 
 ?>
-

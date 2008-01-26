@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.20 2007/09/04 11:55:12 jamiesensei Exp $
+<?php  // $Id: questiontype.php,v 1.20.2.5 2007/12/17 12:28:00 tjhunt Exp $
 
 //////////////////
 ///   ESSAY   ///
@@ -98,11 +98,12 @@ class question_essay_qtype extends default_questiontype {
             $safeformatoptions->para = false;
             $answer = format_text($value, FORMAT_MOODLE,
                                   $safeformatoptions, $cmoptions->course);
+            $answer = '<div class="answerreview">' . $answer . '</div>';
         }
 
         include("$CFG->dirroot/question/type/essay/display.html");
 
-        if ($usehtmleditor) {
+        if ($usehtmleditor && empty($options->readonly)) {
             use_html_editor($inputname);
             $htmleditorused = true;
         }
@@ -111,7 +112,7 @@ class question_essay_qtype extends default_questiontype {
     function grade_responses(&$question, &$state, $cmoptions) {
         // All grading takes place in Manual Grading
 
-        clean_param($state->responses[''], PARAM_CLEANHTML);
+        $state->responses[''] = clean_param($state->responses[''], PARAM_CLEAN);
 
         $state->raw_grade = 0;
         $state->penalty = 0;

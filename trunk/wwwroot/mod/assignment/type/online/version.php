@@ -1,4 +1,4 @@
-<?PHP // $Id: version.php,v 1.2 2007/08/29 14:38:34 stronk7 Exp $
+<?PHP // $Id: version.php,v 1.3 2007/10/10 16:09:52 skodak Exp $
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Code fragment to define the module version etc.
@@ -6,6 +6,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 $plugin->version   = 2005042900;
-$plugin->requires  = 2005041800;
+$plugin->requires  = 2007101000;
 
 ?>

@@ -1,4 +1,4 @@
-<?php // $Id: search.php,v 1.48 2007/09/19 07:08:50 martinlanghoff Exp $
+<?php // $Id: search.php,v 1.49.2.1 2007/10/19 07:53:10 toyomoyo Exp $
 
 /// Displays external information about a course
 
@@ -131,7 +131,9 @@
         $courses = array();
         foreach ($blocks as $block) {
             $courseid = $block->pageid;
-            if ($courseid==0) {
+            // MDL-11167, blocks can be placed on mymoodle, or the blogs page
+            // and it should not show up on course search page
+            if ($courseid==0 || $block->pagetype != 'course-view') {
                 continue;
             }
             if (!$course = get_record('course', 'id', $courseid)) {
@@ -340,4 +342,3 @@
 
 
 ?>
-

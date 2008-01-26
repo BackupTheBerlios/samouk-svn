@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.28 2007/07/05 04:55:37 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.28.2.1 2007/10/29 10:42:18 poltawski Exp $
 
     require("../../config.php");
     require("lib.php");
@@ -30,7 +30,7 @@
     print_header_simple("$strworkshops", "", $navigation, "", "", true, "", navmenu($course));
 
     if (! $workshops = get_all_instances_in_course("workshop", $course)) {
-        notice("There are no workshops", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strworkshops), "../../course/view.php?id=$course->id");
         die;
     }
 

@@ -1,4 +1,4 @@
-<?php  // $Id: view.php,v 1.70 2007/09/16 18:49:43 skodak Exp $
+<?php  // $Id: view.php,v 1.70.3 2008/01/21 16:41:18 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -28,12 +28,7 @@
     require_once("$CFG->libdir/rsslib.php");
 
     require_once('pagelib.php');
-    
-    if (!empty($THEME->customcorners)) {
-        require_once($CFG->dirroot.'/lib/custom_corners_lib.php');
-    }
-    
-    
+
 /// One of these is necessary!
     $id    = optional_param('id', 0, PARAM_INT);  // course module id
     $d     = optional_param('d', 0, PARAM_INT);   // database id
@@ -92,15 +87,11 @@
 
 /// If it's hidden then it's don't show anything.  :)
     if (empty($cm->visible) and !has_capability('mod/data:managetemplates', $context)) {
-        $strdatabases = get_string("modulenameplural", "data");
-        
-        $navlinks = array();
-        $navlinks[] = array('name' => $strdatabases, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($data->name), 'link' => '', 'type' => 'activityinstance');
-        $navigation = build_navigation($navlinks);
-        
+        $navigation = build_navigation('', $cm);
         print_header_simple(format_string($data->name), "",
-                 $navigation, "", "", true, '', navmenu($course, $cm));
+                 $navigation, "", "", true, '', 
+                 // kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
         notice(get_string("activityiscurrentlyhidden"));
     }
 
@@ -250,13 +241,13 @@
         echo '<table id="layout-table"><tr>';
         if ((blocks_have_content($pageblocks, BLOCK_POS_LEFT) || $PAGE->user_is_editing())) {
             echo '<td style="width: '.$blocks_preferred_width.'px;" id="left-column">';
-            if (!empty($THEME->customcorners)) print_custom_corners_start();
+            print_container_start();
             blocks_print_group($PAGE, $pageblocks, BLOCK_POS_LEFT);
-            if (!empty($THEME->customcorners)) print_custom_corners_end();
+            print_container_end();
             echo '</td>';
         }
         echo '<td id="middle-column">';
-        if (!empty($THEME->customcorners)) print_custom_corners_start();
+        print_container_start();
     }
 
 /// Check to see if groups are being used here
@@ -560,13 +551,13 @@
 
 /// If we have blocks, then print the left side here
     if (!empty($CFG->showblocksonmodpages)) {
-        if (!empty($THEME->customcorners)) print_custom_corners_end();
+        print_container_end();
         echo '</td>';   // Middle column
         if ((blocks_have_content($pageblocks, BLOCK_POS_RIGHT) || $PAGE->user_is_editing())) {
             echo '<td style="width: '.$blocks_preferred_width.'px;" id="right-column">';
-            if (!empty($THEME->customcorners)) print_custom_corners_start();
+            print_container_start();
             blocks_print_group($PAGE, $pageblocks, BLOCK_POS_RIGHT);
-            if (!empty($THEME->customcorners)) print_custom_corners_end();
+            print_container_end();
             echo '</td>';
         }
         echo '</tr></table>';

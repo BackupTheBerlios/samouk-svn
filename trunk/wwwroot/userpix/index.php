@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.9 2007/08/17 19:09:27 nicolasconnault Exp $
+<?php // $Id: index.php,v 1.9.2.1 2007/12/06 09:30:45 skodak Exp $
       // This simple script displays all the users with pictures on one page.
       // By default it is not linked anywhere on the site.  If you want to
       // make it available you should link it in yourself from somewhere.
@@ -23,7 +23,7 @@
 
     foreach ($users as $user) {
         $fullname = fullname($user);
-        echo "<a href=\"$CFG->wwwroot/user/view.php?id=$user->id&amp;course=1\"".
+        echo "<a href=\"$CFG->wwwroot/user/view.php?id=$user->id&amp;course=1\" ".
              "title=\"$fullname\">";
         if ($CFG->slasharguments) {        // Use this method if possible for better caching
             echo '<img src="'. $CFG->wwwroot .'/user/pix.php/'.$user->id.'/f1.jpg"'.

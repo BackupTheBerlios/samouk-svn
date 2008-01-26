@@ -1,4 +1,4 @@
-<?php // $Id: format.php,v 1.24 2007/08/20 10:36:30 thepurpleblob Exp $
+<?php // $Id: format.php,v 1.24.2.4 2007/11/29 04:31:14 toyomoyo Exp $
 //
 ///////////////////////////////////////////////////////////////
 // The GIFT import filter was designed as an easy to use method 
@@ -220,14 +220,16 @@ class qformat_gift extends qformat_default {
             }
 
         // ensure name is not longer than 250 characters
-        $question->name = shorten_text( $question->name, 250 );
+        $question->name = shorten_text( $question->name, 200 );
+        $question->name = strip_tags(substr( $question->name, 0, 250 ));
 
         // determine QUESTION TYPE
         $question->qtype = NULL;
 
         // give plugins first try
         // plugins must promise not to intercept standard qtypes
-        if ($try_question = $this->try_importing_using_qtypes( $lines, $question, $answertext )) {
+        // MDL-12346, this could be called from lesson mod which has its own base class =(
+        if (method_exists($this, 'try_importing_using_qtypes') && ($try_question = $this->try_importing_using_qtypes( $lines, $question, $answertext ))) {
             return $try_question;
         }
 
@@ -379,6 +381,7 @@ class qformat_gift extends qformat_default {
                     $question->feedbacktrue = $feedback['wrong'];
                 }
 
+                $question->penalty = 1;
                 $question->correctanswer = $question->answer;
 
                 return $question;

@@ -1,4 +1,4 @@
-<?php // $Id: XMLDBField.class.php,v 1.11 2007/08/29 10:24:36 stronk7 Exp $
+<?php // $Id: XMLDBField.class.php,v 1.12.2.2 2008/01/02 16:47:34 stronk7 Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-3001 Martin Dougiamas        http://dougiamas.com  //
+// Copyright (C) 1999 onwards Martin Dougiamas        http://dougiamas.com  //
 //           (C) 2001-3001 Eloy Lafuente (stronk7) http://contiento.com  //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
@@ -370,7 +370,7 @@ class XMLDBField extends XMLDBObject {
         }
 
         if (isset($xmlarr['@']['ENUMVALUES'])) {
-            $enumvalues = strtolower(trim($xmlarr['@']['ENUMVALUES']));
+            $enumvalues = trim($xmlarr['@']['ENUMVALUES']);
             if (!$this->enum) {
                 $this->errormsg = 'Wrong ENUMVALUES attribute (not ENUM)';
                 $this->debug($this->errormsg);
@@ -789,9 +789,10 @@ class XMLDBField extends XMLDBObject {
         } else {
             $result .= 'null, ';
         }
-    /// Unsigned
+    /// Unsigned (only applicable to numbers)
         $unsigned = $this->getUnsigned();
-        if (!empty($unsigned)) {
+        if (!empty($unsigned) &&
+           ($this->getType() == XMLDB_TYPE_INTEGER || $this->getType() == XMLDB_TYPE_NUMBER || $this->getType() == XMLDB_TYPE_FLOAT)) {
             $result .= 'XMLDB_UNSIGNED' . ', ';
         } else {
             $result .= 'null, ';

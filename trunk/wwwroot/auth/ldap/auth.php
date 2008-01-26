@@ -23,6 +23,10 @@ if (!defined('AUTH_AD_ACCOUNTDISABLE')) {
 if (!defined('AUTH_AD_NORMAL_ACCOUNT')) {
     define('AUTH_AD_NORMAL_ACCOUNT', 0x0200);
 }
+if (!defined('AUTH_NTLMTIMEOUT')) {  // timewindow for the NTLM SSO process, in secs...
+    define('AUTH_NTLMTIMEOUT', 10);
+}
+
 
 require_once($CFG->libdir.'/authlib.php');
 
@@ -85,8 +89,43 @@ class auth_plugin_ldap extends auth_plugin_base {
         $extusername = $textlib->convert(stripslashes($username), 'utf-8', $this->config->ldapencoding);
         $extpassword = $textlib->convert(stripslashes($password), 'utf-8', $this->config->ldapencoding);
 
-        $ldapconnection = $this->ldap_connect();
+        //
+        // Before we connect to LDAP, check if this is an AD SSO login
+        // if we succeed in this block, we'll return success early.
+        //
+        $key = sesskey();
+        if (!empty($this->config->ntlmsso_enabled) && $key === $password) {
+            $cf = get_cache_flags('auth/ldap/ntlmsess');
+            // We only get the cache flag if we retrieve it before
+            // it expires (AUTH_NTLMTIMEOUT seconds).
+            if (!isset($cf[$key]) || $cf[$key] === '') {
+                return false;
+            }
 
+            $sessusername = $cf[$key];
+            if ($username === $sessusername) {
+                unset($sessusername);
+                unset($cf);
+
+                // Check that the user is inside one of the configured LDAP contexts
+                $validuser = false;
+                $ldapconnection = $this->ldap_connect();
+                if ($ldapconnection) {
+                    // if the user is not inside the configured contexts,
+                    // ldap_find_userdn returns false.
+                    if ($this->ldap_find_userdn($ldapconnection, $extusername)) {
+                        $validuser = true;
+                    }
+                    ldap_close($ldapconnection);
+                }
+
+                // Shortcut here - SSO confirmed
+                return $validuser;
+            }
+        } // End SSO processing
+        unset($key);
+
+        $ldapconnection = $this->ldap_connect();
         if ($ldapconnection) {
             $ldap_user_dn = $this->ldap_find_userdn($ldapconnection, $extusername);
 
@@ -105,7 +144,7 @@ class auth_plugin_ldap extends auth_plugin_base {
         }
         else {
             @ldap_close($ldapconnection);
-            print_error('auth_ldap_noconnect','auth',$this->config->host_url);
+            print_error('auth_ldap_noconnect','auth','',$this->config->host_url);
         }
         return false;
     }
@@ -569,7 +608,8 @@ class auth_plugin_ldap extends auth_plugin_base {
                 do {
                     $value = ldap_get_values_len($ldapconnection, $entry, $this->config->user_attribute);
                     $value = $textlib->convert($value[0], $this->config->ldapencoding, 'utf-8');
-                    array_push($fresult, $value);
+                    // usernames are __always__ lowercase.
+                    array_push($fresult, moodle_strtolower($value));
                     if (count($fresult) >= $bulk_insert_records) {
                         $this->ldap_bulk_insert($fresult, $temptable);
                         $fresult = array();
@@ -819,7 +859,7 @@ class auth_plugin_ldap extends auth_plugin_base {
         $user = get_record('user', 'username', $username, 'mnethostid', $CFG->mnet_localhost_id);
         if (empty($user)) { // trouble
             error_log("Cannot update non-existent user: ".stripslashes($username));
-            print_error('auth_dbusernotexist','auth',$username);
+            print_error('auth_dbusernotexist','auth','',$username);
             die;
         }
 
@@ -979,6 +1019,21 @@ class auth_plugin_ldap extends auth_plugin_base {
             return true; // just change auth and skip update
         }
 
+        $attrmap = $this->ldap_attributes();
+
+        // Before doing anything else, make sure really need to update anything
+        // in the external LDAP server.
+        $update_external = false;
+        foreach ($attrmap as $key => $ldapkeys) {
+            if (!empty($this->config->{'field_updateremote_'.$key})) {
+                $update_external = true;
+                break;
+            }
+        }
+        if (!$update_external) {
+            return true;
+        }
+
         $textlib = textlib_get_instance();
         $extoldusername = $textlib->convert($olduser->username, 'utf-8', $this->config->ldapencoding);
 
@@ -986,7 +1041,6 @@ class auth_plugin_ldap extends auth_plugin_base {
 
         $search_attribs = array();
 
-        $attrmap = $this->ldap_attributes();
         foreach ($attrmap as $key => $values) {
             if (!is_array($values)) {
                 $values = array($values);
@@ -1007,9 +1061,16 @@ class auth_plugin_ldap extends auth_plugin_base {
 
             $user_entry = $this->ldap_get_entries($ldapconnection, $user_info_result);
             if (empty($user_entry)) {
+                $error = 'ldap: Could not find user while updating externally. '.
+                         'Details follow: search base: \''.$user_dn.'\'; search filter: \''.
+                         $this->config->objectclass.'\'; search attributes: ';
+                foreach ($search_attribs as $attrib) {
+                    $error .= $attrib.' ';
+                }
+                error_log($error);
                 return false; // old user not found!
             } else if (count($user_entry) > 1) {
-                trigger_error("ldap: Strange! More than one user record found in ldap. Only using the first one.");
+                error_log('ldap: Strange! More than one user record found in ldap. Only using the first one.');
                 return false;
             }
             $user_entry = $user_entry[0];
@@ -1398,8 +1459,11 @@ class auth_plugin_ldap extends auth_plugin_base {
 
     /**
      * checks if user belong to specific group(s)
+     * or is in a subtree.
      *
-     * Returns true if user belongs group in grupdns string.
+     * Returns true if user belongs group in grupdns string OR
+     * if the DN of the user is in a subtree pf the DN provided
+     * as "group"
      *
      * @param mixed $username    username
      * @param mixed $groupdns    string of group dn separated by ;
@@ -1433,6 +1497,15 @@ class auth_plugin_ldap extends auth_plugin_base {
             if (empty($group)) {
                 continue;
             }
+
+            // check cheaply if the user's DN sits in a subtree
+            // of the "group" DN provided. Granted, this isn't
+            // a proper LDAP group, but it's a popular usage.
+            if (strpos(strrev($memberuser), strrev($group))===0) {
+                $result = true;
+                break;
+            }
+
             //echo "Checking group $group for member $username\n";
             $search = ldap_read($ldapconnection, $group,  '('.$this->config->memberattribute.'='.$this->filter_addslashes($memberuser).')', array($this->config->memberattribute));
             if (!empty($search) and ldap_count_entries($ldapconnection, $search)) {
@@ -1512,7 +1585,7 @@ class auth_plugin_ldap extends auth_plugin_base {
         }
 
         //If any of servers are alive we have already returned connection
-        print_error('auth_ldap_noconnect_all','auth',$this->config->user_type);
+        print_error('auth_ldap_noconnect_all','auth','', $debuginfo);
         return false;
     }
 
@@ -1708,6 +1781,103 @@ class auth_plugin_ldap extends auth_plugin_base {
     }
 
     /**
+     * Will get called before the login page is shown, if NTLM SSO
+     * is enabled, and the user is in the right network, we'll redirect
+     * to the magic NTLM page for SSO...
+     *
+     */
+    function loginpage_hook() {
+        global $CFG;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'    // Only on initial GET 
+                                                    // of loginpage
+            &&!empty($this->config->ntlmsso_enabled)// SSO enabled
+            && !empty($this->config->ntlmsso_subnet)// have a subnet to test for
+            && empty($_GET['authldap_skipntlmsso']) // haven't failed it yet
+            && (isguestuser() || !isloggedin())     // guestuser or not-logged-in users
+            && address_in_subnet($_SERVER['REMOTE_ADDR'],$this->config->ntlmsso_subnet)) {
+            redirect("{$CFG->wwwroot}/auth/ldap/ntlmsso_attempt.php");
+        }
+    }
+
+    /**
+     * To be called from a page running under NTLM's
+     * "Integrated Windows Authentication". 
+     *
+     * If successful, it will set a special "cookie" (not an HTTP cookie!) 
+     * in cache_flags under the "auth/ldap/ntlmsess" "plugin" and return true.
+     * The "cookie" will be picked up by ntlmsso_finish() to complete the
+     * process.
+     *
+     * On failure it will return false for the caller to display an appropriate
+     * error message (probably saying that Integrated Windows Auth isn't enabled!)
+     *
+     * NOTE that this code will execute under the OS user credentials, 
+     * so we MUST avoid dealing with files -- such as session files.
+     * (The caller should set $nomoodlecookie before including config.php)
+     *
+     */
+    function ntlmsso_magic($sesskey) {
+        if (isset($_SERVER['REMOTE_USER']) && !empty($_SERVER['REMOTE_USER'])) {
+            $username = $_SERVER['REMOTE_USER'];
+            $username = substr(strrchr($username, '\\'), 1); //strip domain info
+            $username = moodle_strtolower($username); //compatibility hack
+            set_cache_flag('auth/ldap/ntlmsess', $sesskey, $username, AUTH_NTLMTIMEOUT);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Find the session set by ntlmsso_magic(), validate it and 
+     * call authenticate_user_login() to authenticate the user through
+     * the auth machinery.
+     * 
+     * It is complemented by a similar check in user_login().
+     * 
+     * If it succeeds, it never returns. 
+     *
+     */
+    function ntlmsso_finish() {
+        global $CFG, $USER, $SESSION;
+
+        $key = sesskey();
+        $cf = get_cache_flags('auth/ldap/ntlmsess');
+        if (!isset($cf[$key]) || $cf[$key] === '') {
+            return false;
+        }
+        $username   = $cf[$key];
+        // Here we want to trigger the whole authentication machinery
+        // to make sure no step is bypassed...
+        $user = authenticate_user_login($username, $key);
+        if ($user) {
+            add_to_log(SITEID, 'user', 'login', "view.php?id=$USER->id&course=".SITEID,
+                       $user->id, 0, $user->id);
+            $USER = complete_user_login($user);
+
+            // Cleanup the key to prevent reuse...
+            // and to allow re-logins with normal credentials
+            unset_cache_flag('auth/ldap/ntlmsess', $key);
+
+            /// Redirection
+            if (user_not_fully_set_up($USER)) {
+                $urltogo = $CFG->wwwroot.'/user/edit.php';
+                // We don't delete $SESSION->wantsurl yet, so we get there later
+            } else if (isset($SESSION->wantsurl) and (strpos($SESSION->wantsurl, $CFG->wwwroot) === 0)) {
+                $urltogo = $SESSION->wantsurl;    /// Because it's an address in this site
+                unset($SESSION->wantsurl);
+            } else {
+                // no wantsurl stored or external - go to homepage
+                $urltogo = $CFG->wwwroot.'/';
+                unset($SESSION->wantsurl);
+            }
+            redirect($urltogo);
+        }
+        // Should never reach here.
+        return false;
+    }    
+
+    /**
      * Sync roles for this user
      *
      * @param $user object user object (without system magic quotes)
@@ -1802,6 +1972,10 @@ class auth_plugin_ldap extends auth_plugin_base {
             {$config->changepasswordurl = ''; }
         if (!isset($config->removeuser))
             {$config->removeuser = 0; }
+        if (!isset($config->ntlmsso_enabled))
+            {$config->ntlmsso_enabled = 0; }
+        if (!isset($config->ntlmsso_subnet))
+            {$config->ntlmsso_subnet = ''; }
 
         // save settings
         set_config('host_url', $config->host_url, 'auth/ldap');
@@ -1832,6 +2006,8 @@ class auth_plugin_ldap extends auth_plugin_base {
         set_config('passtype', $config->passtype, 'auth/ldap');
         set_config('changepasswordurl', $config->changepasswordurl, 'auth/ldap');
         set_config('removeuser', $config->removeuser, 'auth/ldap');
+        set_config('ntlmsso_enabled', (int)$config->ntlmsso_enabled, 'auth/ldap');
+        set_config('ntlmsso_subnet', $config->ntlmsso_subnet, 'auth/ldap');
 
         return true;
     }

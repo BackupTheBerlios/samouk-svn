@@ -134,16 +134,16 @@
     $searchform = forum_search_form($course);
 
     $navlinks = array();
-    $navlinks[] = array('name' => get_string('forums', 'forum'), 'link' => "../forum/index.php?id=$course->id", 'type' => 'activity');
-    $navlinks[] = array('name' => format_string($forum->name,true), 'link' => "../forum/view.php?f=$forum->id", 'type' => 'activityinstance');
     $navlinks[] = array('name' => format_string($discussion->name,true), 'link' => "discuss.php?d=$discussion->id", 'type' => 'title');
     if ($parent != $discussion->firstpost) {
         $navlinks[] = array('name' => format_string($post->subject,true), 'type' => 'title');
     }
     
-    $navigation = build_navigation($navlinks); 
+    $navigation = build_navigation($navlinks, $cm); 
     print_header("$course->shortname: ".format_string($discussion->name), $course->fullname,
-                     $navigation, "", "", true, $searchform, navmenu($course, $cm));
+                     $navigation, "", "", true, $searchform, 
+                     // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
     
 
 /// Check to see if groups are being used in this forum
@@ -156,30 +156,34 @@
         $capname = 'mod/forum:replypost';
     }
     
-    $groupmode = groups_get_activity_groupmode($cm);  
-    if ($canreply = has_capability($capname, $modcontext)) {
-         
-        if ($groupmode && !has_capability('moodle/site:accessallgroups', $modcontext)) {   
-            // Groups must be kept separate
-            //change this to groups_is_member
-            $mygroupid = mygroupid($course->id); //only useful if 0, otherwise it's an array now
-            if ($groupmode == SEPARATEGROUPS) {
-                require_login();
-
-                if ((empty($mygroupid) and $discussion->groupid == -1) || (groups_is_member($discussion->groupid) || $mygroupid == $discussion->groupid)) {
-                    // $canreply = true;
-                } elseif ($discussion->groupid == -1) {
-                    $canreply = false;
-                } else {
-                    print_heading("Sorry, you can't see this discussion because you are not in this group");
-                    print_footer($course);
-                    die;
+    $canreply = false;
+    if (has_capability($capname, $modcontext)) {
+        $groupmode = groups_get_activity_groupmode($cm);
+        if ($groupmode) {
+            if (has_capability('moodle/site:accessallgroups', $modcontext)) {
+                $canreply = true;
+            } else {
+                if ($groupmode == SEPARATEGROUPS) {
+                    require_login();
+                    if ($discussion->groupid == -1) {
+                        // can not reply to discussions for "All participants" in separate mode without accessallgroups cap
+                    } else if (groups_is_member($discussion->groupid)) {
+                        $canreply = true;
+                    } else {
+                        // this should not happen
+                        print_heading("Sorry, you can't see this discussion because you are not in this group");
+                        print_footer($course);
+                        die;
+                    }
+    
+                } else if ($groupmode == VISIBLEGROUPS) {
+                    if ($discussion->groupid == -1 or groups_is_member($discussion->groupid)) {
+                        $canreply = true;
+                    }
                 }
-
-            } else if ($groupmode == VISIBLEGROUPS) {
-                $canreply = ( (empty($mygroupid) && $discussion->groupid == -1) ||
-                    (groups_is_member($discussion->groupid) || $mygroupid == $discussion->groupid) );
-            }
+            }   
+        } else {
+            $canreply = true;
         }
     } else { // allow guests to see the link
         $coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);

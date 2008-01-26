@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.18 2007/08/20 14:04:11 skodak Exp $
+<?php // $Id: index.php,v 1.18.3 2008/01/21 10:42:17 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -41,15 +41,18 @@
     $strtopic = get_string('topic');
     $strname = get_string('name');
     $strdata = get_string('modulename','data');
+    $strdataplural  = get_string('modulenameplural','data');
     
     $navlinks = array();
     $navlinks[] = array('name' => $strdata, 'link' => "index.php?id=$course->id", 'type' => 'activity');    
     $navigation = build_navigation($navlinks);
 
-    print_header_simple($strdata, '', $navigation, '', '', true, "", navmenu($course));
+    print_header_simple($strdata, '', $navigation, '', '', true, "", 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     if (! $datas = get_all_instances_in_course("data", $course)) {
-        notice("There are no databases", "$CFG->wwwroot/course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle',$strdataplural) , "$CFG->wwwroot/course/view.php?id=$course->id");
     }
 
     $timenow  = time();

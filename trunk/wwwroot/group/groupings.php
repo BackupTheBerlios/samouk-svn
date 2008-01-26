@@ -1,4 +1,4 @@
-<?php // $Id: groupings.php,v 1.2 2007/08/16 21:14:03 skodak Exp $
+<?php // $Id: groupings.php,v 1.9 2008/01/21 14:40:37 kowy Exp $
       // Allows a creator to edit groupings
 
 require_once '../config.php';
@@ -31,7 +31,9 @@ $navlinks = array(array('name'=>$strparticipants, 'link'=>$CFG->wwwroot.'/user/i
 $navigation = build_navigation($navlinks);
 
 /// Print header
-print_header_simple($strgroupings, ': '.$strgroupings, $navigation, '', '', true, '', navmenu($course));
+print_header_simple($strgroupings, ': '.$strgroupings, $navigation, '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 // Add tabs
 $currenttab = 'groupings';
@@ -67,6 +69,7 @@ if ($groupings = get_records('groupings', 'courseid', $course->id)) {
         $data[] = $line;
     }
 }
+$table = new object();
 $table->head  = array($strgrouping, $strgroups, $struses, $stredit);
 $table->size  = array('30%', '50%', '10%', '10%');
 $table->align = array('left', 'left', 'center', 'center');

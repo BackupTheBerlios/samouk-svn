@@ -1,4 +1,4 @@
-<?php  // $Id: index.php,v 1.104 2007/09/21 02:52:51 moodler Exp $
+<?php  // $Id: index.php,v 1.104.3 2008/01/21 17:00:50 kowy Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -172,7 +172,7 @@
                 $groupmode = NOGROUPS;
             }
             $currentgroup = groups_get_activity_group($cm);
-            $cantaccessagroup = $groupmode and !has_capability('moodle/site:accessallgroups', $context) and !mygroupid($course->id);
+            $cantaccessagroup = $groupmode && !has_capability('moodle/site:accessallgroups', $context) && !mygroupid($course->id);
 
             // this is potentially wrong logic. could possibly check for if user has the right to hmmm
             if ($groupmode == SEPARATEGROUPS and !has_capability('moodle/site:accessallgroups', $context)) {
@@ -309,7 +309,7 @@
                 $groupmode = groups_get_activity_groupmode($cm);
                 
  
-                $cantaccessagroup = $groupmode and !has_capability('moodle/site:accessallgroups', $context) and !mygroupid($course->id);
+                $cantaccessagroup = $groupmode && !has_capability('moodle/site:accessallgroups', $context) && !mygroupid($course->id);
 
                 if ($groupmode == SEPARATEGROUPS and !has_capability('moodle/site:accessallgroups', $context)) {
                     $count = count_records("forum_discussions", "forum", "$forum->id", "groupid", $currentgroup);
@@ -376,7 +376,7 @@
                 if ($can_subscribe) {
                     $row[] = forum_get_subscribe_link($forum, $context, array('subscribed' => $stryes,
                         'unsubscribed' => $strno, 'forcesubscribed' => $stryes,
-                        'cantsubscribe' => '-'), $cantaccessagroup, false);
+                        'cantsubscribe' => '-'), $cantaccessagroup, false, true);
                 }
                 
                 //If this forum has RSS activated, calculate it
@@ -408,7 +408,9 @@
     
     print_header("$course->shortname: $strforums", $course->fullname,
                     build_navigation($navlinks),
-                    "", "", true, $searchform, navmenu($course));
+                    "", "", true, $searchform, 
+                    // kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
     if (!isguest()) {
         print_box_start('subscription');

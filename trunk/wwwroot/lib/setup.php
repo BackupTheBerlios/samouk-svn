@@ -5,7 +5,7 @@
  * Normally this is only called by the main config.php file
  * Normally this file does not need to be edited.
  * @author Martin Dougiamas
- * @version $Id: setup.php,v 1.212 2007/10/07 13:46:46 skodak Exp $
+ * @version $Id: setup.php,v 1.212.2.5 2008/01/06 22:56:11 martinlanghoff Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package moodlecore
  */
@@ -76,8 +76,6 @@ global $THEME;
  * It's enabled only by the httpsrequired() function and used in some pages to update some URLs
 */
 global $HTTPSPAGEREQUIRED;
-    // 2007-08-30 - kowy - enable included PEAR
-    @ini_set('include_path',ini_get('include_path').':../lib/pear:../../lib/pear');
 
 
 /// First try to detect some attacks on older buggy PHP versions
@@ -90,6 +88,9 @@ global $HTTPSPAGEREQUIRED;
         trigger_error('Fatal: $CFG->wwwroot is not configured! Exiting.');
         die;
     }
+
+/// store settings from config.php in array in $CFG - we can use it later to detect problems and overrides
+    $CFG->config_php_settings = (array)$CFG;
 
 /// Set httpswwwroot default value (this variable will replace $CFG->wwwroot
 /// inside some URLs used in HTTPSPAGEREQUIRED pages.
@@ -116,10 +117,9 @@ global $HTTPSPAGEREQUIRED;
 
 /// Connect to the database using adodb
 
-/// Some defines required BEFORE including AdoDB library
-    define ('ADODB_ASSOC_CASE', 0); //Use lowercase fieldnames for ADODB_FETCH_ASSOC
-                                    //(only meaningful for oci8po, it's the default
-                                    //for other DB drivers so this won't affect them)
+/// Set $CFG->dbfamily global
+/// and configure some other specific variables for each db BEFORE attempting the connection
+    preconfigure_dbconnection();
 
     require_once($CFG->libdir .'/adodb/adodb.inc.php'); // Database access functions
 
@@ -211,7 +211,6 @@ global $HTTPSPAGEREQUIRED;
     configure_dbconnection();
 
 /// Load up any configuration from the config table
-    unset($CFG->rcache);
     $CFG = get_config();
 
 /// Turn on SQL logging if required
@@ -283,25 +282,37 @@ global $HTTPSPAGEREQUIRED;
 /// Shared-Memory cache init -- will set $MCACHE
 /// $MCACHE is a global object that offers at least add(), set() and delete()
 /// with similar semantics to the memcached PHP API http://php.net/memcache
+/// Ensure we define rcache - so we can later check for it
+/// with a really fast and unambiguous $CFG->rcache === false
     if (!empty($CFG->cachetype)) {
+        if (empty($CFG->rcache)) {
+            $CFG->rcache = false;
+        } else {
+            $CFG->rcache = true;
+        }
+
+        // do not try to initialize if cache disabled
+        if (!$CFG->rcache) {
+            $CFG->cachetype = '';
+        }
+
         if ($CFG->cachetype === 'memcached' && !empty($CFG->memcachedhosts)) {
             if (!init_memcached()) {
                 debugging("Error initialising memcached");
             }
-        } elseif ($CFG->cachetype === 'eaccelerator') {
+            $CFG->cachetype = '';
+            $CFG->rcache = false;
+        } else if ($CFG->cachetype === 'eaccelerator') {
             if (!init_eaccelerator()) {
                 debugging("Error initialising eaccelerator cache");
             }
+            $CFG->cachetype = '';
+            $CFG->rcache = false;
         }
+
     } else { // just make sure it is defined
         $CFG->cachetype = '';
-    }
-/// Ensure we define rcache - so we can later check for it
-/// with a really fast and unambiguous $CFG->rcache === false
-    if (empty($CFG->rcache)) {
-        $CFG->rcache = false;
-    } else {
-        $CFG->rcache = true;
+        $CFG->rcache    = false;
     }
 
 /// Set a default enrolment configuration (see bug 1598)
@@ -384,9 +395,12 @@ global $HTTPSPAGEREQUIRED;
             require_once($CFG->libdir. '/adodb/session/adodb-session2.php');
         }
     }
-/// Set sessioncookie variable if it isn't already
+/// Set sessioncookie and sessioncookiepath variable if it isn't already
     if (!isset($CFG->sessioncookie)) {
         $CFG->sessioncookie = '';
+    }
+    if (!isset($CFG->sessioncookiepath)) {
+        $CFG->sessioncookiepath = '/';
     }
 
 /// Configure ampersands in URLs
@@ -497,6 +511,7 @@ global $HTTPSPAGEREQUIRED;
 
     if (empty($nomoodlecookie)) {
         session_name('MoodleSession'.$CFG->sessioncookie);
+        session_set_cookie_params(0, $CFG->sessioncookiepath);
         @session_start();
         if (! isset($_SESSION['SESSION'])) {
             $_SESSION['SESSION'] = new object;
@@ -504,7 +519,7 @@ global $HTTPSPAGEREQUIRED;
             if (!empty($_COOKIE['MoodleSessionTest'.$CFG->sessioncookie])) {
                 $_SESSION['SESSION']->has_timed_out = true;
             }
-            setcookie('MoodleSessionTest'.$CFG->sessioncookie, $_SESSION['SESSION']->session_test, 0, '/');
+            setcookie('MoodleSessionTest'.$CFG->sessioncookie, $_SESSION['SESSION']->session_test, 0, $CFG->sessioncookiepath);
             $_COOKIE['MoodleSessionTest'.$CFG->sessioncookie] = $_SESSION['SESSION']->session_test;
         }
         if (! isset($_SESSION['USER']))    {

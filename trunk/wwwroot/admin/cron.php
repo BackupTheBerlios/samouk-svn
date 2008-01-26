@@ -1,4 +1,4 @@
-<?php // $Id: cron.php,v 1.126 2007/10/07 17:28:46 stronk7 Exp $
+<?php // $Id: cron.php,v 1.126.2.5 2008/01/13 18:45:55 poltawski Exp $
 
 /// This script looks through all the module directories for cron.php files
 /// and runs them.  These files can contain cleanup functions, email functions
@@ -189,9 +189,9 @@
     }
 
 
-    mtrace('Starting grade job ...', '');
+    mtrace('Starting main gradebook job ...');
     grade_cron();
-    mtrace('Done ...');
+    mtrace('done.');
 
 
 /// Run all core cron jobs, but not every time since they aren't too important.
@@ -430,7 +430,7 @@
     if (!empty($CFG->enablestats) and empty($CFG->disablestatsprocessing)) {
 
         // check we're not before our runtime
-        $timetocheck = strtotime("$CFG->statsruntimestarthour:$CFG->statsruntimestartminute today");
+        $timetocheck = strtotime("today $CFG->statsruntimestarthour:$CFG->statsruntimestartminute");
 
         if (time() > $timetocheck) {
             $time = 60*60*20; // set it to 20 here for first run... (overridden by $CFG)
@@ -471,13 +471,13 @@
             }
         }
     }
-    
+
     // run gradebook import/export/report cron
     if ($gradeimports = get_list_of_plugins('grade/import')) {
         foreach ($gradeimports as $gradeimport) {           
-            if (file_exists($CFG->dirroot.'/grade/import/lib.php')) {
-                require_once($CFG->dirroot.'/grade/import/lib.php');
-                $cron_function = 'gradeimport_'.$gradeimport.'_cron';                                    
+            if (file_exists($CFG->dirroot.'/grade/import/'.$gradeimport.'/lib.php')) {
+                require_once($CFG->dirroot.'/grade/import/'.$gradeimport.'/lib.php');
+                $cron_function = 'grade_import_'.$gradeimport.'_cron';                                    
                 if (function_exists($cron_function)) {
                     mtrace("Processing gradebook import function $cron_function ...", '');
                     $cron_function;  
@@ -488,9 +488,9 @@
 
     if ($gradeexports = get_list_of_plugins('grade/export')) {
         foreach ($gradeexports as $gradeexport) {           
-            if (file_exists($CFG->dirroot.'/grade/export/lib.php')) {
-                require_once($CFG->dirroot.'/grade/export/lib.php');
-                $cron_function = 'gradeexport_'.$gradeexport.'_cron';                                    
+            if (file_exists($CFG->dirroot.'/grade/export/'.$gradeexport.'/lib.php')) {
+                require_once($CFG->dirroot.'/grade/export/'.$gradeexport.'/lib.php');
+                $cron_function = 'grade_export_'.$gradeexport.'_cron';                                    
                 if (function_exists($cron_function)) {
                     mtrace("Processing gradebook export function $cron_function ...", '');
                     $cron_function;  
@@ -498,12 +498,12 @@
             }
         }
     }
-    
+
     if ($gradereports = get_list_of_plugins('grade/report')) {
         foreach ($gradereports as $gradereport) {           
-            if (file_exists($CFG->dirroot.'/grade/report/lib.php')) {
-                require_once($CFG->dirroot.'/grade/report/lib.php');
-                $cron_function = 'gradereport_'.$gradereport.'_cron';                                    
+            if (file_exists($CFG->dirroot.'/grade/report/'.$gradereport.'/lib.php')) {
+                require_once($CFG->dirroot.'/grade/report/'.$gradereport.'/lib.php');
+                $cron_function = 'grade_report_'.$gradereport.'_cron';                                    
                 if (function_exists($cron_function)) {
                     mtrace("Processing gradebook report function $cron_function ...", '');
                     $cron_function;  
@@ -511,6 +511,15 @@
             }
         }
     }
+    
+    // run any customized cronjobs, if any
+    // looking for functions in lib/local/cron.php
+    if (file_exists($CFG->dirroot.'/local/cron.php')) {
+        mtrace('Processing customized cron script ...', '');
+        include_once($CFG->dirroot.'/local/cron.php');
+        mtrace('done.');
+    }
+
 
     //Unset session variables and destroy it
     @session_unset();
@@ -521,7 +530,7 @@
     $difftime = microtime_diff($starttime, microtime());
     mtrace("Execution took ".$difftime." seconds"); 
 
-/// finishe the IE hack
+/// finish the IE hack
     if (check_browser_version('MSIE')) {
         echo "</xmp>";
     }

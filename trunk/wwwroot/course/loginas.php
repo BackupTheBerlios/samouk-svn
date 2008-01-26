@@ -1,4 +1,4 @@
-<?php // $Id: loginas.php,v 1.46 2007/08/17 19:09:12 nicolasconnault Exp $
+<?php // $Id: loginas.php,v 1.47.2.2 2008/01/10 15:09:10 skodak Exp $
       // Allows a teacher/admin to login as another user (in stealth mode)
 
     require_once('../config.php');
@@ -22,6 +22,10 @@
         if (isset($SESSION->oldtimeaccess)) {        // Restore previous timeaccess settings
             $USER->timeaccess = $SESSION->oldtimeaccess;
             unset($SESSION->oldtimeaccess);
+        }
+        if (isset($SESSION->grade_last_report)) {    // Restore grade defaults if any
+            $USER->grade_last_report = $SESSION->grade_last_report;
+            unset($SESSION->grade_last_report);
         }
 
         if ($return and isset($_SERVER["HTTP_REFERER"])) { // That's all we wanted to do, so let's go back
@@ -57,8 +61,9 @@
             print_error('nologinas');
         }
         $context = $systemcontext;
-    } else if (has_capability('moodle/user:loginas', $coursecontext)) {
+    } else {
         require_login($course);
+        require_capability('moodle/user:loginas', $coursecontext);
         if (!has_capability('moodle/course:view', $coursecontext, $userid, false)) {
             error('This user is not in this course!');
         }
@@ -73,6 +78,9 @@
     if (isset($USER->timeaccess)) {
         $SESSION->oldtimeaccess = $USER->timeaccess;
     }
+    if (isset($USER->grade_last_report)) {
+        $SESSION->grade_last_report = $USER->grade_last_report;
+    }
 
 /// Login as this user and return to course home page.
 
@@ -83,6 +91,7 @@
     $USER = get_complete_user_data('id', $userid);
     $USER->realuser = $olduserid;
     $USER->loginascontext = $context;
+    check_enrolment_plugins($USER);
     load_all_capabilities();   // reload capabilities
 
     if (isset($SESSION->currentgroup)) {    // Remember current cache setting for later

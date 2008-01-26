@@ -1,4 +1,4 @@
-<?PHP // $Id: assignment.php,v 1.14 2007/07/18 21:41:03 skodak Exp $ 
+<?PHP // $Id: assignment.php,v 1.14.2.2 2007/12/19 17:38:44 skodak Exp $ 
       // assignment.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -27,6 +27,7 @@ $string['commentinline'] = 'Comment inline';
 $string['configitemstocount'] = 'Nature of items to be counted for student submissions in online assignments.';
 $string['configmaxbytes'] = 'Default maximum assignment size for all assignments on the site (subject to course limits and other local settings)';
 $string['confirmdeletefile'] = 'Are you absolutely sure you want to delete this file?<br /><strong>$a</strong>';
+$string['deleteallsubmissions'] = 'Delete all submissions';
 $string['deletefilefailed'] = 'Deleting of file failed.';
 $string['description'] = 'Description';
 $string['draft'] = 'Draft';
@@ -73,6 +74,7 @@ $string['helpuploadsingle'] = '<p>This type of assignment allows each participan
    single file, of any type.</p> <p>This might be a Word processor document, an image, 
    a zipped web site, or anything you ask them to submit.</p>';
 $string['hideintro'] = 'Hide description before available date';
+$string['itemstocount'] = 'Count';
 $string['late'] = '$a late';
 $string['maximumgrade'] = 'Maximum grade';
 $string['maximumsize'] = 'Maximum size';

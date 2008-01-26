@@ -1,4 +1,4 @@
-<?php // $Id: preferences.php,v 1.20 2007/10/07 18:15:58 skodak Exp $
+<?php // $Id: preferences.php,v 1.9 2007/12/19 17:38:46 kowy Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-2007  Martin Dougiamas  http://dougiamas.com       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com     //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -41,21 +41,24 @@ $context = get_context_instance(CONTEXT_COURSE, $course->id);
 $systemcontext = get_context_instance(CONTEXT_SYSTEM);
 require_capability('gradereport/grader:view', $context);
 
-// If data submitted, then process and store.
-if ($data = data_submitted()) {
+require('preferences_form.php');
+$mform = new grader_report_preferences_form('preferences.php', compact('course'));
 
+if ($mform->is_cancelled()){
+    redirect($CFG->wwwroot . '/grade/report/grader/index.php?id='.$courseid);
+}
+
+// If data submitted, then process and store.
+if ($data = $mform->get_data()) {
     foreach ($data as $preference => $value) {
-        switch ($preference) {
-            case 'persistflt':
-                set_user_preference('calendar_persistflt', intval($value));
-                break;
-            default:
-                if ($value == GRADE_REPORT_PREFERENCE_DEFAULT || strlen($value) == 0) {
-                    unset_user_preference($preference);
-                } else {
-                    set_user_preference($preference, $value);
-                }
-                break;
+        if (substr($preference, 0, 6) !== 'grade_') {
+            continue;
+        }
+
+        if ($value == GRADE_REPORT_PREFERENCE_DEFAULT || strlen($value) == 0) {
+            unset_user_preference($preference);
+        } else {
+            set_user_preference($preference, $value);
         }
     }
 
@@ -70,7 +73,9 @@ $strgradepreferences = get_string('gradepreferences', 'grades');
 $navigation = grade_build_nav(__FILE__, $strgradepreferences, $courseid);
 
 print_header_simple($strgrades.': '.$strgraderreport . ': ' . $strgradepreferences,': '.$strgradepreferences, $navigation,
-                    '', '', true, '', navmenu($course));
+                    '', '', true, '', 
+					// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Print the plugin selector at the top
 print_grade_plugin_selector($course->id, 'report', 'grader');
@@ -81,16 +86,14 @@ include('tabs.php');
 
 // If USER has admin capability, print a link to the site config page for this report
 if (has_capability('moodle/site:config', $systemcontext)) {
-    echo '<div id="siteconfiglink"><a href="' . $CFG->wwwroot . '/admin/settings.php?section=gradereportgrader">';
-    echo get_string('changesitedefaults', 'grades');
+    echo '<div id="siteconfiglink"><a href="'.$CFG->wwwroot.'/'.$CFG->admin.'/settings.php?section=gradereportgrader">';
+    echo get_string('changereportdefaults', 'grades');
     echo "</a></div>\n";
 }
 
 print_simple_box_start("center");
 
-include('./preferences_form.php');
-$mform = new grader_report_preferences_form('preferences.php', compact('course'));
-echo $mform->display();
+$mform->display();
 print_simple_box_end();
 
 print_footer($course);

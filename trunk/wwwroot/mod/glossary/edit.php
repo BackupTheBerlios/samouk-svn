@@ -1,4 +1,4 @@
-<?php // $Id: edit.php,v 1.76 2007/07/05 04:55:30 mattc-catalyst Exp $
+<?php // $Id: edit.php,v 1.76.3 2008/01/21 16:09:44 kowy Exp $
 
 require_once('../../config.php');
 require_once('lib.php');
@@ -188,21 +188,12 @@ if ($mform->is_cancelled()){
     }
 }
 
-$strglossary = get_string("modulename", "glossary");
-$strglossaries = get_string("modulenameplural", "glossary");
 $stredit = empty($e) ? get_string('addentry', 'glossary') : get_string("edit");
-
-$navlinks = array();
-$navlinks[] = array('name' => $strglossaries, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-$navlinks[] = array('name' => format_string($glossary->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-$navlinks[] = array('name' => $stredit, 'link' => '', 'type' => 'title');
-
-$navigation = build_navigation($navlinks);
-
+$navigation = build_navigation($stredit, $cm);
 print_header_simple(format_string($glossary->name), "", $navigation, "",
-              "", true, "", navmenu($course, $cm));
-
-
+				"", true, "", 
+				// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
 print_heading(format_string($glossary->name));
 

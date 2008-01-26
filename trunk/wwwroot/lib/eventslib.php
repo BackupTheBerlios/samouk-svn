@@ -5,7 +5,7 @@
  * The public API is all at the end of this file.
  *
  * @author Martin Dougiamas and many others
- * @version $Id: eventslib.php,v 1.15 2007/08/15 13:43:27 tjhunt Exp $
+ * @version $Id: eventslib.php,v 1.16 2007/10/10 12:19:36 skodak Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package moodlecore
  */
@@ -345,18 +345,16 @@ function events_cron($eventname='') {
     }
 
     if ($rs = get_recordset_sql($sql)) {
-        if ($rs->RecordCount() > 0) {
-            while ($qhandler = rs_fetch_next_record($rs)) {
-                if (in_array($qhandler->handlerid, $failed)) {
-                    // do not try to dispatch any later events when one already failed
-                    continue;
-                }
-                $status = events_process_queued_handler($qhandler);
-                if ($status === false) {
-                    $failed[] = $qhandler->handlerid;
-                } else {
-                    $processed++;
-                }
+        while ($qhandler = rs_fetch_next_record($rs)) {
+            if (in_array($qhandler->handlerid, $failed)) {
+                // do not try to dispatch any later events when one already failed
+                continue;
+            }
+            $status = events_process_queued_handler($qhandler);
+            if ($status === false) {
+                $failed[] = $qhandler->handlerid;
+            } else {
+                $processed++;
             }
         }
         rs_close($rs);

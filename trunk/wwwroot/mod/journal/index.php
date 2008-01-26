@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.25 2007/07/05 04:55:32 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.26.2.1 2007/10/29 10:42:17 poltawski Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -26,7 +26,7 @@
 
 
     if (! $journals = get_all_instances_in_course("journal", $course)) {
-        notice("There are no journals", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strjournals), "../../course/view.php?id=$course->id");
         die;
     }
 
@@ -60,4 +60,3 @@
     print_footer($course);
  
 ?>
-

@@ -1,4 +1,27 @@
-<?php // $Id: lib.php,v 1.28 2007/10/04 17:09:34 skodak Exp $
+<?php // $Id: lib.php,v 1.30.2.6 2008/01/09 18:19:12 skodak Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 /**
  * File containing the grade_report class.
  * @package gradebook
@@ -112,7 +135,7 @@ class grade_report {
     function grade_report($courseid, $gpr, $context, $page=null) {
         global $CFG, $COURSE;
 
-        if (!$CFG->gradebookroles) {
+        if (empty($CFG->gradebookroles)) {
             error ('no roles defined in admin->appearance->graderoles');
         }
 
@@ -186,7 +209,6 @@ class grade_report {
      * @param mixed $pref_value The value of the preference.
      * @param int $itemid An optional itemid to which the preference will be assigned
      * @return bool Success or failure.
-     * TODO print visual feedback
      */
     function set_pref($pref, $pref_value='default', $itemid=null) {
         $fullprefname = 'grade_report_' . $pref;
@@ -232,47 +254,27 @@ class grade_report {
     }
 
     /**
-     * Computes then returns the percentage value of the grade value within the given range.
-     * @param float $gradeval
-     * @param float $grademin
-     * @param float $grademx
-     * @return float $percentage
-     */
-    function grade_to_percentage($gradeval, $grademin, $grademax) {
-        if ($grademin >= $grademax) {
-            debugging("The minimum grade ($grademin) was higher than or equal to the maximum grade ($grademax)!!! Cannot proceed with computation.");
-        }
-        $offset_value = $gradeval - $grademin;
-        $offset_max = $grademax - $grademin;
-        $factor = 100 / $offset_max;
-        $percentage = $offset_value * $factor;
-        return $percentage;
-    }
-
-    /**
-     * Fetches and returns an array of grade letters indexed by their grade boundaries, as stored in course item settings or site preferences.
-     * @return array
-     */
-    function get_grade_letters() {
-        global $COURSE;
-        $context = get_context_instance(CONTEXT_COURSE, $COURSE->id);
-        return grade_get_letters($context);
-    }
-
-    /**
      * Fetches and returns a count of all the users that will be shown on this page.
+     * @param boolean $groups include groups limit
      * @return int Count of users
      */
-    function get_numusers() {
+    function get_numusers($groups=true) {
         global $CFG;
+
+        $groupsql      = "";
+        $groupwheresql = "";
+        if ($groups) {
+            $groupsql      = $this->groupsql;
+            $groupwheresql = $this->groupsqlwhere;
+        }
 
         $countsql = "SELECT COUNT(DISTINCT u.id)
                     FROM {$CFG->prefix}grade_grades g RIGHT OUTER JOIN
                          {$CFG->prefix}user u ON u.id = g.userid
                          LEFT JOIN {$CFG->prefix}role_assignments ra ON u.id = ra.userid
-                         $this->groupsql
+                         $groupsql
                     WHERE ra.roleid in ($this->gradebookroles)
-                         $this->groupwheresql
+                         $groupwheresql
                     AND ra.contextid ".get_related_contexts_string($this->context);
         return count_records_sql($countsql);
     }
@@ -305,49 +307,6 @@ class grade_report {
         $arrow = print_arrow($direction, $strsort, true);
         $html = '<a href="'.$sort_link .'">' . $arrow . '</a>';
         return $html;
-    }
-
-    /**
-     * Builds and returns a HTML link to the grade or view page of the module given.
-     * If no itemmodule is given, only the name of the category/item is returned, no link.
-     * @param string $modulename The shortname of the module, will become the visible header
-     * @param string $itemmodule The name of the module type (e.g. assignment, quiz...)
-     * @param int $iteminstance The instance number of the module
-     * @return string HTML
-     */
-    function get_module_link($modulename, $itemmodule=null, $iteminstance=null) {
-        global $CFG;
-
-        $link = null;
-        if (!is_null($itemmodule) AND !is_null($iteminstance)) {
-            // Add module icon if toggle is enabled
-            if ($this->get_pref('showactivityicons')) {
-                $modulename = '<img src="' . $CFG->modpixpath . '/' . $itemmodule
-                            . '/icon.gif" class="icon activity" alt="' . $modulename . '" />' . $modulename;
-            }
-
-            $coursemodule = get_coursemodule_from_instance($itemmodule, $iteminstance, $this->course->id);
-
-            $dir = $CFG->dirroot . "/mod/$itemmodule/";
-            $url = $CFG->wwwroot . "/mod/$itemmodule/";
-
-            if (file_exists($dir . 'grade.php')) {
-                $url .= 'grade.php';
-            } else {
-                $url .= 'view.php';
-            }
-
-            $url .= "?id=$coursemodule->id";
-
-            // MDL-11274, Hide grades in the grader report if the current grader doesn't have 'moodle/grade:viewhidden'
-            if (has_capability('moodle/grade:viewhidden', get_context_instance(CONTEXT_COURSE, $coursemodule->course))) {
-                return '<a href="' . $url . '">' . $modulename . '</a>';
-            } else {
-                return $modulename;
-            }
-        }
-
-        return $modulename;
     }
 }
 ?>

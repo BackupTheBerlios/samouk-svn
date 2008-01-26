@@ -1,10 +1,10 @@
-<?php  // $Id: moodleblock.class.php,v 1.92 2007/08/24 02:17:28 moodler Exp $
+<?php  // $Id: moodleblock.class.php,v 1.92.2.4 2007/12/20 16:25:18 skodak Exp $
 
 /**
  * This file contains the parent class for moodle blocks, block_base.
  *
  * @author Jon Papaioannou
- * @version  $Id: moodleblock.class.php,v 1.92 2007/08/24 02:17:28 moodler Exp $
+ * @version  $Id: moodleblock.class.php,v 1.92.2.4 2007/12/20 16:25:18 skodak Exp $
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package blocks
  */
@@ -84,6 +84,10 @@ class block_base {
 
     var $cron          = NULL;
 
+    /**
+     * Indicates blocked is pinned - can not be moved, always present, does not have own context
+     */
+    var $pinned        = false;
 
 /// Class Functions
 
@@ -123,6 +127,28 @@ class block_base {
      * stores, if the $restore->course_startdateoffset is set.  
      */
     function after_restore($restore) {
+    }
+
+    /**
+     * Will be called before an instance of this block is backed up, so that any links in
+     * any links in any HTML fields on config can be encoded. For example, for the HTML block
+     * we need to do $config->text = backup_encode_absolute_links($config->text);. 
+     *
+     * @param object $config the config field for an insance of this class.
+     */
+    function backup_encode_absolute_links_in_config(&$config) {
+    }
+
+    /**
+     * Undo the effect of backup_encode_absolute_links_in_config. For exmaple, in the
+     * HTML block we need to do $config->text = restore_decode_absolute_links($config->text);
+     *
+     * @param object $config the config field for an insance of this class.
+     * @return boolean return true if something has changed, so the database can be updated,
+     *       false if not, for efficiency reasons.
+     */
+    function restore_decode_absolute_links_in_config(&$config) {
+        return false;
     }
 
     /**
@@ -201,7 +227,11 @@ class block_base {
      */
     function is_empty() {
 
-        $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        if (empty($this->instance->pinned)) {
+            $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        } else {
+            $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+        }
         
         if ( !has_capability('moodle/block:view', $context) ) {
             return true;
@@ -267,16 +297,16 @@ class block_base {
         $title = '<div class="title">';
 
         if (!empty($CFG->allowuserblockhiding)) {
-            //Accessibility: added static 'alt' text for the +- icon.
-            //TODO (nfreear): language string 'hide OR show block'
-            $title .= '<div class="hide-show">'.
-                '<a title="'.get_string('showhideblock','access').
-                '" href="#" onclick="elementToggleHide(this, true, function(el) {'.
-                'return findParentNode(el, \'DIV\', \'sideblock\'); '.
-                '}, \''.$CFG->pixpath.'\' ); return false;">'.
-                '<img src="'.$CFG->pixpath.'/spacer.gif" '.
-                'id = "togglehide_inst'.$this->instance->id.'" '.
-                'alt="'.get_string('showhideblock','access').'" class="hide-show-image" /></a></div>';
+            //Accessibility: added 'alt' text for the +- icon.
+            //Theme the buttons using, Admin - Miscellaneous - smartpix.
+            $strshow = addslashes_js(get_string('showblocka', 'access', strip_tags($this->title)));
+            $strhide = addslashes_js(get_string('hideblocka', 'access', strip_tags($this->title)));
+            $title .= '<input type="image" src="'.$CFG->pixpath.'/t/switch_minus.gif" '. 
+                'id="togglehide_inst'.$this->instance->id.'" '.
+                'onclick="elementToggleHide(this, true, function(el) {'.
+                'return findParentNode(el, \'DIV\', \'sideblock\'); },'.
+                ' \''.$strshow.'\', \''.$strhide.'\'); return false;" '.
+                'alt="'.$strhide.'" title="'.$strhide.'" class="hide-show-image" />';
         }
 
         //Accesssibility: added H2 (was in, weblib.php: print_side_block)
@@ -301,8 +331,11 @@ class block_base {
     function _add_edit_controls($options) {
         global $CFG, $USER, $PAGE;
         
-        // this is the context relevant to this particular block instance
-        $blockcontext = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        if (empty($this->instance->pinned)) {
+            $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        } else {
+            $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+        }
         
         // context for site or course, i.e. participant list etc
         // check to see if user can edit site or course blocks.
@@ -310,7 +343,7 @@ class block_base {
 
         switch ($this->instance->pagetype) {
             case 'course-view':
-                if (!has_capability('moodle/site:manageblocks', $blockcontext)) {
+                if (!has_capability('moodle/site:manageblocks', $context)) {
                     return null;
                 }
             break;
@@ -362,7 +395,7 @@ class block_base {
         $script = $page->url_get_full(array('instanceid' => $this->instance->id, 'sesskey' => $USER->sesskey));
 
         if (empty($this->instance->pinned)) {
-            $movebuttons .= '<a class="icon roles" title="'. $this->str->assignroles .'" href="'.$CFG->wwwroot.'/'.$CFG->admin.'/roles/assign.php?contextid='.$blockcontext->id.'">' .
+            $movebuttons .= '<a class="icon roles" title="'. $this->str->assignroles .'" href="'.$CFG->wwwroot.'/'.$CFG->admin.'/roles/assign.php?contextid='.$context->id.'">' .
                             '<img src="'.$CFG->pixpath.'/i/roles.gif" alt="'.$this->str->assignroles.'" /></a>';
         }
      
@@ -691,7 +724,11 @@ class block_list extends block_base {
 
     function is_empty() {
 
-        $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        if (empty($this->instance->pinned)) {
+            $context = get_context_instance(CONTEXT_BLOCK, $this->instance->id);
+        } else {
+            $context = get_context_instance(CONTEXT_SYSTEM); // pinned blocks do not have own context
+        }
         
         if ( !has_capability('moodle/block:view', $context) ) {
             return true;

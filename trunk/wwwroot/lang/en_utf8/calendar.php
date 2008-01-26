@@ -1,4 +1,4 @@
-<?PHP // $Id: calendar.php,v 1.10 2007/06/13 12:55:23 dwoolhead Exp $ 
+<?PHP // $Id: calendar.php,v 1.10.4.1 2007/11/29 14:40:46 skodak Exp $ 
       // calendar.php - created with Moodle 1.7 beta + (2006101003)
 
 $string['allday'] = 'All day';
@@ -17,6 +17,7 @@ $string['dayview'] = 'Day View';
 $string['daywithnoevents'] = 'There are no events this day.';
 $string['default'] = 'Default';
 $string['deleteevent'] = 'Delete event';
+$string['deleteevents'] = 'Delete events';
 $string['detailedmonthview'] = 'Detailed Month View';
 $string['durationminutes'] = 'Duration in minutes';
 $string['durationnone'] = 'Without duration';

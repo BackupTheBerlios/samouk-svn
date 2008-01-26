@@ -1,4 +1,4 @@
-<?php //$Id: backuplib.php,v 1.175 2007/09/29 16:07:52 skodak Exp $
+<?php //$Id: backuplib.php,v 1.179.2.8 2007/12/11 03:15:33 toyomoyo Exp $
     //This file contains all the function needed in the backup utility
     //except the mod-related funtions that are into every backuplib.php inside
     //every mod directory
@@ -957,8 +957,16 @@
                         if(empty($blocks[$instance->blockid]->name)) {
                             continue;
                         }
-                        //Begin Block
 
+                        //Give the block a chance to process any links in configdata.
+                        if (!isset($blocks[$instance->blockid]->blockobject)) {
+                            $blocks[$instance->blockid]->blockobject = block_instance($blocks[$instance->blockid]->name);
+                        }
+                        $config = unserialize(base64_decode($instance->configdata));
+                        $blocks[$instance->blockid]->blockobject->backup_encode_absolute_links_in_config($config);
+                        $instance->configdata = base64_encode(serialize($config));
+
+                        //Begin Block
                         fwrite ($bf,start_tag('BLOCK',3,true));
                         fwrite ($bf,full_tag('ID', 4, false,$instance->id));
                         fwrite ($bf,full_tag('NAME',4,false,$blocks[$instance->blockid]->name));
@@ -1147,12 +1155,12 @@
                                           b.table_name = 'user'");
 
         //If we have users to backup
-        if ($users && $users->RecordCount()) {
+        if ($users && !rs_EOF($users)) {
             //Begin Users tag
             fwrite ($bf,start_tag("USERS",2,true));
             $counter = 0;
             //With every user
-            while ($user = $users->FetchNextObj()) {
+            while ($user = rs_fetch_next_record($users)) {
                 //Begin User tag
                 fwrite ($bf,start_tag("USER",3,true));
                 //Output all user data
@@ -1290,6 +1298,10 @@
             $status = true;
         }
 
+        if ($users) {
+            rs_close($users);
+        }
+
         return $status;
     }
 
@@ -1401,6 +1413,7 @@
         }
 
         $status = backup_gradebook_item_info($bf,$preferences, $backupall);
+        $status = backup_gradebook_grade_letters_info($bf,$preferences);
         $status = backup_gradebook_outcomes_info($bf, $preferences);
         $status = backup_gradebook_outcomes_courses_info($bf, $preferences);
 
@@ -1483,6 +1496,11 @@
                 // do not restore if this grade_item is a mod, and
                 if ($grade_item->itemtype == 'mod') {
                     // this still needs to be included, though grades can be ignored
+                    
+                    //MDL-12463 - exclude grade_items of instances not chosen for backup
+                    if (empty($preferences->mods[$grade_item->itemmodule]->instances[$grade_item->iteminstance]->backup)) {
+                        continue;
+                    }
                 } else if ($grade_item->itemtype == 'category') {
                     // if not all grade items are being backed up
                     // we ignore this type of grade_item and grades associated
@@ -1515,8 +1533,8 @@
                 fwrite ($bf,full_tag("MULTFACTOR",5,false,$grade_item->multfactor));
                 fwrite ($bf,full_tag("PLUSFACTOR",5,false,$grade_item->plusfactor));
                 fwrite ($bf,full_tag("AGGREGATIONCOEF",5,false,$grade_item->aggregationcoef));
-                fwrite ($bf,full_tag("DISPLAY",5,false,$grade_item->plusfactor));
-                fwrite ($bf,full_tag("DECIMALS",5,false,$grade_item->plusfactor));
+                fwrite ($bf,full_tag("DISPLAY",5,false,$grade_item->display));
+                fwrite ($bf,full_tag("DECIMALS",5,false,$grade_item->decimals));
                 fwrite ($bf,full_tag("HIDDEN",5,false,$grade_item->hidden));
                 fwrite ($bf,full_tag("LOCKED",5,false,$grade_item->locked));
                 fwrite ($bf,full_tag("LOCKTIME",5,false,$grade_item->locktime));
@@ -1543,6 +1561,41 @@
     }
     //Backup gradebook_item (called from backup_gradebook_info
 
+    function backup_gradebook_grade_letters_info($bf, $preferences) {
+        global $CFG;
+        $status = true;
+
+        // getting grade categories, but make sure parents come before children
+        // because when we do restore, we need to recover the parents first
+        // we do this by getting the lowest depth first
+        $context = get_context_instance(CONTEXT_COURSE, $preferences->backup_course);
+        $grade_letters = get_records_sql("SELECT *
+                                          FROM {$CFG->prefix}grade_letters
+                                          WHERE contextid = $context->id");
+        if ($grade_letters) {
+            //Begin grade_categories tag
+            fwrite ($bf,start_tag("GRADE_LETTERS",3,true));
+            //Iterate for each category
+            foreach ($grade_letters as $grade_letter) {
+                //Begin grade_category
+                fwrite ($bf,start_tag("GRADE_LETTER",4,true));
+                //Output individual fields
+                fwrite ($bf,full_tag("ID",5,false,$grade_letter->id));
+
+                // not keeping path and depth because they can be derived
+                fwrite ($bf,full_tag("LOWERBOUNDARY",5,false,$grade_letter->lowerboundary));
+                fwrite ($bf,full_tag("LETTER",5,false,$grade_letter->letter));
+
+                //End grade_category
+                fwrite ($bf,end_tag("GRADE_LETTER",4,true));
+            }
+            //End grade_categories tag
+            $status = fwrite ($bf,end_tag("GRADE_LETTERS",3,true));
+        }
+
+        return $status;
+    }
+
     function backup_gradebook_outcomes_info($bf,$preferences) {
 
         global $CFG;
@@ -1568,7 +1621,8 @@
                 fwrite ($bf,full_tag("SHORTNAME",5,false,$grade_outcome->shortname));
                 fwrite ($bf,full_tag("FULLNAME",5,false,$grade_outcome->fullname));
                 fwrite ($bf,full_tag("SCALEID",5,false,$grade_outcome->scaleid));
-                fwrite ($bf,full_tag("DESCRIPTION",5,false,$grade_outcome->description));
+                fwrite ($bf,full_tag("TIMECREATED",5,false,$grade_outcome->timecreated));
+                fwrite ($bf,full_tag("TIMEMODIFIED",5,false,$grade_outcome->timemodified));               
                 fwrite ($bf,full_tag("USERMODIFIED",5,false,$grade_outcome->usermodified));
 
                 //End grade_outcome
@@ -1658,8 +1712,8 @@
             foreach ($chs as $ch) {
                 fwrite ($bf,start_tag("GRADE_CATEGORIES_HISTORY",6,true));
                 fwrite ($bf,full_tag("ID",7,false,$ch->id));
-                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("ACTION",7,false,$ch->action));
+                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("SOURCE",7,false,$ch->source));
                 fwrite ($bf,full_tag("TIMEMODIFIED",7,false,$ch->timemodified));
                 fwrite ($bf,full_tag("LOGGEDUSER",7,false,$ch->loggeduser));
@@ -1694,8 +1748,8 @@
             foreach ($chs as $ch) {
                 fwrite ($bf,start_tag("GRADE_GRADES_HISTORY",6,true));
                 fwrite ($bf,full_tag("ID",7,false,$ch->id));
-                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("ACTION",7,false,$ch->action));
+                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("SOURCE",7,false,$ch->source));
                 fwrite ($bf,full_tag("TIMEMODIFIED",7,false,$ch->timemodified));
                 fwrite ($bf,full_tag("LOGGEDUSER",7,false,$ch->loggeduser));
@@ -1704,6 +1758,7 @@
                 fwrite ($bf,full_tag("RAWGRADE",7,false,$ch->rawgrade));
                 fwrite ($bf,full_tag("RAWGRADEMAX",7,false,$ch->rawgrademax));
                 fwrite ($bf,full_tag("RAWGRADEMIN",7,false,$ch->rawgrademin));
+                fwrite ($bf,full_tag("RAWSCALEID",7,false,$ch->rawscaleid));
                 fwrite ($bf,full_tag("USERMODIFIED",7,false,$ch->usermodified));
                 fwrite ($bf,full_tag("FINALGRADE",7,false,$ch->finalgrade));
                 fwrite ($bf,full_tag("HIDDEN",7,false,$ch->hidden));
@@ -1734,8 +1789,8 @@
             foreach ($chs as $ch) {
                 fwrite ($bf,start_tag("GRADE_ITEM_HISTORY",6,true));
                 fwrite ($bf,full_tag("ID",7,false,$ch->id));
-                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("ACTION",7,false,$ch->action));
+                fwrite ($bf,full_tag("OLDID",7,false,$ch->oldid));
                 fwrite ($bf,full_tag("SOURCE",7,false,$ch->source));
                 fwrite ($bf,full_tag("TIMEMODIFIED",7,false,$ch->timemodified));
                 fwrite ($bf,full_tag("LOGGEDUSER",7,false,$ch->loggeduser));
@@ -1758,8 +1813,8 @@
                 fwrite ($bf,full_tag("PLUSFACTOR",7,false,$ch->plusfactor));
                 fwrite ($bf,full_tag("AGGREGATIONCOEF",7,false,$ch->aggregationcoef));
                 fwrite ($bf,full_tag("SORTORDER",7,false,$ch->sortorder));
-                fwrite ($bf,full_tag("DISPLAY",7,false,$ch->plusfactor));
-                fwrite ($bf,full_tag("DECIMALS",7,false,$ch->plusfactor));
+                fwrite ($bf,full_tag("DISPLAY",7,false,$ch->display));
+                fwrite ($bf,full_tag("DECIMALS",7,false,$ch->decimals));
                 fwrite ($bf,full_tag("HIDDEN",7,false,$ch->hidden));
                 fwrite ($bf,full_tag("LOCKED",7,false,$ch->locked));
                 fwrite ($bf,full_tag("LOCKTIME",7,false,$ch->locktime));
@@ -2167,26 +2222,30 @@
         //in temp/backup/$backup_code  dir
         $status = check_and_create_user_files_dir($preferences->backup_unique_code);
 
-        //Now iterate over directories under "users" to check if that user must be
-        //copied to backup
+        //Now iterate over directories under "user" to check if that user must be copied to backup
 
-        $rootdir = $CFG->dataroot."/users";
-        //Check if directory exists
-        if (is_dir($rootdir)) {
-            $list = list_directories ($rootdir);
-            if ($list) {
-                //Iterate
-                foreach ($list as $dir) {
-                    //Look for dir like username in backup_ids
-                    $data = get_record ("backup_ids","backup_code",$preferences->backup_unique_code,
-                                                     "table_name","user",
-                                                     "old_id",$dir);
-                    //If exists, copy it
-                    if ($data) {
-                        $status = backup_copy_file($rootdir."/".$dir,
-                                       $CFG->dataroot."/temp/backup/".$preferences->backup_unique_code."/user_files/".$dir);
-                    }
+        // Method to get a list of userid=>array(basedir => $basedir, userfolder => $userfolder) 
+        $userlist = get_user_directories();
+
+        foreach ($userlist as $userid => $userinfo) {
+            //Look for dir like username in backup_ids
+            $data = count_records("backup_ids","backup_code",$preferences->backup_unique_code, "table_name","user", "old_id",$userid);
+            
+            //If exists, copy it
+            if ($data) {
+                $parts = explode('/', $userinfo['userfolder']);
+                $status = true;
+
+                if (is_array($parts)) {
+                    $group = $parts[0];
+                    $userid = $parts[1];
+
+                    // Create group dir first
+                    $status = check_dir_exists("$CFG->dataroot/temp/backup/$preferences->backup_unique_code/user_files/". $group, true);
                 }
+
+                $status = $status && backup_copy_file($userinfo['basedir'] . '/' . $userinfo['userfolder'], 
+                    "$CFG->dataroot/temp/backup/$preferences->backup_unique_code/user_files/{$userinfo['userfolder']}");
             }
         }
 

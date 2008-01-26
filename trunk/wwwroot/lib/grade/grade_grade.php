@@ -1,4 +1,4 @@
-<?php // $Id: grade_grade.php,v 1.12 2007/09/28 07:55:51 nicolasconnault Exp $
+<?php // $Id: grade_grade.php,v 1.14.2.12 2007/11/28 05:15:54 nicolasconnault Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.com                                            //
 //                                                                       //
-// Copyright (C) 2001-2003  Martin Dougiamas  http://dougiamas.com       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com     //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -137,12 +137,24 @@ class grade_grade extends grade_object {
      */
     var $excluded = 0;
 
+    /**
+     * TODO: HACK: create a new field datesubmitted - the date of submission if any
+     * @var boolean $timecreated
+     */
+    var $timecreated = null;
+
+    /**
+     * TODO: HACK: create a new field dategraded - the date of grading
+     * @var boolean $timemodified
+     */
+    var $timemodified = null;
+
 
     /**
      * Returns array of grades for given grade_item+users.
      * @param object $grade_item
      * @param array $userids
-     * @param bool $include_missing include grades taht do not exist yet
+     * @param bool $include_missing include grades that do not exist yet
      * @return array userid=>grade_grade array
      */
     function fetch_users_grades($grade_item, $userids, $include_missing=true) {
@@ -228,8 +240,11 @@ class grade_grade extends grade_object {
      */
     function is_locked() {
         $this->load_grade_item();
-
-        return !empty($this->locked) or $this->grade_item->is_locked();
+        if (empty($this->grade_item)) {
+            return !empty($this->locked);
+        } else {
+            return !empty($this->locked) or $this->grade_item->is_locked();
+        }
     }
 
     /**
@@ -241,11 +256,38 @@ class grade_grade extends grade_object {
     }
 
     /**
+     * Returns timestamp of submission related to this grade,
+     * might be null if not submitted.
+     * @return int
+     */
+    function get_datesubmitted() {
+        //TODO: HACK - create new fields in 2.0
+        return $this->timecreated;
+    }
+
+    /**
+     * Returns timestamp when last graded,
+     * might be null if no grade present.
+     * @return int
+     */
+    function get_dategraded() {
+        //TODO: HACK - create new fields in 2.0
+        if (is_null($this->finalgrade)) {
+            return null; // no grade == no date
+        } else if ($this->overridden) {
+            return $this->overridden;
+        } else {
+            return $this->timemodified;
+        }
+    }
+
+    /**
      * Set the overridden status of grade
      * @param boolean $state requested overridden state
+     * @param boolean $refresh refresh grades from external activities if needed
      * @return boolean true is db state changed
      */
-    function set_overridden($state) {
+    function set_overridden($state, $refresh = true) {
         if (empty($this->overridden) and $state) {
             $this->overridden = time();
             $this->update();
@@ -254,6 +296,12 @@ class grade_grade extends grade_object {
         } else if (!empty($this->overridden) and !$state) {
             $this->overridden = 0;
             $this->update();
+
+            if ($refresh) {
+                //refresh when unlocking
+                $this->grade_item->refresh_grades($this->userid);
+            }
+
             return true;
         }
         return false;
@@ -340,12 +388,10 @@ class grade_grade extends grade_object {
         $now = time(); // no rounding needed, this is not supposed to be called every 10 seconds
 
         if ($rs = get_recordset_select('grade_grades', "itemid IN ($items_sql) AND locked = 0 AND locktime > 0 AND locktime < $now")) {
-            if ($rs->RecordCount() > 0) {
-                while ($grade = rs_fetch_next_record($rs)) {
-                    $grade_grade = new grade_grade($grade, false);
-                    $grade_grade->locked = time();
-                    $grade_grade->update('locktime');
-                }
+            while ($grade = rs_fetch_next_record($rs)) {
+                $grade_grade = new grade_grade($grade, false);
+                $grade_grade->locked = time();
+                $grade_grade->update('locktime');
             }
             rs_close($rs);
         }
@@ -386,8 +432,29 @@ class grade_grade extends grade_object {
      */
     function is_hidden() {
         $this->load_grade_item();
+        if (empty($this->grade_item)) {
+            return $this->hidden == 1 or ($this->hidden != 0 and $this->hidden > time());
+        } else {
+            return $this->hidden == 1 or ($this->hidden != 0 and $this->hidden > time()) or $this->grade_item->is_hidden();
+        } 
+    }
 
-        return $this->hidden == 1 or ($this->hidden != 0 and $this->hidden > time()) or $this->grade_item->is_hidden();
+    /**
+     * Check grade hidden status. Uses data from both grade item and grade.
+     * @return boolean true if hiddenuntil, false if not
+     */
+    function is_hiddenuntil() {
+        $this->load_grade_item();
+
+        if ($this->hidden == 1 or $this->grade_item->hidden == 1) {
+            return false; //always hidden
+        }
+
+        if ($this->hidden > 1 or $this->grade_item->hidden > 1) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -472,6 +539,164 @@ class grade_grade extends grade_object {
         $diff = $target_max - $target_min;
         $standardised_value = $factor * $diff + $target_min;
         return $standardised_value;
+    }
+
+    /**
+     * Return array of grade item ids that are either hidden or indirectly depend
+     * on hidden grades, excluded grades are not returned.
+     * THIS IS A REALLY BIG HACK! to be replaced by conditional aggregation of hidden grades in 2.0
+     *
+     * @static
+     * @param array $grades all course grades of one user, & used for better internal caching
+     * @param array $items $grade_items array of grade items, & used for better internal caching
+     * @return array
+     */
+    function get_hiding_affected(&$grade_grades, &$grade_items) {
+        global $CFG;
+
+        if (count($grade_grades) !== count($grade_items)) {
+            error('Incorrect size of arrays in params of grade_grade::get_hiding_affected()!');
+        }
+
+        $dependson = array();
+        $todo = array();
+        $unknown = array();  // can not find altered
+        $altered = array();  // altered grades
+
+        $hiddenfound = false;
+        foreach($grade_grades as $itemid=>$unused) {
+            $grade_grade =& $grade_grades[$itemid];
+            if ($grade_grade->is_excluded()) {
+                //nothing to do, aggregation is ok
+            } else if ($grade_grade->is_hidden()) {
+                $hiddenfound = true;
+                $altered[$grade_grade->itemid] = null;
+            } else if ($grade_grade->is_locked() or $grade_grade->is_overridden()) {
+                // no need to recalculate locked or overridden grades
+            } else {
+                $dependson[$grade_grade->itemid] = $grade_items[$grade_grade->itemid]->depends_on();
+                if (!empty($dependson[$grade_grade->itemid])) {
+                    $todo[] = $grade_grade->itemid;
+                }
+            }
+        }
+        if (!$hiddenfound) {
+            return array('unknown'=>array(), 'altered'=>array());
+        }
+
+        $max = count($todo);
+        for($i=0; $i<$max; $i++) {
+            $found = false;
+            foreach($todo as $key=>$do) {
+                if (array_intersect($dependson[$do], $unknown)) {
+                    // this item depends on hidden grade indirectly
+                    $unknown[$do] = $do;
+                    unset($todo[$key]);
+                    $found = true;
+                    continue;
+
+                } else if (!array_intersect($dependson[$do], $todo)) {
+                    if (!array_intersect($dependson[$do], array_keys($altered))) {
+                        // hiding does not affect this grade
+                        unset($todo[$key]);
+                        $found = true;
+                        continue;
+
+                    } else {
+                        // depends on altered grades - we should try to recalculate if possible
+                        if ($grade_items[$do]->is_calculated() or (!$grade_items[$do]->is_category_item() and !$grade_items[$do]->is_course_item())) {
+                            $unknown[$do] = $do;
+                            unset($todo[$key]);
+                            $found = true;
+                            continue;
+
+                        } else {
+                            $grade_category = $grade_items[$do]->load_item_category();
+
+                            $values = array();
+                            foreach ($dependson[$do] as $itemid) {
+                                if (array_key_exists($itemid, $altered)) {
+                                    $values[$itemid] = $altered[$itemid];
+                                } else {
+                                    $values[$itemid] = $grade_grades[$itemid]->finalgrade;
+                                }
+                            }
+
+                            foreach ($values as $itemid=>$value) {
+                                if ($grade_grades[$itemid]->is_excluded()) {
+                                    unset($values[$itemid]);
+                                    continue;
+                                }
+                                $values[$itemid] = grade_grade::standardise_score($value, $grade_items[$itemid]->grademin, $grade_items[$itemid]->grademax, 0, 1);
+                            }
+
+                            if ($grade_category->aggregateonlygraded) {
+                                foreach ($values as $itemid=>$value) {
+                                    if (is_null($value)) {
+                                        unset($values[$itemid]);
+                                    }
+                                }
+                            } else {
+                                foreach ($values as $itemid=>$value) {
+                                    if (is_null($value)) {
+                                        $values[$itemid] = 0;
+                                    }
+                                }
+                            }
+
+                            // limit and sort
+                            $grade_category->apply_limit_rules($values);
+                            asort($values, SORT_NUMERIC);
+
+                            // let's see we have still enough grades to do any statistics
+                            if (count($values) == 0) {
+                                // not enough attempts yet
+                                $altered[$do] = null;
+                                unset($todo[$key]);
+                                $found = true;
+                                continue;
+                            }
+
+                            $agg_grade = $grade_category->aggregate_values($values, $grade_items);
+
+                            // recalculate the rawgrade back to requested range
+                            $finalgrade = grade_grade::standardise_score($agg_grade, 0, 1, $grade_items[$do]->grademin, $grade_items[$do]->grademax);
+
+                            if (!is_null($finalgrade)) {
+                                $finalgrade = bounded_number($grade_items[$do]->grademin, $finalgrade, $grade_items[$do]->grademax);
+                            }
+
+                            $altered[$do] = $finalgrade;
+                            unset($todo[$key]);
+                            $found = true;
+                            continue;
+                        }
+                    }
+                }
+            }
+            if (!$found) {
+                break;
+            }
+        }
+
+        return array('unknown'=>$unknown, 'altered'=>$altered);
+    }
+
+    /**
+     * Returns true if the grade's value is superior or equal to the grade item's gradepass value, false otherwise.
+     * @param object $grade_item An optional grade_item of which gradepass value we can use, saves having to load the grade_grade's grade_item
+     * @return boolean
+     */
+    function is_passed($grade_item = null) {
+        if (empty($grade_item)) {
+            if (!isset($this->grade_item)) {
+                $this->load_grade_item();
+            }
+        } else {
+            $this->grade_item = $grade_item;
+            $this->itemid = $grade_item->id;
+        }
+        return $this->finalgrade >= $this->grade_item->gradepass;
     }
 }
 ?>

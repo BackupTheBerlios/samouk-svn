@@ -1,4 +1,4 @@
-<?php  /// $Id: javascript.php,v 1.36 2007/08/08 09:42:11 nicolasconnault Exp $
+<?php  /// $Id: javascript.php,v 1.36.2.1 2007/12/03 15:42:09 nicolasconnault Exp $
        /// Load up any required Javascript libraries
 
     if (!defined('MOODLE_INTERNAL')) {
@@ -87,5 +87,34 @@ function inserttext(text) {
     $focus=false; // Prevent themes from adding it to body tag which breaks addonload(), MDL-10249
 } ?>
 
+function getElementsByClassName(oElm, strTagName, oClassNames){
+	var arrElements = (strTagName == "*" && oElm.all)? oElm.all : oElm.getElementsByTagName(strTagName);
+	var arrReturnElements = new Array();
+	var arrRegExpClassNames = new Array();
+	if(typeof oClassNames == "object"){
+		for(var i=0; i<oClassNames.length; i++){
+			arrRegExpClassNames.push(new RegExp("(^|\\s)" + oClassNames[i].replace(/\-/g, "\\-") + "(\\s|$)"));
+		}
+	}
+	else{
+		arrRegExpClassNames.push(new RegExp("(^|\\s)" + oClassNames.replace(/\-/g, "\\-") + "(\\s|$)"));
+	}
+	var oElement;
+	var bMatchesAll;
+	for(var j=0; j<arrElements.length; j++){
+		oElement = arrElements[j];
+		bMatchesAll = true;
+		for(var k=0; k<arrRegExpClassNames.length; k++){
+			if(!arrRegExpClassNames[k].test(oElement.className)){
+				bMatchesAll = false;
+				break;
+			}
+		}
+		if(bMatchesAll){
+			arrReturnElements.push(oElement);
+		}
+	}
+	return (arrReturnElements)
+}
 //]]>
 </script>

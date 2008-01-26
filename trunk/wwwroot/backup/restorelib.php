@@ -1,4 +1,4 @@
-<?php //$Id: restorelib.php,v 1.282 2007/09/22 11:40:15 skodak Exp $
+<?php //$Id: restorelib.php,v 1.283.2.13 2007/12/28 18:57:45 stronk7 Exp $
     //Functions used in restore
 
     //This function unzips a zip file in the same directory that it is
@@ -90,7 +90,27 @@
             }
         }
 
-        // TODO: process all html text also in blocks too
+        // Process all html text also in blocks too
+        if (!defined('RESTORE_SILENTLY')) {
+            echo '<li>' . get_string ('from') . ' ' . get_string('blocks');
+        }
+        if (!empty($restore->blockinstanceids)) {
+            $blocks = blocks_get_record();
+            $instances = get_records_list('block_instance', 'id', implode(',', $restore->blockinstanceids), '', 'id,blockid,configdata');
+            foreach ($instances as $instance) {
+                if (!isset($blocks[$instance->blockid]->blockobject)) {
+                    $blocks[$instance->blockid]->blockobject = block_instance($blocks[$instance->blockid]->name);
+                }
+                $config = unserialize(base64_decode($instance->configdata));
+                if ($blocks[$instance->blockid]->blockobject->restore_decode_absolute_links_in_config($config)) {
+                    $instance->configdata = base64_encode(serialize($config));
+                    $status = $status && update_record('block_instance', $instance);
+                }
+            }
+        }
+        if (!defined('RESTORE_SILENTLY')) {
+            echo '</li>';
+        }
 
         // Restore links in questions.
         require_once("$CFG->dirroot/question/restorelib.php");
@@ -759,6 +779,11 @@
     function restore_create_block_instances($restore,$xml_file) {
 
         $status = true;
+
+        // Tracks which blocks we create during the restore.
+        // This is used in restore_decode_content_links.
+        $restore->blockinstanceids = array();
+
         //Check it exists
         if (!file_exists($xml_file)) {
             $status = false;
@@ -851,6 +876,7 @@
                         if (!empty($instance->id)) { // this will only be set if we come from 1.7 and above backups
                             backup_putid ($restore->backup_unique_code,"block_instance",$instance->id,$newid);
                         }
+                        $restore->blockinstanceids[] = $newid;
                     } else {
                         $status = false;
                         break;
@@ -1194,6 +1220,7 @@
         // Count how many we have
         $categoriescount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_categories');
         $itemscount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_items');
+        $letterscount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_letters');
         $outcomecount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_outcomes');
         $outcomescoursescount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_outcomes_courses');
         $gchcount = count_records ('backup_ids', 'backup_code', $restore->backup_unique_code, 'table_name', 'grade_categories_history');
@@ -1288,7 +1315,6 @@
                             // get the new grade category parent
                             
                             //if (!empty($info['GRADE_CATEGORY']['#']['PARENT']['0']['#']) && $info['GRADE_CATEGORY']['#']['PARENT']['0']['#'] != '$@NULL@$') {
-                             
                             $parent = backup_getid($restore->backup_unique_code,'grade_categories',backup_todb($info['GRADE_CATEGORY']['#']['PARENT']['0']['#']));
                             if (isset($parent->new_id)) {
                                 $dbrec->parent = $parent->new_id;
@@ -1302,8 +1328,12 @@
                             $dbrec->aggregation = backup_todb($info['GRADE_CATEGORY']['#']['AGGREGATION']['0']['#']);
                             $dbrec->keephigh = backup_todb($info['GRADE_CATEGORY']['#']['KEEPHIGH']['0']['#']);
                             $dbrec->droplow = backup_todb($info['GRADE_CATEGORY']['#']['DROPLOW']['0']['#']);
+                            $dbrec->aggregateonlygraded = backup_todb($info['GRADE_CATEGORY']['#']['AGGREGATEONLYGRADED']['0']['#']);
                             $dbrec->aggregateoutcomes = backup_todb($info['GRADE_CATEGORY']['#']['AGGREGATEOUTCOMES']['0']['#']);
-
+                            $dbrec->aggregatesubcats = backup_todb($info['GRADE_CATEGORY']['#']['AGGREGATESUBCATS']['0']['#']);
+                            $dbrec->timecreated = backup_todb($info['GRADE_CATEGORY']['#']['TIMECREATED']['0']['#']);
+                            $dbrec->timemodified = backup_todb($info['GRADE_CATEGORY']['#']['TIMEMODIFIED']['0']['#']);                           
+                                               
                             //Structure is equal to db, insert record
                             //if the fullname doesn't exist
                             if (!$prerec = get_record('grade_categories','courseid',$dbrec->courseid,'fullname',$dbrec->fullname)) {
@@ -1338,6 +1368,42 @@
                             }
                             backup_flush(300);
                         }
+                    }
+                }
+            }
+        }
+
+        // Process letters
+        
+        $context = get_context_instance(CONTEXT_COURSE, $restore->course_id);
+        // respect current grade letters if defined
+        if ($letterscount && $continue && !record_exists('grade_letters', 'contextid', $context->id)) {
+            if (!defined('RESTORE_SILENTLY')) {
+                echo '<li>'.get_string('gradeletters','grades').'</li>';
+            }
+            $counter = 0;
+            while ($counter < $letterscount) {
+                // Fetch recordset_size records in each iteration
+                $recs = get_records_select("backup_ids","table_name = 'grade_letters' AND backup_code = '$restore->backup_unique_code'",
+                                            "old_id",
+                                            "old_id",
+                                            $counter,
+                                            $recordset_size);
+                if ($recs) {
+                    foreach ($recs as $rec) {
+                        // Get the full record from backup_ids
+                        $data = backup_getid($restore->backup_unique_code,'grade_letters',$rec->old_id);
+                        if ($data) {
+                            // Now get completed xmlized object
+                            $info = $data->info;
+                            $dbrec->contextid = $context->id;
+                            $dbrec->lowerboundary = backup_todb($info['GRADE_LETTER']['#']['LOWERBOUNDARY']['0']['#']);
+                            $dbrec->letter = backup_todb($info['GRADE_LETTER']['#']['LETTER']['0']['#']);
+                            // course might already have grade letters defined, if so, skip
+                            insert_record('grade_letters', $dbrec);
+        
+                        }
+                        $counter++;
                     }
                 }
             }
@@ -1379,7 +1445,11 @@
                                 $scale = backup_getid($restore->backup_unique_code,"scale",backup_todb($info['GRADE_OUTCOME']['#']['SCALEID']['0']['#']));
                                 $dbrec->scaleid = $scale->new_id;
                             }
-
+                            
+                            $dbrec->description = backup_todb($info['GRADE_OUTCOME']['#']['DESCRIPTION']['0']['#']);
+                            $dbrec->timecreated = backup_todb($info['GRADE_OUTCOME']['#']['TIMECREATED']['0']['#']);
+                            $dbrec->timemodified = backup_todb($info['GRADE_OUTCOME']['#']['TIMEMODIFIED']['0']['#']);
+                            
                             $modifier = backup_getid($restore->backup_unique_code,"user", backup_todb($info['GRADE_OUTCOME']['#']['USERMODIFIED']['0']['#']));
                             $dbrec->usermodified = $modifier->new_id;
 
@@ -1504,7 +1574,7 @@
                                 $dbrec->categoryid = $coursecat->id;
                             } else if (!empty($info['GRADE_ITEM']['#']['CATEGORYID']['0']['#']) && $info['GRADE_ITEM']['#']['CATEGORYID']['0']['#']!='$@NULL@$') {
                                 $category = backup_getid($restore->backup_unique_code,'grade_categories',backup_todb($info['GRADE_ITEM']['#']['CATEGORYID']['0']['#']));
-                                if ($category->new_id) {
+                                if (!empty($category->new_id)) {
                                     $dbrec->categoryid = $category->new_id;
                                 } else { 
                                     // this could be restoring into existing course, and grade item points to the old course grade item (category)
@@ -1558,6 +1628,7 @@
                             $dbrec->itemnumber = backup_todb($info['GRADE_ITEM']['#']['ITEMNUMBER']['0']['#']);
                             $dbrec->iteminfo = backup_todb($info['GRADE_ITEM']['#']['ITEMINFO']['0']['#']);
                             $dbrec->idnumber = backup_todb($info['GRADE_ITEM']['#']['IDNUMBER']['0']['#']);
+                            $dbrec->gradetype = backup_todb($info['GRADE_ITEM']['#']['GRADETYPE']['0']['#']);
                             $dbrec->calculation = backup_todb($info['GRADE_ITEM']['#']['CALCULATION']['0']['#']);
                             $dbrec->grademax = backup_todb($info['GRADE_ITEM']['#']['GRADEMAX']['0']['#']);
                             $dbrec->grademin = backup_todb($info['GRADE_ITEM']['#']['GRADEMIN']['0']['#']);
@@ -1569,11 +1640,18 @@
                             }
 
                             /// needs to be restored first
-                            $dbrec->outcomeid = backup_getid($restore->backup_unique_code,"grade_outcomes",backup_todb($info['GRADE_ITEM']['#']['OUTCOMEID']['0']['#']));
+                            /// TODO
+                            if  (backup_todb($info['GRADE_ITEM']['#']['OUTCOMEID']['0']['#'])) {
+                                $outcome = backup_getid($restore->backup_unique_code,"grade_outcomes",backup_todb($info['GRADE_ITEM']['#']['OUTCOMEID']['0']['#']));
+                                $dbrec->outcomeid = $outcome->new_id;
+                            }
 
                             $dbrec->gradepass = backup_todb($info['GRADE_ITEM']['#']['GRADEPASS']['0']['#']);
                             $dbrec->multfactor = backup_todb($info['GRADE_ITEM']['#']['MULTFACTOR']['0']['#']);
                             $dbrec->plusfactor = backup_todb($info['GRADE_ITEM']['#']['PLUSFACTOR']['0']['#']);
+                            $dbrec->aggregationcoef = backup_todb($info['GRADE_ITEM']['#']['AGGREGATIONCOEF']['0']['#']);
+                            $dbrec->display = backup_todb($info['GRADE_ITEM']['#']['DISPLAY']['0']['#']);
+                            $dbrec->decimals = backup_todb($info['GRADE_ITEM']['#']['DECIMALS']['0']['#']);                            
                             $dbrec->hidden = backup_todb($info['GRADE_ITEM']['#']['HIDDEN']['0']['#']);
                             $dbrec->locked = backup_todb($info['GRADE_ITEM']['#']['LOCKED']['0']['#']);
                             $dbrec->locktime = backup_todb($info['GRADE_ITEM']['#']['LOCKTIME']['0']['#']);
@@ -1628,6 +1706,13 @@
                                         $scale = backup_getid($restore->backup_unique_code,"scale",backup_todb($ite_info['#']['RAWSCALEID']['0']['#']));
                                         $grade->rawscaleid = $scale->new_id;
                                     }
+                                    
+                                    if (backup_todb($ite_info['#']['USERMODIFIED']['0']['#'])) {
+                                        if ($modifier = backup_getid($restore->backup_unique_code,"user", backup_todb($ite_info['#']['USERMODIFIED']['0']['#']))) {
+                                            $grade->usermodified = $modifier->new_id; 
+                                        }
+                                    }
+                                    
                                     $grade->finalgrade = backup_todb($ite_info['#']['FINALGRADE']['0']['#']);
                                     $grade->hidden = backup_todb($ite_info['#']['HIDDEN']['0']['#']);
                                     $grade->locked = backup_todb($ite_info['#']['LOCKED']['0']['#']);
@@ -1639,7 +1724,9 @@
                                     $grade->feedbackformat = backup_todb($ite_info['#']['FEEDBACKFORMAT']['0']['#']);
                                     $grade->information = backup_todb($ite_info['#']['INFORMATION']['0']['#']);
                                     $grade->informationformat = backup_todb($ite_info['#']['INFORMATIONFORMAT']['0']['#']);
-
+                                    $grade->timecreated = backup_todb($ite_info['#']['TIMECREATED']['0']['#']);
+                                    $grade->timemodified = backup_todb($ite_info['#']['TIMEMODIFIED']['0']['#']);
+                                    
                                     $newid = insert_record('grade_grades', $grade);
 
                                     if ($newid) {
@@ -1736,6 +1823,11 @@
                             $dbrec->aggregation = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['AGGRETGATION']['0']['#']);
                             $dbrec->keephigh = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['KEEPHIGH']['0']['#']);
                             $dbrec->droplow = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['DROPLOW']['0']['#']);
+                            
+                            $dbrec->aggregateonlygraded = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['AGGREGATEONLYGRADED']['0']['#']);
+                            $dbrec->aggregateoutcomes = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['AGGREGATEOUTCOMES']['0']['#']);
+                            $dbrec->aggregatesubcats = backup_todb($info['GRADE_CATEGORIES_HISTORY']['#']['AGGREGATESUBCATS']['0']['#']);
+
                             $dbrec->courseid = $restore->course_id;
                             insert_record('grade_categories_history', $dbrec);
                             unset($dbrec);
@@ -1795,6 +1887,7 @@
                             if ($oldobj = backup_getid($restore->backup_unique_code,"user", backup_todb($info['GRADE_GRADES_HISTORY']['#']['LOGGEDUSER']['0']['#']))) {
                                 $dbrec->loggeduser = $oldobj->new_id;
                             }
+                            
                             $oldobj = backup_getid($restore->backup_unique_code,"grade_items", backup_todb($info['GRADE_GRADES_HISTORY']['#']['ITEMID']['0']['#']));
                             $dbrec->itemid = $oldobj->new_id;
                             if (empty($dbrec->itemid)) {
@@ -1809,6 +1902,12 @@
                             if ($oldobj = backup_getid($restore->backup_unique_code,"user", backup_todb($info['GRADE_GRADES_HISTORY']['#']['USERMODIFIED']['0']['#']))) {
                                 $dbrec->usermodified = $oldobj->new_id;
                             }
+                            
+                            if (backup_todb($info['GRADE_GRADES_HISTORY']['#']['RAWSCALEID']['0']['#'])) {
+                                $scale = backup_getid($restore->backup_unique_code,"scale",backup_todb($info['GRADE_GRADES_HISTORY']['#']['RAWSCALEID']['0']['#']));
+                                $dbrec->rawscaleid = $scale->new_id;
+                            }
+                            
                             $dbrec->finalgrade = backup_todb($info['GRADE_GRADES_HISTORY']['#']['FINALGRADE']['0']['#']);
                             $dbrec->hidden = backup_todb($info['GRADE_GRADES_HISTORY']['#']['HIDDEN']['0']['#']);
                             $dbrec->locked = backup_todb($info['GRADE_GRADES_HISTORY']['#']['LOCKED']['0']['#']);
@@ -1881,6 +1980,7 @@
                             if ($oldobj = backup_getid($restore->backup_unique_code,"user", backup_todb($info['GRADE_ITEM_HISTORY']['#']['LOGGEDUSER']['0']['#']))) {
                                 $dbrec->loggeduser = $oldobj->new_id;
                             }
+                            $dbrec->courseid = $restore->course_id;
                             $oldobj = backup_getid($restore->backup_unique_code,'grade_categories',backup_todb($info['GRADE_ITEM_HISTORY']['#']['CATEGORYID']['0']['#']));
                             $oldobj->categoryid = $category->new_id;
                             if (empty($oldobj->categoryid)) {
@@ -1956,6 +2056,8 @@
                             $dbrec->plusfactor = backup_todb($info['GRADE_ITEM_HISTORY']['#']['PLUSFACTOR']['0']['#']);
                             $dbrec->aggregationcoef = backup_todb($info['GRADE_ITEM_HISTORY']['#']['AGGREGATIONCOEF']['0']['#']);
                             $dbrec->sortorder = backup_todb($info['GRADE_ITEM_HISTORY']['#']['SORTORDER']['0']['#']);
+                            $dbrec->display = backup_todb($info['GRADE_ITEM_HISTORY']['#']['DISPLAY']['0']['#']);
+                            $dbrec->decimals = backup_todb($info['GRADE_ITEM_HISTORY']['#']['DECIMALS']['0']['#']);
                             $dbrec->hidden = backup_todb($info['GRADE_ITEM_HISTORY']['#']['HIDDEN']['0']['#']);
                             $dbrec->locked = backup_todb($info['GRADE_ITEM_HISTORY']['#']['LOCKED']['0']['#']);
                             $dbrec->locktime = backup_todb($info['GRADE_ITEM_HISTORY']['#']['LOCKTIME']['0']['#']);
@@ -2019,6 +2121,7 @@
                             if ($oldobj = backup_getid($restore->backup_unique_code,"user", backup_todb($info['GRADE_OUTCOME_HISTORY']['#']['LOGGEDUSER']['0']['#']))) {
                                 $dbrec->loggeduser = $oldobj->new_id;
                             }
+                            $dbrec->courseid = $restore->course_id;
                             $dbrec->shortname = backup_todb($info['GRADE_OUTCOME_HISTORY']['#']['SHORTNAME']['0']['#']);
                             $dbrec->fullname= backup_todb($info['GRADE_OUTCOME_HISTORY']['#']['FULLNAME']['0']['#']);
                             $oldobj = backup_getid($restore->backup_unique_code,"scale", backup_todb($info['GRADE_OUTCOME_HISTORY']['#']['SCALEID']['0']['#']));
@@ -2070,7 +2173,7 @@
             //in backup_ids->info will be the real info (serialized)
             $info = restore_read_xml_users($restore,$xml_file);
         }
-
+        
         //Now, get evey user_id from $info and user data from $backup_ids
         //and create the necessary records (users, user_students, user_teachers
         //user_course_creators and user_admins
@@ -2084,6 +2187,14 @@
             foreach ($info->users as $userid) {
                 $rec = backup_getid($restore->backup_unique_code,"user",$userid);
                 $user = $rec->info;
+                foreach (array_keys(get_object_vars($user)) as $field) {
+                    if (!is_array($user->$field)) {
+                        $user->$field = backup_todb($user->$field);
+                        if (is_null($user->$field)) {
+                            $user->$field = '';
+                        }
+                    }
+                }
 
                 //Now, recode some languages (Moodle 1.5)
                 if ($user->lang == 'ma_nt') {
@@ -2161,17 +2272,12 @@
                 if ($create_user) {
                     //Unset the id because it's going to be inserted with a new one
                     unset ($user->id);
-                    //We addslashes to necessary fields
-                    $user->username = addslashes($user->username);
-                    $user->firstname = addslashes($user->firstname);
-                    $user->lastname = addslashes($user->lastname);
-                    $user->email = addslashes($user->email);
-                    $user->institution = addslashes($user->institution);
-                    $user->department = addslashes($user->department);
-                    $user->address = addslashes($user->address);
-                    $user->city = addslashes($user->city);
-                    $user->url = addslashes($user->url);
-                    $user->description = backup_todb($user->description);
+                    // relink the descriptions
+                    $user->description = stripslashes($user->description);
+
+                    if (!empty($CFG->disableuserimages)) {
+                        $user->picture = 0;
+                    }
 
                     //We need to analyse the AUTH field to recode it:
                     //   - if the field isn't set, we are in a pre 1.4 backup and we'll
@@ -2203,7 +2309,8 @@
 
                     //We are going to create the user
                     //The structure is exactly as we need
-                    $newid = insert_record ("user",$user);
+
+                    $newid = insert_record ("user", addslashes_recursive($user));
                     //Put the new id
                     $status = backup_putid($restore->backup_unique_code,"user",$userid,$newid,"new");
                 }
@@ -2772,7 +2879,7 @@
                 if (!$gro_db = get_record_sql("SELECT *
                                           FROM {$CFG->prefix}groups
                                           WHERE courseid = $restore->course_id AND
-                                                name = '{$gro->name}'" . $description_clause)) {
+                                                name = '{$gro->name}'" . $description_clause, true)) {
                     //If it doesn't exist, create
                     $newid = insert_record('groups', $gro);
 
@@ -3062,19 +3169,6 @@
                                 $eve->userid = $adminid;
                             }
 
-                            //We must recode the repeatid if the event has it
-                            if (!empty($eve->repeatid)) {
-                                $repeat_rec = backup_getid($restore->backup_unique_code,"event_repeatid",$eve->repeatid);
-                                if ($repeat_rec) {    //Exists, so use it...
-                                    $eve->repeatid = $repeat_rec->new_id;
-                                } else {              //Doesn't exists, calculate the next and save it
-                                    $oldrepeatid = $eve->repeatid;
-                                    $max_rec = get_record_sql('SELECT 1, MAX(repeatid) AS repeatid FROM '.$CFG->prefix.'event');
-                                    $eve->repeatid = empty($max_rec) ? 1 : $max_rec->repeatid + 1;
-                                    backup_putid($restore->backup_unique_code,"event_repeatid", $oldrepeatid, $eve->repeatid);
-                                }
-                            }
-
                             //We have to recode the groupid field
                             $group = backup_getid($restore->backup_unique_code,"groups",$eve->groupid);
                             if ($group) {
@@ -3086,6 +3180,22 @@
 
                             //The structure is equal to the db, so insert the event
                             $newid = insert_record ("event",$eve);
+
+                            //We must recode the repeatid if the event has it
+                            //The repeatid now refers to the id of the original event. (see Bug#5956)
+                            if ($newid && !empty($eve->repeatid)) {
+                                $repeat_rec = backup_getid($restore->backup_unique_code,"event_repeatid",$eve->repeatid);
+                                if ($repeat_rec) {    //Exists, so use it...
+                                    $eve->repeatid = $repeat_rec->new_id;
+                                } else {              //Doesn't exists, calculate the next and save it
+                                    $oldrepeatid = $eve->repeatid;
+                                    $eve->repeatid = $newid;
+                                    backup_putid($restore->backup_unique_code,"event_repeatid", $oldrepeatid, $eve->repeatid);
+                                }
+                                $eve->id = $newid;
+                                // update the record to contain the correct repeatid
+                                update_record('event',$eve);
+                            }
                         } else {
                             //get current event id
                             $newid = $eve_db->id;
@@ -3159,48 +3269,53 @@
 
         $counter = 0;
 
-        //First, we check to "users" exists and create is as necessary
+        // 'users' is the old users folder, 'user' is the new one, with a new hierarchy. Detect which one is here and treat accordingly 
         //in CFG->dataroot
-        $dest_dir = $CFG->dataroot."/users";
+        $dest_dir = $CFG->dataroot."/user";
         $status = check_dir_exists($dest_dir,true);
 
         //Now, we iterate over "user_files" records to check if that user dir must be
         //copied (and renamed) to the "users" dir.
         $rootdir = $CFG->dataroot."/temp/backup/".$restore->backup_unique_code."/user_files";
+        
         //Check if directory exists
-        if (is_dir($rootdir)) {
-            $list = list_directories ($rootdir);
-            if ($list) {
-                //Iterate
-                $counter = 0;
-                foreach ($list as $dir) {
-                    //Look for dir like username in backup_ids
-                    $data = get_record ("backup_ids","backup_code",$restore->backup_unique_code,
-                                                     "table_name","user",
-                                                     "old_id",$dir);
-                    //If thar user exists in backup_ids
-                    if ($data) {
-                        //Only it user has been created now
-                        //or if it existed previously, but he hasn't image (see bug 1123)
-                        if ((strpos($data->info,"new") !== false) or
-                            (!check_dir_exists($dest_dir."/".$data->new_id,false))) {
-                            //Copy the old_dir to its new location (and name) !!
-                            //Only if destination doesn't exists
-                            if (!file_exists($dest_dir."/".$data->new_id)) {
-                                $status = backup_copy_file($rootdir."/".$dir,
-                                              $dest_dir."/".$data->new_id,true);
-                                $counter ++;
-                            }
-                            //Do some output
-                            if ($counter % 2 == 0) {
-                                if (!defined('RESTORE_SILENTLY')) {
-                                    echo ".";
-                                    if ($counter % 40 == 0) {
-                                        echo "<br />";
-                                    }
+        $userlist = array();
+
+        if (is_dir($rootdir) && ($list = list_directories ($rootdir))) {
+            $counter = 0;
+            foreach ($list as $dir) {
+                // If there are directories in this folder, we are in the new user hierarchy
+                if ($newlist = list_directories("$rootdir/$dir")) {
+                    foreach ($newlist as $olduserid) {
+                        $userlist[$olduserid] = "$rootdir/$dir/$olduserid";
+                    }
+                } else {
+                    $userlist[$dir] = "$rootdir/$dir";
+                }
+            }
+
+            foreach ($userlist as $olduserid => $backup_location) { 
+                //Look for dir like username in backup_ids
+                //If that user exists in backup_ids
+                if ($user = backup_getid($restore->backup_unique_code,"user",$olduserid)) {
+                    //Only if user has been created now or if it existed previously, but he hasn't got an image (see bug 1123)
+                    $newuserdir = make_user_directory($user->new_id, true); // Doesn't create the folder, just returns the location
+
+                    // restore images if new user or image does not exist yet
+                    if (!empty($user->new) or !check_dir_exists($newuserdir)) {
+                        if (make_user_directory($user->new_id)) { // Creates the folder
+                            $status = backup_copy_file($backup_location, $newuserdir, true);
+                            $counter ++;
+                        }
+                        //Do some output
+                        if ($counter % 2 == 0) {
+                            if (!defined('RESTORE_SILENTLY')) {
+                                echo ".";
+                                if ($counter % 40 == 0) {
+                                    echo "<br />";
                                 }
-                                backup_flush(300);
                             }
+                            backup_flush(300);
                         }
                     }
                 }
@@ -3890,7 +4005,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into INFO zone
             //if ($this->tree[2] == "INFO")                                                             //Debug
@@ -3904,7 +4019,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into INFO zone
             //if ($this->tree[2] == "INFO")                                                             //Debug
@@ -3919,7 +4034,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into COURSE_HEADER zone
             //if ($this->tree[3] == "HEADER")                                                           //Debug
@@ -3933,7 +4048,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into BLOCKS zone
             //if ($this->tree[3] == "BLOCKS")                                                         //Debug
@@ -3947,7 +4062,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into SECTIONS zone
             //if ($this->tree[3] == "SECTIONS")                                                         //Debug
@@ -3961,7 +4076,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Accumulate all the data inside this tag
             if (isset($this->tree[3]) && $this->tree[3] == "FORMATDATA") {
@@ -3984,7 +4099,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into METACOURSE zone
             //if ($this->tree[3] == "METACOURSE")                                                         //Debug
@@ -3999,7 +4114,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into GRADEBOOK zone
             //if ($this->tree[3] == "GRADEBOOK")                                                         //Debug
@@ -4007,7 +4122,7 @@
 
             //If we are under a GRADE_PREFERENCE, GRADE_LETTER or GRADE_CATEGORY tag under a GRADEBOOK zone, accumule it
             if (isset($this->tree[5]) and isset($this->tree[3])) {
-                if (($this->tree[5] == "GRADE_ITEM" || $this->tree[5] == "GRADE_CATEGORY" || $this->tree[5] == "GRADE_OUTCOME" || $this->tree[5] == "GRADE_OUTCOMES_COURSE" || $this->tree[5] == "GRADE_CATEGORIES_HISTORY" || $this->tree[5] == "GRADE_GRADES_HISTORY" || $this->tree[5] == "GRADE_TEXT_HISTORY" || $this->tree[5] == "GRADE_ITEM_HISTORY" || $this->tree[5] == "GRADE_OUTCOME_HISTORY") && ($this->tree[3] == "GRADEBOOK")) {
+                if (($this->tree[5] == "GRADE_ITEM" || $this->tree[5] == "GRADE_CATEGORY" || $this->tree[5] == "GRADE_LETTER" || $this->tree[5] == "GRADE_OUTCOME" || $this->tree[5] == "GRADE_OUTCOMES_COURSE" || $this->tree[5] == "GRADE_CATEGORIES_HISTORY" || $this->tree[5] == "GRADE_GRADES_HISTORY" || $this->tree[5] == "GRADE_TEXT_HISTORY" || $this->tree[5] == "GRADE_ITEM_HISTORY" || $this->tree[5] == "GRADE_OUTCOME_HISTORY") && ($this->tree[3] == "GRADEBOOK")) {
 
                     if (!isset($this->temp)) {
                         $this->temp = "";
@@ -4036,7 +4151,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into MESSAGES zone
             //if ($this->tree[3] == "MESSAGES")                                                          //Debug
@@ -4063,7 +4178,7 @@
             //}                                                                                        //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into QUESTION_CATEGORIES zone
             //if ($this->tree[3] == "QUESTION_CATEGORIES")                                              //Debug
@@ -4091,7 +4206,7 @@
             //}                                                                                        //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into SCALES zone
             //if ($this->tree[3] == "SCALES")                                                           //Debug
@@ -4118,7 +4233,7 @@
             //}                                                                                        //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into GROUPS zone
             //if ($this->tree[3] == "GROUPS")                                                           //Debug
@@ -4145,7 +4260,7 @@
             //}                                                                                        //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into GROUPINGS zone
             //if ($this->tree[3] == "GROUPINGS")                                                           //Debug
@@ -4200,7 +4315,7 @@
             //}                                                                                        //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into EVENTS zone
             //if ($this->tree[3] == "EVENTS")                                                           //Debug
@@ -4228,7 +4343,7 @@
             //}                                                                                           //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into MODULES zone
             //if ($this->tree[3] == "MODULES")                                                          //Debug
@@ -4256,7 +4371,7 @@
             //}                                                                                           //Debug
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             //Check if we are into LOGS zone
             //if ($this->tree[3] == "LOGS")                                                             //Debug
@@ -4279,7 +4394,7 @@
             $this->tree[$this->level] = $tagName;
 
             //Output something to avoid browser timeouts...
-            backup_flush();
+            //backup_flush();
 
             echo $this->level.str_repeat("&nbsp;",$this->level*2)."&lt;".$tagName."&gt;<br />\n";   //Debug
         }
@@ -5164,12 +5279,6 @@
                     //Call to xmlize for this portion of xml data (one PREFERENCE)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $item_id = $data["GRADE_ITEM"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5190,16 +5299,27 @@
                     //Call to xmlize for this portion of xml data (one CATECORY)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $category_id = $data["GRADE_CATEGORY"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
                     $status = backup_putid($this->preferences->backup_unique_code, 'grade_categories' ,$category_id,
+                                           null,$data);
+                    //Create returning info
+                    $this->info = $this->counter;
+                    //Reset temp
+                    unset($this->temp);
+                }
+                
+                if (($this->level == 5) and ($tagName == "GRADE_LETTER")) {
+                    //Prepend XML standard header to info gathered
+                    $xml_data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".$this->temp;
+                    //Call to xmlize for this portion of xml data (one CATECORY)
+                    //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
+                    $data = xmlize($xml_data,0);
+                    $letter_id = $data["GRADE_LETTER"]["#"]["ID"]["0"]["#"];
+                    $this->counter++;
+                    //Save to db
+                    $status = backup_putid($this->preferences->backup_unique_code, 'grade_letters' ,$letter_id,
                                            null,$data);
                     //Create returning info
                     $this->info = $this->counter;
@@ -5214,12 +5334,6 @@
                     //Call to xmlize for this portion of xml data (one CATECORY)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $outcome_id = $data["GRADE_OUTCOME"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5238,12 +5352,6 @@
                     //Call to xmlize for this portion of xml data (one CATECORY)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $outcomes_course_id = $data["GRADE_OUTCOMES_COURSE"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5261,12 +5369,6 @@
                     //Call to xmlize for this portion of xml data (one PREFERENCE)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $id = $data["GRADE_CATEGORIES_HISTORY"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5286,12 +5388,6 @@
                     //Call to xmlize for this portion of xml data (one PREFERENCE)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $id = $data["GRADE_GRADES_HISTORY"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5311,12 +5407,6 @@
                     //Call to xmlize for this portion of xml data (one PREFERENCE)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $id = $data["GRADE_ITEM_HISTORY"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -5336,12 +5426,6 @@
                     //Call to xmlize for this portion of xml data (one PREFERENCE)
                     //echo "-XMLIZE: ".strftime ("%X",time()),"-";                                    //Debug
                     $data = xmlize($xml_data,0);
-                    //echo strftime ("%X",time())."<p>";                                              //Debug
-                    //traverse_xmlize($data);                                                         //Debug
-                    //print_object ($GLOBALS['traverse_array']);                                      //Debug
-                    //$GLOBALS['traverse_array']="";                                                  //Debug
-                    //Now, save data to db. We'll use it later
-                    //Get id and status from data
                     $id = $data["GRADE_OUTCOME_HISTORY"]["#"]["ID"]["0"]["#"];
                     $this->counter++;
                     //Save to db
@@ -6256,58 +6340,41 @@
         xml_set_object($xml_parser,$moodle_parser);
         //Depending of the todo we use some element_handler or another
         if ($todo == "INFO") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementInfo", "endElementInfo");
         } else if ($todo == "ROLES") {
-            // Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementRoles", "endElementRoles");
         } else if ($todo == "COURSE_HEADER") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementCourseHeader", "endElementCourseHeader");
         } else if ($todo == 'BLOCKS') {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementBlocks", "endElementBlocks");
         } else if ($todo == "SECTIONS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementSections", "endElementSections");
         } else if ($todo == 'FORMATDATA') {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementFormatData", "endElementFormatData");
         } else if ($todo == "METACOURSE") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementMetacourse", "endElementMetacourse");
-        } else if ($todo == "GRADEBOOK") {
-            //Define handlers to that zone
+        } else if ($todo == "GRADEBOOK" && $preferences->backup_version >= 2007101000) {
+            // atm we can not handle old gradebook backups
             xml_set_element_handler($xml_parser, "startElementGradebook", "endElementGradebook");
         } else if ($todo == "USERS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementUsers", "endElementUsers");
         } else if ($todo == "MESSAGES") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementMessages", "endElementMessages");
         } else if ($todo == "QUESTIONS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementQuestions", "endElementQuestions");
         } else if ($todo == "SCALES") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementScales", "endElementScales");
         } else if ($todo == "GROUPS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementGroups", "endElementGroups");
         } else if ($todo == "GROUPINGS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementGroupings", "endElementGroupings");
         } else if ($todo == "GROUPINGSGROUPS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementGroupingsGroups", "endElementGroupingsGroups");
         } else if ($todo == "EVENTS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementEvents", "endElementEvents");
         } else if ($todo == "MODULES") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementModules", "endElementModules");
         } else if ($todo == "LOGS") {
-            //Define handlers to that zone
             xml_set_element_handler($xml_parser, "startElementLogs", "endElementLogs");
         } else {
             //Define default handlers (must no be invoked when everything become finished)
@@ -6317,11 +6384,20 @@
         $fp = fopen($xml_file,"r")
             or $status = false;
         if ($status) {
-            while ($data = fread($fp, 4096) and !$moodle_parser->finished)
-                    xml_parse($xml_parser, $data, feof($fp))
-                            or die(sprintf("XML error: %s at line %d",
-                            xml_error_string(xml_get_error_code($xml_parser)),
-                                    xml_get_current_line_number($xml_parser)));
+            // MDL-9290 performance improvement on reading large xml
+            $lasttime = time(); // crmas
+            while ($data = fread($fp, 4096) and !$moodle_parser->finished) {
+             
+                if ((time() - $lasttime) > 5) {
+                    $lasttime = time();
+                    backup_flush(1);
+                }
+             
+                xml_parse($xml_parser, $data, feof($fp))
+                        or die(sprintf("XML error: %s at line %d",
+                        xml_error_string(xml_get_error_code($xml_parser)),
+                                xml_get_current_line_number($xml_parser)));
+            }
             fclose($fp);
         }
         //Get info from parser

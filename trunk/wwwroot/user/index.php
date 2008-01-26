@@ -1,4 +1,4 @@
-<?PHP // $Id: index.php,v 1.193 2007/10/02 09:45:00 moodler Exp $
+<?PHP // $Id: index.php,v 1.194.3 2008/01/21 17:42:30 kowy Exp $
 
 //  Lists all the users within a given course
 
@@ -45,13 +45,9 @@
     $frontpagectx = get_context_instance(CONTEXT_COURSE, SITEID);
 
     if ($context->id != $frontpagectx->id) {
-        if (!has_capability('moodle/course:viewparticipants', $context)) {
-            print_error('nopermissions');
-        }     
+        require_capability('moodle/course:viewparticipants', $context);
     } else {
-        if (!has_capability('moodle/site:viewparticipants', $sitecontext)) {
-            print_error('nopermissions');
-        }
+        require_capability('moodle/site:viewparticipants', $sitecontext);
     }
 
     /// front page course is different
@@ -137,7 +133,9 @@
         $navlinks[] = array('name' => get_string('participants'), 'link' => null, 'type' => 'misc');
         $navigation = build_navigation($navlinks);
 
-        print_header("$course->shortname: ".get_string('participants'), $course->fullname, $navigation, "", "", true, "&nbsp;", navmenu($course));
+        print_header("$course->shortname: ".get_string('participants'), $course->fullname, $navigation, "", "", true, "&nbsp;", 
+        			// kowy - 2007-01-12 - add standard logout box 
+					user_login_string($course).'<hr style="width:95%">'.navmenu($course));
         print_heading(get_string("notingroup", "forum"));
         print_footer($course);
         exit;
@@ -152,7 +150,9 @@
     $navlinks[] = array('name' => get_string('participants'), 'link' => null, 'type' => 'misc');
     $navigation = build_navigation($navlinks);
 
-    print_header("$course->shortname: ".get_string('participants'), $course->fullname, $navigation, "", "", true, "&nbsp;", navmenu($course));
+    print_header("$course->shortname: ".get_string('participants'), $course->fullname, $navigation, "", "", true, "&nbsp;", 
+    			// kowy - 2007-01-12 - add standard logout box 
+				user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// setting up tags
     if ($course->id == SITEID) {
@@ -420,7 +420,7 @@
 
     $matchcount = count_records_sql('SELECT COUNT(distinct u.id) '.$from.$where.$wheresearch);
 
-    $table->initialbars($totalcount > $perpage);
+    $table->initialbars(true);
     $table->pagesize($perpage, $matchcount);
 
     $userlist = get_recordset_sql($select.$from.$where.$wheresearch.$sort,
@@ -442,7 +442,12 @@
             error('That role does not exist');
         }
         $a->number = $totalcount;
-        $a->role = $currentrole->name;
+        // MDL-12217, use course specific rolename
+        if (isset($rolenames[$currentrole->id])){
+            $a->role = $rolenames[$currentrole->id];
+        }else{                
+            $a->role = $currentrole->name;//safety net
+        }
         $heading = format_string(get_string('xuserswiththerole', 'role', $a));
         if (user_can_assign($context, $roleid)) {
             $heading .= ' <a href="'.$CFG->wwwroot.'/'.$CFG->admin.'/roles/assign.php?roleid='.$roleid.'&amp;contextid='.$context->id.'">';
@@ -560,12 +565,12 @@
         $timeformat = get_string('strftimedate');
 
 
-        if ($userlist->RecordCount() > 0)  {
+        if ($userlist)  {
             while ($user = rs_fetch_next_record($userlist)) {
                 $user = make_context_subobj($user);
-                if ($user->hidden) {
+                if ( !empty($user->hidden) ) {
                 // if the assignment is hidden, display icon
-                    $hidden = "<img src=\"{$CFG->pixpath}/t/hide.gif\" alt=\"".get_string('hiddenassign')."\" class=\"hide-show-image\"/>";
+                    $hidden = " <img src=\"{$CFG->pixpath}/t/hide.gif\" alt=\"".get_string('hiddenassign')."\" class=\"hide-show-image\"/>";
                 } else {
                     $hidden = '';
                 }
@@ -602,7 +607,7 @@
 
                 $data = array (
                         print_user_picture($user, $course->id, $user->picture, false, true, $piclink),
-                        $profilelink);
+                        $profilelink . $hidden);
 
                 if (!isset($hiddenfields['city'])) {
                     $data[] = $user->city;
@@ -637,15 +642,12 @@
         echo '<input type="button" onclick="checkall()" value="'.get_string('selectall').'" /> ';
         echo '<input type="button" onclick="checknone()" value="'.get_string('deselectall').'" /> ';
         $displaylist = array();
-        // fix for MDL-8885, only show this if user has capability
-        if (has_capability('moodle/site:readallmessages', $context) && !empty($CFG->messaging)) {
-            $displaylist['messageselect.php'] = get_string('messageselectadd');
-        }
+        $displaylist['messageselect.php'] = get_string('messageselectadd');
         if (has_capability('moodle/notes:manage', $context) && $context->id != $frontpagectx->id) {
             $displaylist['addnote.php'] = get_string('addnewnote', 'notes');
             $displaylist['groupaddnote.php'] = get_string('groupaddnewnote', 'notes');
         }
-        
+
         if ($context->id != $frontpagectx->id) {
             $displaylist['extendenrol.php'] = get_string('extendenrol');
             $displaylist['groupextendenrol.php'] = get_string('groupextendenrol');
@@ -676,7 +678,9 @@
 
     print_footer($course);
 
-
+    if ($userlist) {
+        rs_close($userlist);
+    }
 
 
 function get_lastaccess_sql($accesssince='') {

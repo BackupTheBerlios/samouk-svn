@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.15 2007/07/11 08:04:19 exe-cutor Exp $
+<?php // $Id: index.php,v 1.15.2.1 2007/11/14 23:35:31 martinlanghoff Exp $
       // Designed to be redirected from moodle/login/index.php
 
     require('../../config.php');
@@ -72,6 +72,7 @@
                 }
             }
 
+            check_enrolment_plugins($USER);
             load_all_capabilities();     /// This is what lets the user do anything on the site  :-)
 
             redirect($urltogo);

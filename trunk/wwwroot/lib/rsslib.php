@@ -1,4 +1,4 @@
-<?php  // $Id: rsslib.php,v 1.52 2007/07/31 17:03:51 stronk7 Exp $
+<?php  // $Id: rsslib.php,v 1.52.2.2 2007/12/31 15:36:48 skodak Exp $
        // This file contains all the common stuff to be used in RSS System
 
 //This function returns the icon (from theme) with the link to rss/file.php
@@ -270,6 +270,7 @@ function rss_geterrorxmlfile() {
 
     //XML item
     if ($return) {
+        $item = new object();
         $item->title = "RSS Error";
         $item->link = $CFG->wwwroot;
         $item->pubdate = time();
@@ -341,9 +342,7 @@ if (!isset($CFG->block_rss_client_timeout) ) {
 }
 
 // Defines for moodle's use of magpierss classes
-define('MAGPIE_PROXY_HOST', $CFG->proxyhost);   // Could be empty, that's OK
-define('MAGPIE_PROXY_PORT', $CFG->proxyport);   // Could be empty, that's OK
-define('MAGPIE_DIR', $CFG->dirroot.'/lib/magpie/');
+define('MAGPIE_DIR', $CFG->libdir.'/magpie/');
 define('MAGPIE_CACHE_DIR', $CFG->dataroot .'/cache/rsscache');
 define('MAGPIE_CACHE_ON', true); //might want to expose as an admin config option, but perhaps this is something that should truly just be on unless the code is tweaked
 define('MAGPIE_CACHE_FRESH_ONLY', false); //should be exposed as an admin config option
@@ -517,7 +516,7 @@ function rss_get_form($act='none', $url='', $rssid='', $preferredtitle='', $shar
     $returnstring .= '<input type="hidden" name="blogid" value="'. $blogid .'" />'."\n";
     $returnstring .= '<input type="hidden" name="user" value="'. $USER->id .'" />'."\n";
     $returnstring .= '<br /><input type="submit" value="';
-    $validatestring = "<a href=\"#\" onclick=\"window.open('http://feedvalidator.org/check.cgi?url='+getElementId('block_rss').elements['url'].value,'validate','width=640,height=480,scrollbars=yes,status=yes,resizable=yes');return true;\">". get_string('validatefeed', 'block_rss_client')."</a>";
+    $validatestring = "<a href=\"#\" onclick=\"window.open('http://feedvalidator.org/check.cgi?url='+getElementById('block_rss').elements['url'].value,'validate','width=640,height=480,scrollbars=yes,status=yes,resizable=yes');return true;\">". get_string('validatefeed', 'block_rss_client')."</a>";
 
     if ($act == 'rssedit') {
         $returnstring .= $stredit;

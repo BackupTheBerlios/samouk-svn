@@ -1,4 +1,4 @@
-<?php // $Id: index.php,v 1.15 2007/07/05 04:55:25 mattc-catalyst Exp $
+<?php // $Id: index.php,v 1.15.3 2008/01/21 10:42:16 kowy Exp $
 
     require_once('../../config.php');
     require_once('lib.php');
@@ -26,12 +26,14 @@
     $navlinks[] = array('name' => $strchats, 'link' => '', 'type' => 'activity');
     $navigation = build_navigation($navlinks);
 
-    print_header_simple($strchats, '', $navigation, '', '', true, '', navmenu($course));
+    print_header_simple($strchats, '', $navigation, '', '', true, '', 
+    					// kowy - 2007-01-12 - add standard logout box 
+						user_login_string($course).'<hr style="width:95%">'.navmenu($course));
 
 /// Get all the appropriate data
 
     if (! $chats = get_all_instances_in_course('chat', $course)) {
-        notice('There are no chats', "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strchats), "../../course/view.php?id=$course->id");
         die();
     }
 

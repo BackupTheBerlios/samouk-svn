@@ -1,4 +1,4 @@
-<?php  //$Id: pagelib.php,v 1.11 2007/05/18 11:57:46 jmg324 Exp $
+<?php  //$Id: pagelib.php,v 1.11.2.1 2007/11/01 08:59:44 nicolasconnault Exp $
 
 require_once($CFG->libdir.'/pagelib.php');
 
@@ -42,9 +42,11 @@ class page_my_moodle extends page_base {
         $button = update_mymoodle_icon($USER->id);
         $nav = get_string('mymoodle','my');
         $header = $site->shortname.': '.$nav;
+        $navlinks = array(array('name' => $nav, 'link' => '', 'type' => 'misc'));
+        $navigation = build_navigation($navlinks);
         
         $loggedinas = user_login_string($site);
-        print_header($title, $header,$nav,'','',true, $button, $loggedinas);
+        print_header($title, $header,$navigation,'','',true, $button, $loggedinas);
 
     }
     

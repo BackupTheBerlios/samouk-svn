@@ -1,4 +1,4 @@
-<?php // $Id: resource.class.php,v 1.38 2007/07/05 04:41:38 mattc-catalyst Exp $
+<?php // $Id: resource.class.php,v 1.38.3 2008/01/21 05:37:22 kowy Exp $
 
 class resource_directory extends resource_base {
 
@@ -42,6 +42,7 @@ function display() {
 
     $formatoptions = new object();
     $formatoptions->noclean = true;
+    $formatoptions->para = false; // MDL-12061, <p> in html editor breaks xhtml strict
 
     add_to_log($course->id, "resource", "view", "view.php?id={$cm->id}", $resource->id, $cm->id);
 
@@ -61,10 +62,8 @@ function display() {
         array_shift($subs);
         $countsubs = count($subs);
         $count = 0;
-        $subnav = "<a href=\"view.php?id={$cm->id}\">".format_string($resource->name,true)."</a>";
         $backsub = '';
-        $this->navlinks[] = array('name' => format_string($resource->name,true), 'link' => "view.php?id={$cm->id}", 'type' => 'activity');
-        
+
         foreach ($subs as $sub) {
             $count++;
             if ($count < $countsubs) {
@@ -75,8 +74,6 @@ function display() {
                 $this->navlinks[] = array('name' => $sub, 'link' => '', 'type' => 'title');
             }
         }
-    } else {
-        $this->navlinks[] = array('name' => format_string($resource->name), 'link' => '', 'type' => 'activity');        
     }
 
     $pagetitle = strip_tags($course->shortname.': '.format_string($resource->name));
@@ -87,10 +84,11 @@ function display() {
         $editfiles = print_single_button("$CFG->wwwroot/files/index.php", $options, get_string("editfiles"), 'get', '', true);
         $update = $editfiles.$update;
     }
-    $this->navigation = build_navigation($this->navlinks);
-    print_header($pagetitle, $course->fullname, $this->navigation,
+    $navigation = build_navigation($this->navlinks, $cm);
+    print_header($pagetitle, $course->fullname, $navigation,
             "", "", true, $update,
-            navmenu($course, $cm));
+            // kowy - 2007-01-12 - add standard logout box 
+			user_login_string($course).'<hr style="width:95%">'.navmenu($course, $cm));
 
 
     if (trim(strip_tags($resource->summary))) {

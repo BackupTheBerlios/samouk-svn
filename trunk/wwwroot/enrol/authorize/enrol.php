@@ -1,4 +1,4 @@
-<?php // $Id: enrol.php,v 1.135 2007/08/17 19:09:16 nicolasconnault Exp $
+<?php // $Id: enrol.php,v 1.135.2.1 2007/11/07 15:55:09 ethem Exp $
 
 require_once($CFG->dirroot.'/enrol/enrol.class.php');
 require_once($CFG->dirroot.'/enrol/authorize/const.php');
@@ -104,6 +104,13 @@ class enrolment_plugin_authorize
         }
 
         print_footer();
+    }
+
+
+    function print_enrolmentkeyfrom($course)
+    {
+        $manual = enrolment_factory::factory('manual');
+        $manual->print_enrolmentkeyfrom($course);
     }
 
 

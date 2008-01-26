@@ -56,7 +56,7 @@
 // Version 3.0 developed by Mihai Bazon.
 //   http://dynarch.com/mishoo
 //
-// $Id: htmlarea.php,v 1.24 2007/09/26 11:22:36 moodler Exp $
+// $Id: htmlarea.php,v 1.24.2.2 2007/11/14 01:24:40 martinlanghoff Exp $
 
 if (typeof _editor_url == "string") {
     // Leave exactly one backslash at the end of _editor_url
@@ -807,12 +807,15 @@ HTMLArea.prototype.generate = function () {
     var width = (this.config.width == "auto" ? (this._toolbar.offsetWidth) : this.config.width);
     // width = Math.max(parseInt(width), 598);
 
-    if (!HTMLArea.is_ie) {
+    width = String(width);
+    if (width.match(/^\d+$/)) { // is this a pure int? if so, let it be in px, and remove 2px
         height -= 2;
-        width -= 2;
+        width  -= 2;
+        width=width+"px";
     }
 
-    iframe.style.width = width + "px";
+    iframe.style.width = width;
+
     if (this.config.sizeIncludesToolbar) {
         // substract toolbar height
         height -= this._toolbar.offsetHeight;

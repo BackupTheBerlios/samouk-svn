@@ -1,36 +1,8 @@
-<?php  // $Id: lib.php,v 1.97 2007/09/19 07:21:09 martinlanghoff Exp $
+<?php  // $Id: lib.php,v 1.99.2.7 2008/01/09 02:08:04 ericmerrill Exp $
 
 /// Library of functions and constants for module chat
-
 require_once($CFG->libdir.'/pagelib.php');
 
-if (!isset($CFG->chat_refresh_room)) {
-    set_config("chat_refresh_room", 5);
-}
-if (!isset($CFG->chat_refresh_userlist)) {
-    set_config("chat_refresh_userlist", 10);
-}
-if (!isset($CFG->chat_old_ping)) {
-    set_config("chat_old_ping", 35);
-}
-if (!isset($CFG->chat_method)) {
-    set_config("chat_method", "header_js");
-}
-if (!isset($CFG->chat_normal_updatemode)) {
-    set_config("chat_normal_updatemode", 'jsupdate');
-}
-if (!isset($CFG->chat_serverhost)) {
-    set_config("chat_serverhost", $_SERVER['HTTP_HOST']);
-}
-if (!isset($CFG->chat_serverip)) {
-    set_config("chat_serverip", '127.0.0.1');
-}
-if (!isset($CFG->chat_serverport)) {
-    set_config("chat_serverport", 9111);
-}
-if (!isset($CFG->chat_servermax)) {
-    set_config("chat_servermax", 100);
-}
 
 // The HTML head for the message window to start with (<!-- nix --> is used to get some browsers starting with output
 $CHAT_HTMLHEAD = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\"><html><head></head>\n<body bgcolor=\"#FFFFFF\">\n\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n<!-- nix -->\n";
@@ -233,14 +205,16 @@ function chat_cron () {
     chat_delete_old_users();
 
     /// Delete old messages
-    $sql = "SELECT m.id 
-            FROM {$CFG->prefix}chat_messages m 
-            JOIN {$CFG->prefix}chat c
-              ON m.chatid = c.id
-            WHERE c.keepdays != 0 
-                  AND m.timestamp < ( ".time()." - c.keepdays * 24 * 3600)";
+    /// single SQL query.
+    $subselect = "SELECT c.keepdays
+                    FROM {$CFG->prefix}chat c
+                   WHERE c.id = {$CFG->prefix}chat_messages.chatid";
 
-    delete_records_select("chat_messages", "id IN ($sql)");
+    $sql = "DELETE
+              FROM {$CFG->prefix}chat_messages
+             WHERE ($subselect) > 0 AND timestamp < ( ".time()." -($subselect) * 24 * 3600)"; 
+
+    execute_sql($sql, false);
 
     return true;
 }
@@ -362,11 +336,12 @@ function chat_get_latest_message($chatid, $groupid=0) {
                                  ORDER BY timestamp DESC", 1)) {
         return false;
     }
-    if ($rs->RecordCount() == 1) {
-        return rs_fetch_record($rs);
-    } else {
-        return false;                 // Found no records
-    }
+
+    $result = rs_fetch_record($rs);
+    
+    rs_close($rs);
+
+    return $result;
 }
 
 
@@ -682,6 +657,55 @@ function chat_print_overview($courses, &$htmlarray) {
             }
         }
     }
+}
+
+
+/**
+ * Implementation of the function for printing the form elements that control
+ * whether the course reset functionality affects the chat.
+ * @param $mform form passed by reference
+ */
+function chat_reset_course_form_definition(&$mform) {
+    $mform->addElement('header', 'chatheader', get_string('modulenameplural', 'chat'));
+    $mform->addElement('advcheckbox', 'reset_chat', get_string('removemessages','chat'));
+}
+
+/**
+ * Course reset form defaults.
+ */
+function chat_reset_course_form_defaults($course) {
+    return array('reset_chat'=>1);
+}
+
+/**
+ * Actual implementation of the rest coures functionality, delete all the
+ * chat messages for course $data->courseid.
+ * @param $data the data submitted from the reset course.
+ * @return array status array
+ */
+function chat_reset_userdata($data) {
+    global $CFG;
+
+    $componentstr = get_string('modulenameplural', 'chat');
+    $status = array();
+
+    if (!empty($data->reset_chat)) {
+        $chatessql = "SELECT ch.id
+                        FROM {$CFG->prefix}chat ch
+                       WHERE ch.course={$data->courseid}";
+
+        delete_records_select('chat_messages', "chatid IN ($chatessql)");
+        delete_records_select('chat_users', "chatid IN ($chatessql)");
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('removemessages', 'chat'), 'error'=>false);
+    }
+
+    /// updating dates - shift may be negative too
+    if ($data->timeshift) {
+        shift_course_mod_dates('chat', array('chattime'), $data->timeshift, $data->courseid);
+        $status[] = array('component'=>$componentstr, 'item'=>get_string('datechanged'), 'error'=>false);
+    }
+
+    return $status;
 }
 
 ?>

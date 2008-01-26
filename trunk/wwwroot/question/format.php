@@ -1,4 +1,4 @@
-<?php  // $Id: format.php,v 1.35 2007/09/17 11:01:53 thepurpleblob Exp $
+<?php  // $Id: format.php,v 1.35.2.4 2007/12/11 03:54:21 jamiesensei Exp $
 /**
  * Base class for question import and export formats.
  *
@@ -12,6 +12,7 @@ class qformat_default {
 
     var $displayerrors = true;
     var $category = NULL;
+    var $questions = array();
     var $course = NULL;
     var $filename = '';
     var $matchgrades = 'error';
@@ -43,7 +44,23 @@ class qformat_default {
      * @param object category the category object
      */
     function setCategory( $category ) {
+    	if (count($this->questions)){
+    		debugging('You shouldn\'t call setCategory after setQuestions');
+    	}
         $this->category = $category;
+    }
+
+    /**
+     * Set the specific questions to export. Should not include questions with
+     * parents (sub questions of cloze question type).
+     * Only used for question export.
+     * @param array of question objects
+     */
+    function setQuestions( $questions ) {
+    	if ($this->category !== null){
+    		debugging('You shouldn\'t call setQuestions after setCategory');
+    	}
+        $this->questions = $questions;
     }
 
     /**
@@ -199,7 +216,7 @@ class qformat_default {
         }
 
         // STAGE 2: Write data to database
-        notify( get_string('importingquestions','quiz',count($questions)) );
+        notify( get_string('importingquestions','quiz',$this->count_questions($questions)) );
 
         // check for errors before we continue
         if ($this->stoponerror and ($this->importerrors>0)) {
@@ -257,7 +274,7 @@ class qformat_default {
             if ($question->qtype=='category') {
                 if ($this->catfromfile) {
                     // find/create category object
-                    $catpath = $question->category;
+                    $catpath = $question->category['text'][0]['#'];
                     $newcategory = $this->create_category_path( $catpath, '/');
                     if (!empty($newcategory)) {
                         $this->category = $newcategory;
@@ -303,6 +320,27 @@ class qformat_default {
         }
         return true;
     }
+    /**
+     * Count all non-category questions in the questions array.
+     * 
+     * @param array questions An array of question objects.
+     * @return int The count.
+     * 
+     */
+    function count_questions($questions) {
+        $count = 0;
+        if (!is_array($questions)) {
+            return $count;
+        }
+        foreach ($questions as $question) {
+            if (!is_object($question) || !isset($question->qtype) || ($question->qtype == 'category')) {
+                continue;
+            }
+            $count++;
+        }
+        return $count;
+    }
+
     /**
      * find and/or create the category described by a delimited list
      * e.g. $course$/tom/dick/harry or tom/dick/harry
@@ -586,7 +624,11 @@ class qformat_default {
 
         // get the questions (from database) in this category
         // only get q's with no parents (no cloze subquestions specifically)
-        $questions = get_questions_category( $this->category, true );
+        if ($this->category){
+            $questions = get_questions_category( $this->category, true );
+        } else {
+            $questions = $this->questions;
+        }
 
         notify( get_string('exportingquestions','quiz') );
         $count = 0;
@@ -640,11 +682,11 @@ class qformat_default {
 
         // continue path for following error checks
         $course = $this->course;
-        $continuepath = "$CFG->wwwroot/question/export.php?courseid=$course->id"; 
+        $continuepath = "$CFG->wwwroot/question/export.php?courseid=$course->id";
 
         // did we actually process anything
         if ($count==0) {
-            print_error( 'noquestions','quiz',$continuepath );        
+            print_error( 'noquestions','quiz',$continuepath );
         }
 
         // final pre-process on exported data

@@ -1,4 +1,4 @@
-<?php // $Id: manage.php,v 1.7 2007/09/16 20:19:19 skodak Exp $
+<?php // $Id: manage.php,v 1.7.2.3 2007/12/27 12:11:21 poltawski Exp $
 
 require_once('../config.php');
 require_once($CFG->libdir.'/tablelib.php');
@@ -46,7 +46,7 @@ $existing_tagtypes['default'] = get_string('tagtype_default', 'tag');
 switch($action) {
 
     case 'delete':
-        if (!data_submitted or !confirm_sesskey()) {
+        if (!data_submitted() or !confirm_sesskey()) {
             break;
         }
         $str_tagschecked = tag_name_from_string(implode($tagschecked, ','));
@@ -58,7 +58,7 @@ switch($action) {
         break;
 
     case 'reset':
-        if (!data_submitted or !confirm_sesskey()) {
+        if (!data_submitted() or !confirm_sesskey()) {
             break;
         }
         $str_tagschecked = tag_name_from_string(implode($tagschecked, ','));
@@ -70,20 +70,21 @@ switch($action) {
         break;
 
     case 'changetype':
-        if (!data_submitted or !confirm_sesskey()) {
+        if (!data_submitted() or !confirm_sesskey()) {
             break;
         }
 
         $changed = array();
 
         foreach ($tagschecked as $tag_id) {
-            if (!in_array($tagtypes[$tag_id], $existing_tagtypes)) {
+            if (!array_key_exists($tagtypes[$tag_id], $existing_tagtypes)) {
                 //can not add new types here!!
                 continue;
             }
 
             // update tag type;
             $tag = tag_by_id($tag_id);
+            $tag->timemodified = time();
             $tag->tagtype = $tagtypes[$tag_id];
 
             if (update_record('tag', $tag)) {
@@ -99,7 +100,7 @@ switch($action) {
         break;
 
     case 'changename':
-        if (!data_submitted or !confirm_sesskey()) {
+        if (!data_submitted() or !confirm_sesskey()) {
             break;
         }
 
@@ -190,7 +191,7 @@ $query = "
            RIGHT JOIN {$CFG->prefix}tag tg ON tg.id = ti.tagid
            LEFT JOIN {$CFG->prefix}user u ON tg.userid = u.id
   {$where}
-  GROUP BY tg.id
+  GROUP BY tg.id, tg.name, tg.rawname, tg.tagtype, u.id, tg.flag, tg.timemodified, u.firstname, u.lastname
    {$sort}";
 
 

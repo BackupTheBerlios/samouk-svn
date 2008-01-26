@@ -1,10 +1,11 @@
-<?PHP // $Id: modules.php,v 1.44 2007/09/12 02:56:50 martinlanghoff Exp $
+<?PHP // $Id: modules.php,v 1.44.2.4 2008/01/07 16:46:10 tjhunt Exp $
       // Allows the admin to manage activity modules
 
     require_once('../config.php');
     require_once('../course/lib.php');
     require_once($CFG->libdir.'/adminlib.php');
     require_once($CFG->libdir.'/tablelib.php');
+    require_once($CFG->libdir.'/ddllib.php');
 
     // defines
     define('MODULE_TABLE','module_administration_table');
@@ -29,10 +30,6 @@
     $stractivitymodule = get_string("activitymodule");
     $strshowmodulecourse = get_string('showmodulecourse');
 
-    admin_externalpage_print_header();
-
-    print_heading($stractivities);
-
 /// If data submitted, then process and store.
 
     if (!empty($hide) and confirm_sesskey()) {
@@ -55,6 +52,7 @@
                              FROM {$CFG->prefix}course_modules
                              WHERE visibleold=1 AND module={$module->id})";
         execute_sql($sql, false);
+        admin_get_root(true, false);  // settings not required - only pages
     }
 
     if (!empty($show) and confirm_sesskey()) {
@@ -72,9 +70,12 @@
                              FROM {$CFG->prefix}course_modules
                              WHERE visible=1 AND module={$module->id})";
         execute_sql($sql, false);
+        admin_get_root(true, false);  // settings not required - only pages
     }
 
     if (!empty($delete) and confirm_sesskey()) {
+        admin_externalpage_print_header();
+        print_heading($stractivities);
 
         $strmodulename = get_string("modulename", "$delete");
 
@@ -139,28 +140,33 @@
             }
 
             // Then the tables themselves
+            drop_plugin_tables($module->name, "$CFG->dirroot/mod/$module->name/db/install.xml", false);
 
-            if ($tables = $db->Metatables()) {
-                $prefix = $CFG->prefix.$module->name;
-                foreach ($tables as $table) {
-                    if (strpos($table, $prefix) === 0) {
-                        if (!execute_sql("DROP TABLE $table", false)) {
-                            notify("ERROR: while trying to drop table $table");
-                        }
-                    }
-                }
-            }
             // Delete the capabilities that were defined by this module
             capabilities_cleanup('mod/'.$module->name);
 
             // remove entent handlers and dequeue pending events
             events_uninstall('mod/'.$module->name);
 
+            // Perform any custom uninstall tasks
+            if (file_exists($CFG->dirroot . '/mod/' . $module->name . '/lib.php')) {
+                require_once($CFG->dirroot . '/mod/' . $module->name . '/lib.php');
+                $uninstallfunction = $module->name . '_uninstall';
+                if (function_exists($uninstallfunction)) {
+                    if (! $uninstallfunction() ) {
+                        notify('Encountered a problem running uninstall function for '. $module->name.'!');
+                    }
+                }
+            }
+
             $a->module = $strmodulename;
             $a->directory = "$CFG->dirroot/mod/$delete";
             notice(get_string("moduledeletefiles", "", $a), "modules.php");
         }
     }
+
+    admin_externalpage_print_header();
+    print_heading($stractivities);
 
 /// Get and sort the existing modules
 
@@ -176,7 +182,7 @@
         }
         $modulebyname[$strmodulename] = $module;
     }
-    ksort($modulebyname);
+    ksort($modulebyname, SORT_LOCALE_STRING);
 
 /// Print the table of all modules
     // construct the flexible table ready to display
@@ -195,7 +201,9 @@
 
         $delete = "<a href=\"modules.php?delete=$module->name&amp;sesskey=$USER->sesskey\">$strdelete</a>";
 
-        if (file_exists("$CFG->dirroot/mod/$module->name/config.html")) {
+        if (file_exists("$CFG->dirroot/mod/$module->name/settings.php")) {
+            $settings = "<a href=\"settings.php?section=modsetting$module->name\">$strsettings</a>";
+        } else if (file_exists("$CFG->dirroot/mod/$module->name/config.html")) {
             $settings = "<a href=\"module.php?module=$module->name\">$strsettings</a>";
         } else {
             $settings = "";
@@ -226,11 +234,11 @@
         }
 
         $table->add_data(array(
-            '<span'.$class.'>'.$icon.' '.$modulename.'</span>', 
-            $countlink, 
-            '<span'.$class.'>'.$module->version.'</span>', 
-            $visible, 
-            $delete, 
+            '<span'.$class.'>'.$icon.' '.$modulename.'</span>',
+            $countlink,
+            '<span'.$class.'>'.$module->version.'</span>',
+            $visible,
+            $delete,
             $settings
         ));
     }

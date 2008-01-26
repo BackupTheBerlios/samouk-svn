@@ -1,4 +1,27 @@
-<?php  //$Id: lib.php,v 1.3 2007/10/07 13:04:52 skodak Exp $
+<?php  //$Id: lib.php,v 1.4.2.3 2008/01/10 15:38:47 tjhunt Exp $
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// NOTICE OF COPYRIGHT                                                   //
+//                                                                       //
+// Moodle - Modular Object-Oriented Dynamic Learning Environment         //
+//          http://moodle.com                                            //
+//                                                                       //
+// Copyright (C) 1999 onwards  Martin Dougiamas  http://moodle.com       //
+//                                                                       //
+// This program is free software; you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation; either version 2 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details:                          //
+//                                                                       //
+//          http://www.gnu.org/copyleft/gpl.html                         //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
 
 require_once $CFG->libdir.'/gradelib.php';
 require_once($CFG->libdir.'/xmlize.php');
@@ -14,18 +37,20 @@ function import_xml_grades($text, $course, &$error) {
 
     $content = xmlize($text);
 
-    if ($results = $content['results']['#']['result']) {
+    if (!empty($content['results']['#']['result'])) {
+        $results = $content['results']['#']['result'];
 
         foreach ($results as $i => $result) {
-            if (!$grade_items = grade_item::fetch_all(array('idnumber'=>$result['#']['assignment'][0]['#'], 'courseid'=>$course->id))) {
+            $gradeidnumber = $result['#']['assignment'][0]['#'];
+            if (!$grade_items = grade_item::fetch_all(array('idnumber'=>$gradeidnumber, 'courseid'=>$course->id))) {
                 // gradeitem does not exist
                 // no data in temp table so far, abort
                 $status = false;
-                $error  = get_string('errincorrectidnumber', 'gradeimport_xml');
+                $error  = get_string('errincorrectgradeidnumber', 'gradeimport_xml', $gradeidnumber);
                 break;
             } else if (count($grade_items) != 1) {
                 $status = false;
-                $error  = get_string('errduplicateidnumber', 'gradeimport_xml');
+                $error  = get_string('errduplicategradeidnumber', 'gradeimport_xml', $gradeidnumber);
                 break;
             } else {
                 $grade_item = reset($grade_items);
@@ -38,11 +63,12 @@ function import_xml_grades($text, $course, &$error) {
                 break;
             }
 
-            // check if user exist and convert idnember to user id
-            if (!$user = get_record('user', 'idnumber', addslashes($result['#']['student'][0]['#']))) {
+            // check if user exist and convert idnumber to user id
+            $useridnumber = $result['#']['student'][0]['#'];
+            if (!$user = get_record('user', 'idnumber', addslashes($useridnumber))) {
                 // no user found, abort
                 $status = false;
-                $error = get_string('baduserid', 'grades');
+                $error = get_string('errincorrectuseridnumber', 'gradeimport_xml', $useridnumber);
                 break;
             }
 

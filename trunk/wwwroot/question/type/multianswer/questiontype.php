@@ -1,4 +1,4 @@
-<?php  // $Id: questiontype.php,v 1.41 2007/10/06 20:51:28 pichetp Exp $
+<?php  // $Id: questiontype.php,v 1.41.2.2 2008/01/08 18:37:43 tjhunt Exp $
 
 ///////////////////
 /// MULTIANSWER /// (Embedded - cloze)
@@ -208,6 +208,8 @@ class embedded_cloze_qtype extends default_questiontype {
             echo "<img src=\"$CFG->wwwroot/question/type/$question->qtype/icon.gif\" ".
                 "class=\"icon\" alt=\"".get_string('clozeaid','qtype_multichoice')."\" />  ";
         }
+
+        echo '<div class="ablock clearfix">';
         // For this question type, we better print the image on top:
         if ($image = get_question_image($question)) {
             echo('<img class="qimage" src="' . $image . '" alt="" /><br />');
@@ -338,6 +340,7 @@ class embedded_cloze_qtype extends default_questiontype {
         // Print the final piece of question text:
         echo $qtextremaining;
         $this->print_question_submit_buttons($question, $state, $cmoptions, $options);
+        echo '</div>'; 
     }
 
     function grade_responses(&$question, &$state, $cmoptions) {

@@ -1,4 +1,4 @@
-<?php  // $Id: locallib.php,v 1.126 2007/10/04 15:57:10 tjhunt Exp $
+<?php  // $Id: locallib.php,v 1.127.2.6 2007/12/18 18:19:37 tjhunt Exp $
 /**
  * Library of functions used by the quiz module.
  *
@@ -7,7 +7,7 @@
  * This script also loads the code in {@link questionlib.php} which holds
  * the module-indpendent code for handling questions and which in turn
  * initialises all the questiontype classes.
- * @version $Id: locallib.php,v 1.126 2007/10/04 15:57:10 tjhunt Exp $
+ *
  * @author Martin Dougiamas and many others. This has recently been completely
  *         rewritten by Alex Smith, Julian Sedding and Gustav Delius as part of
  *         the Serving Mathematics project
@@ -303,7 +303,7 @@ function quiz_get_best_grade($quiz, $userid) {
 
     // Need to detect errors/no result, without catching 0 scores.
     if (is_numeric($grade)) {
-        return round($grade,$quiz->decimalpoints);
+        return round($grade, $quiz->decimalpoints);
     } else {
         return NULL;
     }
@@ -317,12 +317,16 @@ function quiz_get_best_grade($quiz, $userid) {
  * @param object $quiz the quiz object. Only the fields grade, sumgrades and decimalpoints are used.
  * @return float the rescaled grade.
  */
-function quiz_rescale_grade($rawgrade, $quiz) {
+function quiz_rescale_grade($rawgrade, $quiz, $round = true) {
     if ($quiz->sumgrades) {
-        return round($rawgrade*$quiz->grade/$quiz->sumgrades, $quiz->decimalpoints);
+        $grade = $rawgrade * $quiz->grade / $quiz->sumgrades;
+        if ($round) {
+            $grade = round($grade, $quiz->decimalpoints);
+        }
     } else {
-        return 0;
+        $grade = 0;
     }
+    return $grade;
 }
 
 /**
@@ -357,7 +361,7 @@ function quiz_has_feedback($quizid) {
     static $cache = array();
     if (!array_key_exists($quizid, $cache)) {
         $cache[$quizid] = record_exists_select('quiz_feedback',
-                "quizid = $quizid AND feedbacktext <> ''");
+                "quizid = $quizid AND " . sql_isnotempty('quiz_feedback', 'feedbacktext', false, true));
     }
     return $cache[$quizid];
 }
@@ -572,30 +576,6 @@ function quiz_get_grading_option_name($option) {
 /// Other quiz functions ////////////////////////////////////////////////////
 
 /**
- * Print a box with quiz start and due dates
- *
- * @param object $quiz
- */
-function quiz_view_dates($quiz) {
-    if (!$quiz->timeopen && !$quiz->timeclose) {
-        return;
-    }
-
-    print_simple_box_start('center', '', '', '', 'generalbox', 'dates');
-    echo '<table>';
-    if ($quiz->timeopen) {
-        echo '<tr><td class="c0">'.get_string("quizopen", "quiz").':</td>';
-        echo '    <td class="c1">'.userdate($quiz->timeopen).'</td></tr>';
-    }
-    if ($quiz->timeclose) {
-        echo '<tr><td class="c0">'.get_string("quizclose", "quiz").':</td>';
-        echo '    <td class="c1">'.userdate($quiz->timeclose).'</td></tr>';
-    }
-    echo '</table>';
-    print_simple_box_end();
-}
-
-/**
  * Parse field names used for the replace options on question edit forms
  */
 function quiz_parse_fieldname($name, $nameprefix='question') {
@@ -707,45 +687,43 @@ function quiz_get_renderoptions($reviewoptions, $state) {
  *          correct_responses, solutions and general feedback
  */
 function quiz_get_reviewoptions($quiz, $attempt, $context=null) {
-    
-    global $CFG;
-
     $options = new stdClass;
     $options->readonly = true;
+
     // Provide the links to the question review and comment script
     $options->questionreviewlink = '/mod/quiz/reviewquestion.php';
 
-    // Work out the state of the attempt.
-    if (((time() - $attempt->timefinish) < 120) || $attempt->timefinish==0) {
-        $quiz_state_mask = QUIZ_REVIEW_IMMEDIATELY;
-        $options->quizstate = QUIZ_STATE_IMMEDIATELY;
-    } else if (!$quiz->timeclose or time() < $quiz->timeclose) {
-        $quiz_state_mask = QUIZ_REVIEW_OPEN;
-        $options->quizstate = QUIZ_STATE_OPEN;
-    } else {
-        $quiz_state_mask = QUIZ_REVIEW_CLOSED;
-        $options->quizstate = QUIZ_STATE_CLOSED;
+    // Show a link to the comment box only for closed attempts
+    if ($attempt->timefinish && has_capability('mod/quiz:grade', $context)) {
+        $options->questioncommentlink = '/mod/quiz/comment.php';
     }
 
-    if (!is_null($context) && has_capability('mod/quiz:viewreports', $context) and !$attempt->preview) {
-        // The teacher should be shown everything except:
-        //  - during preview when teachers want to see what students see
-        //  - hidden scores are controlled by the moodle/grade:viewhidden capability
+    if (!is_null($context) && has_capability('mod/quiz:viewreports', $context) && 
+            has_capability('moodle/grade:viewhidden', $context) && !$attempt->preview) {
+        // People who can see reports and hidden grades should be shown everything,
+        // except during preview when teachers want to see what students see.
         $options->responses = true;
-        $options->scores = ($quiz->review & $quiz_state_mask & QUIZ_REVIEW_SCORES) ||
-                has_capability('moodle/grade:viewhidden', $context); 
+        $options->scores = true; 
         $options->feedback = true;
         $options->correct_responses = true;
         $options->solutions = false;
         $options->generalfeedback = true;
         $options->overallfeedback = true;
         $options->quizstate = QUIZ_STATE_TEACHERACCESS;
-
-        // Show a link to the comment box only for closed attempts
-        if ($attempt->timefinish) {
-            $options->questioncommentlink = '/mod/quiz/comment.php';
-        }
     } else {
+        // Work out the state of the attempt ...
+        if (((time() - $attempt->timefinish) < 120) || $attempt->timefinish==0) {
+            $quiz_state_mask = QUIZ_REVIEW_IMMEDIATELY;
+            $options->quizstate = QUIZ_STATE_IMMEDIATELY;
+        } else if (!$quiz->timeclose or time() < $quiz->timeclose) {
+            $quiz_state_mask = QUIZ_REVIEW_OPEN;
+            $options->quizstate = QUIZ_STATE_OPEN;
+        } else {
+            $quiz_state_mask = QUIZ_REVIEW_CLOSED;
+            $options->quizstate = QUIZ_STATE_CLOSED;
+        }
+
+        // ... and hence extract the appropriate review options. 
         $options->responses = ($quiz->review & $quiz_state_mask & QUIZ_REVIEW_RESPONSES) ? 1 : 0;
         $options->scores = ($quiz->review & $quiz_state_mask & QUIZ_REVIEW_SCORES) ? 1 : 0;
         $options->feedback = ($quiz->review & $quiz_state_mask & QUIZ_REVIEW_FEEDBACK) ? 1 : 0;
@@ -878,9 +856,14 @@ function quiz_send_notification_emails($course, $quiz, $attempt, $context, $cm) 
 
     // check for notifications required
     $notifyfields = 'u.id, u.username, u.firstname, u.lastname, u.email, u.emailstop, u.lang, u.timezone, u.mailformat, u.maildisplay';
+    $groups = groups_get_all_groups($course->id, $USER->id);
+    if (is_array($groups) && count($groups) > 0) {
+        $groups = array_keys($groups);
+    } else {
+        $groups = '';
+    }
     $userstonotify = get_users_by_capability($context, 'mod/quiz:emailnotifysubmission',
-            $notifyfields, '', '', '', array_keys(groups_get_all_groups($course->id, $USER->id)),
-            $notifyexcludeusers, false, false, true);
+            $notifyfields, '', '', '', $groups, $notifyexcludeusers, false, false, true);
 
     // if something to send, then build $a
     if (! empty($userstonotify) or $sendconfirm) {

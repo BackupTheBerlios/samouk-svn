@@ -1,4 +1,4 @@
-<?php // $Id: assignment.class.php,v 1.32 2007/08/06 13:28:40 poltawski Exp $
+<?php // $Id: assignment.class.php,v 1.32.2.4 2008/01/11 11:45:30 poltawski Exp $
 require_once($CFG->libdir.'/formslib.php');
 
 define('ASSIGNMENT_STATUS_SUBMITTED', 'submitted');
@@ -11,7 +11,7 @@ class assignment_upload extends assignment_base {
 
     function assignment_upload($cmid='staticonly', $assignment=NULL, $cm=NULL, $course=NULL) {
         parent::assignment_base($cmid, $assignment, $cm, $course);
-
+        $this->type = 'upload';
     }
 
     function view() {
@@ -204,6 +204,16 @@ class assignment_upload extends assignment_base {
             //no submission yet
         }
     }
+    
+    
+    /*
+     * Return true if var3 == hide description till available day
+     * 
+     *@return boolean
+     */                  
+    function description_is_hidden() {
+        return ($this->assignment->var3 && (time() <= $this->assignment->timeavailable));
+    }
 
     function custom_feedbackform($submission, $return=false) {
         global $CFG;
@@ -314,9 +324,8 @@ class assignment_upload extends assignment_base {
             }
 
             if ($this->notes_allowed() and !empty($submission->data1) and !empty($mode)) { // only during grading
-                $offset = required_param('offset', PARAM_INT);
 
-                $npurl = "type/upload/notes.php?id={$this->cm->id}&amp;userid=$userid&amp;offset=$offset&amp;mode=single";
+                $npurl = $CFG->wwwroot."/mod/assignment/type/upload/notes.php?id={$this->cm->id}&amp;userid=$userid&amp;offset=$offset&amp;mode=single";
                 $output .= '<a href="'.$npurl.'">'.get_string('notes', 'assignment').'</a><br />';
 
             }
@@ -791,7 +800,8 @@ class assignment_upload extends assignment_base {
           and $this->isopen()                                                 // assignment not closed yet
           and (empty($submission) or $submission->grade == -1)                // not graded
           and (empty($submission) or $submission->userid == $USER->id)        // his/her own submission
-          and $this->count_user_files($USER->id) < $this->assignment->var1) { // file limit not reached
+          and $this->count_user_files($USER->id) < $this->assignment->var1    // file limit not reached
+          and !$this->is_finalized($submission)) {                            // no uploading after final submission
             return true;
         } else {
             return false;

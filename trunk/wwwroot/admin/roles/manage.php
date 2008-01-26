@@ -1,4 +1,4 @@
-<?php //$Id: manage.php,v 1.52 2007/09/19 07:10:37 martinlanghoff Exp $
+<?php //$Id: manage.php,v 1.52.2.3 2007/12/18 20:50:39 mjollnir_ Exp $
 
     require_once('../../config.php');
 
@@ -121,9 +121,12 @@
                 mark_context_dirty($sitecontext->path);
 
                 if (empty($errors)) {
+                    $rolename = get_field('role', 'name', 'id', $newroleid);
+                    add_to_log(SITEID, 'role', 'add', 'admin/roles/manage.php?action=add', $rolename, '', $USER->id);
                     redirect('manage.php');
                 }
             }
+            
             break;
 
         case 'edit':
@@ -233,6 +236,7 @@
 
                     // edited a role sitewide...
                     mark_context_dirty($sitecontext->path);
+                    add_to_log(SITEID, 'role', 'edit', 'admin/roles/manage.php?action=edit&roleid='.$role->id, $role->name, '', $USER->id);
 
                     redirect('manage.php');
                 }
@@ -240,6 +244,7 @@
                 // edited a role sitewide - with errors, but still...
                 mark_context_dirty($sitecontext->path);
             }
+
             break;
 
         case 'delete':
@@ -360,6 +365,8 @@
                 mark_context_dirty($sitecontext->path);
 
             }
+            $rolename = get_field('role', 'name', 'id', $newrole);
+            add_to_log(SITEID, 'role', 'duplicate', 'admin/roles/manage.php?roleid='.$newrole.'&action=duplicate', $rolename, '', $USER->id);
             redirect('manage.php');
             break;
 
@@ -373,6 +380,9 @@
 
                 // reset a role sitewide...
                 mark_context_dirty($sitecontext->path);
+
+                $rolename = get_field('role', 'name', 'id', $roleid);
+                add_to_log(SITEID, 'role', 'reset', 'admin/roles/manage.php?roleid='.$roleid.'&action=reset', $rolename, '', $USER->id);
 
                 redirect('manage.php?action=view&amp;roleid='.$roleid);
 
@@ -561,54 +571,5 @@
     die;
 
 
-/// ================ some internal functions ====================////
 
-function switch_roles($first, $second) {
-    $status = true;
-    //first find temorary sortorder number
-    $tempsort = count_records('role') + 3;
-    while (get_record('role','sortorder', $tempsort)) {
-        $tempsort += 3;
-    }
-
-    $r1 = new object();
-    $r1->id = $first->id;
-    $r1->sortorder = $tempsort;
-    $r2 = new object();
-    $r2->id = $second->id;
-    $r2->sortorder = $first->sortorder;
-
-    if (!update_record('role', $r1)) {
-        debugging("Can not update role with ID $r1->id!");
-        $status = false;
-    }
-
-    if (!update_record('role', $r2)) {
-        debugging("Can not update role with ID $r2->id!");
-        $status = false;
-    }
-
-    $r1->sortorder = $second->sortorder;
-    if (!update_record('role', $r1)) {
-        debugging("Can not update role with ID $r1->id!");
-        $status = false;
-    }
-
-    return $status;
-}
-
-// duplicates all the base definitions of a role
-function role_cap_duplicate($sourcerole, $targetrole) {
-    global $CFG;
-    $systemcontext = get_context_instance(CONTEXT_SYSTEM);
-    $caps = get_records_sql("SELECT * FROM {$CFG->prefix}role_capabilities
-                             WHERE roleid = $sourcerole->id
-                             AND contextid = $systemcontext->id");
-    // adding capabilities
-    foreach ($caps as $cap) {
-        unset($cap->id);
-        $cap->roleid = $targetrole;
-        insert_record('role_capabilities', $cap);
-    }
-}
 ?>

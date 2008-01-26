@@ -1,4 +1,4 @@
-<?php // $Id: preset.php,v 1.24 2007/08/20 12:53:46 skodak Exp $
+<?php // $Id: preset.php,v 1.24.2.2 2007/12/18 21:25:21 poltawski Exp $
 /* Preset Menu
  *
  * This is the page that is the menu item in the config database
@@ -9,7 +9,6 @@ require_once('../../config.php');
 require_once('lib.php');
 require_once($CFG->libdir.'/uploadlib.php');
 require_once($CFG->libdir.'/xmlize.php');
-
 
 $id       = optional_param('id', 0, PARAM_INT);    // course module id
 $d        = optional_param('d', 0, PARAM_INT);     // database activity id
@@ -203,8 +202,6 @@ switch ($action) {
         echo '</div>';
         break;
 
-
-
         /***************** Exporting *****************/
     case 'save1':
         if (!data_submitted() or !confirm_sesskey()) {
@@ -301,7 +298,7 @@ echo '<table class="presets" cellpadding="5">';
 echo '<tr><td valign="top" colspan="2" align="center"><h3>'.$strexport.'</h3></td></tr>';
 
 echo '<tr><td><label>'.$strexportaszip.'</label>';
-helpbutton('exportzip', '', 'data');
+helpbutton('exportzip', '', 'data', true, true);
 echo '</td><td>';
 $options = new object();
 $options->action = 'export';
@@ -311,7 +308,7 @@ print_single_button('preset.php', $options, $strexport, 'post');
 echo '</td></tr>';
 
 echo '<tr><td><label>'.$strsaveaspreset.'</label>';
-helpbutton('savepreset', '', 'data');
+helpbutton('savepreset', '', 'data', true, true);
 echo '</td><td>';
 $options = new object();
 $options->action = 'save1';
@@ -319,27 +316,22 @@ $options->d = $data->id;
 $options->sesskey = sesskey();
 print_single_button('preset.php', $options, $strsave, 'post');
 echo '</td></tr>';
-
-
 echo '<tr><td valign="top" colspan="2" align="center"><h3>'.$strimport.'</h3></td></tr>';
-
 echo '<tr><td><label for="fromfile">'.$strfromfile.'</label>';
-helpbutton('importfromfile', '', 'data');
+helpbutton('importfromfile', '', 'data', true, true);
 echo '</td><td>';
-
 echo '<form id="uploadpreset" method="post" action="preset.php">';
 echo '<fieldset class="invisiblefieldset">';
 echo '<input type="hidden" name="d" value="'.$data->id.'" />';
 echo '<input type="hidden" name="action" value="importzip" />';
 echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
-echo '<input name="file" size="20" value="" id="fromfile" type="text" /><input name="coursefiles" value="'.$strchooseorupload.'" onclick="return openpopup('."'/files/index.php?id=2&amp;choose=uploadpreset.file', 'coursefiles', 'menubar=0,location=0,scrollbars,resizable,width=750,height=500', 0".');" type="button" />';
+echo '<input name="file" size="20" value="" id="fromfile" type="text" /><input name="coursefiles" value="'.$strchooseorupload.'" onclick="return openpopup('."'/files/index.php?id={$course->id}&amp;choose=uploadpreset.file', 'coursefiles', 'menubar=0,location=0,scrollbars,resizable,width=750,height=500', 0".');" type="button" />';
 echo '<input type="submit" value="'.$strimport.'" />';
 echo '</fieldset></form>';
 echo '</td></tr>';
 
-
 echo '<tr valign="top"><td><label>'.$strusestandard.'</label>';
-helpbutton('usepreset', '', 'data');
+helpbutton('usepreset', '', 'data', true, true);
 echo '</td><td>';
 
 echo '<form id="presets" method="post" action="preset.php" >';
@@ -380,8 +372,5 @@ echo '</table>';
 echo '</div>';
 
 print_footer($course);
-
-
-
 
 ?>

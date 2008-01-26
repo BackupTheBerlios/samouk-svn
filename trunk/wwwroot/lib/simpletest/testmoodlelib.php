@@ -7,7 +7,7 @@
 // Moodle - Modular Object-Oriented Dynamic Learning Environment         //
 //          http://moodle.org                                            //
 //                                                                       //
-// Copyright (C) 1999-2004  Martin Dougiamas  http://dougiamas.com       //
+// Copyright (C) 1999 onwards Martin Dougiamas  http://dougiamas.com     //
 //                                                                       //
 // This program is free software; you can redistribute it and/or modify  //
 // it under the terms of the GNU General Public License as published by  //
@@ -169,6 +169,7 @@ class moodlelib_test extends UnitTestCase {
      */
     function test_clean_param()
     {
+        global $CFG;
         // Test unknown parameter type
         
         // Test Raw param
@@ -177,6 +178,38 @@ class moodlelib_test extends UnitTestCase {
         
         $this->assertEqual(clean_param('#()*#,9789\'".,<42897></?$(*DSFMO#$*)(SDJ)($*)', PARAM_CLEAN), 
             '#()*#,9789\\\'\".,');
+
+        // Test PARAM_URL and PARAM_LOCALURL a bit
+        $this->assertEqual(clean_param('http://google.com/', PARAM_URL), 'http://google.com/');
+        $this->assertEqual(clean_param('http://some.very.long.and.silly.domain/with/a/path/', PARAM_URL), 'http://some.very.long.and.silly.domain/with/a/path/');
+        $this->assertEqual(clean_param('http://localhost/', PARAM_URL), 'http://localhost/');
+        $this->assertEqual(clean_param('http://0.255.1.1/numericip.php', PARAM_URL), 'http://0.255.1.1/numericip.php');
+        $this->assertEqual(clean_param('/just/a/path', PARAM_URL), '/just/a/path');
+        $this->assertEqual(clean_param('funny:thing', PARAM_URL), '');
+
+        $this->assertEqual(clean_param('http://google.com/', PARAM_LOCALURL), '');
+        $this->assertEqual(clean_param('http://some.very.long.and.silly.domain/with/a/path/', PARAM_LOCALURL), '');
+        $this->assertEqual(clean_param($CFG->wwwroot, PARAM_LOCALURL), $CFG->wwwroot);
+        $this->assertEqual(clean_param('/just/a/path', PARAM_LOCALURL), '/just/a/path');
+        $this->assertEqual(clean_param('funny:thing', PARAM_LOCALURL), '');
+    }
+
+    function test_make_user_directory() {
+        global $CFG;
+
+        // Test success conditions
+        $this->assertEqual("$CFG->dataroot/user/0/0", make_user_directory(0, true));
+        $this->assertEqual("$CFG->dataroot/user/0/1", make_user_directory(1, true));
+        $this->assertEqual("$CFG->dataroot/user/0/999", make_user_directory(999, true));
+        $this->assertEqual("$CFG->dataroot/user/1000/1000", make_user_directory(1000, true));
+        $this->assertEqual("$CFG->dataroot/user/2147483000/2147483647", make_user_directory(2147483647, true)); // Largest int possible
+
+        // Test fail conditions
+        $this->assertFalse(make_user_directory(2147483648, true)); // outside int boundary
+        $this->assertFalse(make_user_directory(-1, true));
+        $this->assertFalse(make_user_directory('string', true));
+        $this->assertFalse(make_user_directory(false, true));
+        $this->assertFalse(make_user_directory(true, true));
         
     }
 }

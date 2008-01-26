@@ -1,4 +1,4 @@
-<?php  // $Id: report.php,v 1.60 2007/08/27 21:52:36 mattc-catalyst Exp $
+<?php  // $Id: report.php,v 1.60.2.1 2007/10/12 16:09:45 tjhunt Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -40,13 +40,7 @@
         
     if (!$download) {
 
-        $navlinks = array();
-        $navlinks[] = array('name' => $strchoices, 'link' => "index.php?id=$course->id", 'type' => 'activity');
-        $navlinks[] = array('name' => format_string($choice->name), 'link' => "view.php?id=$cm->id", 'type' => 'activityinstance');
-        $navlinks[] = array('name' => $strresponses, 'link' => '', 'type' => 'title');
-
-        $navigation = build_navigation($navlinks);    
-    
+        $navigation = build_navigation($strresponses, $cm);    
         print_header_simple(format_string($choice->name).": $strresponses", "", $navigation, "", '', true,
                   update_module_button($cm->id, $course->id, $strchoice), navmenu($course, $cm));
         /// Check to see if groups are being used in this choice

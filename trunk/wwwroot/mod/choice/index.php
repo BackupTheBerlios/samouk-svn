@@ -1,4 +1,4 @@
-<?php  // $Id: index.php,v 1.31 2007/07/05 04:55:26 mattc-catalyst Exp $
+<?php  // $Id: index.php,v 1.32.2.1 2007/10/29 10:42:16 poltawski Exp $
 
     require_once("../../config.php");
     require_once("lib.php");
@@ -23,7 +23,7 @@
 
 
     if (! $choices = get_all_instances_in_course("choice", $course)) {
-        notice("There are no choices", "../../course/view.php?id=$course->id");
+        notice(get_string('thereareno', 'moodle', $strchoices), "../../course/view.php?id=$course->id");
     }
 
     if ( !empty($USER->id) and $allanswers = get_records("choice_answers", "userid", $USER->id)) {
@@ -93,4 +93,3 @@
     print_footer($course);
  
 ?>
-

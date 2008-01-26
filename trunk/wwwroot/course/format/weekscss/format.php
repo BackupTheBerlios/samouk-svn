@@ -1,4 +1,4 @@
-<?php // $Id: format.php,v 1.24 2007/09/26 12:53:04 nfreear Exp $
+<?php // $Id: format.php,v 1.24.2.2 2007/12/11 15:17:55 nfreear Exp $
       // Display the whole course as "weeks" made of of modules
       // Included from "view.php"
 /**
@@ -85,7 +85,7 @@
     }
 
 /// Start main column
-    echo '<div id="middle-column"><a name="startofcontent"></a>';
+    echo '<div id="middle-column">'. skip_main_destination();
 
     print_heading_block(get_string('weeklyoutline'), 'outline');
 
@@ -228,12 +228,14 @@
             }
             echo '</div>';
 
+            $weekperiod = $weekday.' - '.$endweekday;
+
             echo '<div class="content">';
             if (!has_capability('moodle/course:viewhiddensections', $context) and !$thissection->visible) {   // Hidden for students
-                echo '<div class="weekdates">'.$currenttext.$weekday.' - '.$endweekday.' ('.get_string('notavailable').')</div>';
+                print_heading($currenttext.$weekperiod.' ('.get_string('notavailable').')', null, 3, 'weekdates');
 
             } else {
-                echo '<div class="weekdates">'.$currenttext.$weekday.' - '.$endweekday.'</div>';
+                print_heading($currenttext.$weekperiod, null, 3, 'weekdates');
 
                 echo '<div class="summary">';
                 $summaryformatoptions->noclean = true;

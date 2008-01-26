@@ -1,4 +1,4 @@
-<?php  //$Id: index.php,v 1.32 2007/09/27 06:51:55 skodak Exp $
+<?php  //$Id: index.php,v 1.35.2.2 2007/12/07 01:40:45 toyomoyo Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -51,11 +51,11 @@ if (!empty($CFG->gradepublishing)) {
     $CFG->gradepublishing = has_capability('gradeexport/xml:publish', $context);
 }
 
-$mform = new grade_export_form(null, array('idnumberrequired'=>true, 'publishing' => true));
+$mform = new grade_export_form(null, array('idnumberrequired'=>true, 'publishing'=>true, 'updategradesonly'=>true));
 
 // process post information
 if ($data = $mform->get_data()) {
-    $export = new grade_export_xml($course, groups_get_course_group($course));
+    $export = new grade_export_xml($course, groups_get_course_group($course), '', false, $data->updatedgradesonly, $data->display, $data->decimals);
 
     // print the grades on screen for feedbacks
     $export->process_form($data);

@@ -1,4 +1,4 @@
-<?php // $Id: filter.php,v 1.38 2007/08/20 17:41:06 nicolasconnault Exp $
+<?php // $Id: filter.php,v 1.38.2.4 2007/12/19 17:38:42 skodak Exp $
 //////////////////////////////////////////////////////////////
 //  Media plugin filtering
 //
@@ -20,8 +20,7 @@ require_once($CFG->libdir.'/filelib.php');
 
 function mediaplugin_filter($courseid, $text) {
     global $CFG;
-
-    include 'defaultsettings.php';
+    static $eolas_fix_applied = false;
 
     // You should never modify parameters passed to a method or function, it's BAD practice. Create a copy instead.
     // The reason is that you must always be able to refer to the original parameter that was passed.
@@ -30,7 +29,11 @@ function mediaplugin_filter($courseid, $text) {
 
     // We're using the UFO technique for flash to attain XHTML Strict 1.0
     // See: http://www.bobbyvandersluis.com/ufo/
-    $newtext = fullclone($text);
+    if (!is_string($text)) {
+        // non string data can not be filtered anyway
+        return $text;
+    }
+    $newtext = $text; // fullclone is slow and not needed here
 
     if ($CFG->filter_mediaplugin_enable_mp3) {
         $search = '/<a.*?href="([^<]+\.mp3)"[^>]*>.*?<\/a>/is';
@@ -82,9 +85,16 @@ function mediaplugin_filter($courseid, $text) {
         $newtext = preg_replace_callback($search, 'mediaplugin_filter_real_callback', $newtext);
     }
 
-    if (is_null($newtext)) {
-        $newtext = $text;
+    if (is_null($newtext) or $newtext === $text) {
+        // error or not filtered
+        return $text;
     }
+    
+    if (!$eolas_fix_applied) {
+        $newtext .= '<script defer="defer" src="' . $CFG->wwwroot . '/filter/mediaplugin/eolas_fix.js" type="text/javascript">// <![CDATA[ ]]></script>';
+        $eolas_fix_applied = true;
+    }
+
     return $newtext;
 }
 
