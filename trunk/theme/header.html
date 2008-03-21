@@ -111,7 +111,14 @@
                              <div id="IE6hack"></div>
                            
                    
-        <div class="breadcrumb"><?php print_navigation($navigation); ?>
+        <div class="breadcrumb">
+        	<?php 
+				if (! $site = get_site()) {
+            		$site = new object();
+            		$site->shortname = get_string('home');
+		        }
+				
+				echo $site->shortname; //print_navigation($navigation); ?>
         </div>
        
     
