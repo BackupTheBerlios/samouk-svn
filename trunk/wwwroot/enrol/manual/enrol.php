@@ -1,4 +1,4 @@
-<?php   /// $Id: enrol.php,v 1.25.2.3 2008/01/06 23:18:08 martinlanghoff Exp $
+<?php   /// $Id: enrol.php,v 1.25.3 2008/02/04 23:18:08 kowy Exp $
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
 // NOTICE OF COPYRIGHT                                                   //
@@ -68,12 +68,19 @@ function print_entry($course) {
 
         } else if (empty($_GET['confirm']) && empty($_GET['cancel'])) {
 
-            print_header($strloginto, $course->fullname, $navigation);
-            echo '<br />';
+        	// 2008/02/04 - kowy - do not show header here
+            //print_header($strloginto, $course->fullname, $navigation);
+            
+            print_simple_box_start('center');
+            
             notice_yesno(get_string('enrolmentconfirmation'), "enrol.php?id=$course->id&amp;confirm=1",
                                                               "enrol.php?id=$course->id&amp;cancel=1");
-            print_footer();
-            exit;
+            
+            print_simple_box_end();
+            
+            // 2008/02/04 - kowy - do not show footer here
+            //print_footer();
+            //exit;
 
         } else if (!empty($_GET['confirm'])) {
 
@@ -110,13 +117,14 @@ function print_entry($course) {
         $password = '';
     }
 
-    print_header($strloginto, $course->fullname, $navigation, "form.password");
-
-    print_course($course, "80%");
+    // 2008/02/04 - kowy - do not show header here
+    //print_header($strloginto, $course->fullname, $navigation, "form.password");
+    //print_course($course, "80%");
 
     include("$CFG->dirroot/enrol/manual/enrol.html");
 
-    print_footer();
+    // 2008/02/04 - kowy - do not show footer here
+    //print_footer();
 
 }
 

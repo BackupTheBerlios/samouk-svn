@@ -1,4 +1,4 @@
-<?PHP  // $Id: enrol.php,v 1.30 2007/04/30 17:08:36 skodak Exp $
+<?PHP  // $Id: enrol.php,v 1.30.1 2008/02/04 17:08:36 kowy Exp $
        // enrol.php - allows admin to edit all enrollment variables
        //             Yes, enrol is correct English spelling.
 
@@ -77,9 +77,10 @@
         if (in_array($module, $enabledplugins)) {
             $enable .= ' checked="checked"';
         }
-        if ($module == 'manual') {
-            $enable .= ' disabled="disabled"';
-        }
+        // 2008/02/04 - kowy - no mandatory field (because manual will not be used)
+        //if ($module == 'manual') {
+        //    $enable .= ' disabled="disabled"';
+        //}
         $enable .= ' />';
         if (method_exists($plugin, 'print_entry')) {
             $default = '<input type="radio" name="default" value="'.$module.'"';

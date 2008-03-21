@@ -42,8 +42,33 @@ function xmldb_local_upgrade($oldversion=0) {
 //        $table->addKeyInfo('fk_su_user_user',XMLDB_KEY_FOREIGN,array('user_id'),'user',array('id'));
         // Create the table
         $result = $result && add_field($table,$field);
-    }
+    } 
+    
+    if ($result && $oldversion < 2008031801) {
 
+    /// Define table enrol_bank_requests to be created
+        $table = new XMLDBTable('enrol_bank_requests');
+
+    /// Adding fields to table enrol_bank_requests
+        $table->addFieldInfo('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null, null);
+        $table->addFieldInfo('userid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0');
+        $table->addFieldInfo('courseid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '0');
+        $table->addFieldInfo('varnum', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, '4294967295');
+        $table->addFieldInfo('requesttime', XMLDB_TYPE_DATETIME, null, null, null, null, null, null, null);
+
+    /// Adding keys to table enrol_bank_requests
+        $table->addKeyInfo('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->addKeyInfo('fk_enrol_bank_request_user', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+        $table->addKeyInfo('fk_enrol_bank_request_course', XMLDB_KEY_FOREIGN, array('courseid'), 'course', array('id'));
+
+    /// Adding indexes to table enrol_bank_requests
+        $table->addIndexInfo('ind_enrol_bank_requests_varnum', XMLDB_INDEX_UNIQUE, array('varnum'));
+
+    /// Launch create table for enrol_bank_requests
+        $result = $result && create_table($table);
+    }
+    return $result;
+    
     return $result;
 }
 

@@ -20,6 +20,7 @@ $string['course.length'] = 'Délka: ';
 $string['course.price'] = 'Cena: ';
 
 $string['error.visibility.change'] = 'Nemáte právo měnit viditelnost kurzu!';
+$string['error.noaccounting'] = 'Nemáte vyplněné číslo účtu. Prosím, vyplňte si ho v nastavení uživatelského profilu.';
 
 $string['free'] = 'Zdarma';
 

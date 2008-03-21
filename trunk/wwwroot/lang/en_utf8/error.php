@@ -1,4 +1,4 @@
-<?PHP // $Id: error.php,v 1.26.2.6 2008/01/02 16:49:04 skodak Exp $
+<?PHP // $Id: error.php,v 1.26.3 2008/01/02 16:49:04 kowy Exp $
       // error.php - created with Moodle 1.7 beta + (2006101003)
 
 
@@ -122,4 +122,5 @@ $string['wrongdestpath'] = 'Wrong destination path.';
 $string['wrongsourcebase'] = 'Wrong source URL base.';
 $string['wrongzipfilename'] = 'Wrong ZIP filename.';
 
+$string['ftlerr1'] = 'Fatal Error 1: Unable to write to DB. Please contact administrator.'
 ?>

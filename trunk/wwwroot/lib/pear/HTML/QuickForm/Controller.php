@@ -25,7 +25,7 @@
 /**
  * The class representing a page of a multipage form.
  */
-require_once 'HTML/QuickForm/Page.php';
+require_once 'Page.php';
 
 /**
  * The class representing a Controller of MVC design pattern.

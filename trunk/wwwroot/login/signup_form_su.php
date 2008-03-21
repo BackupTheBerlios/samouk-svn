@@ -45,7 +45,7 @@
 	}
 	
 	/**
-	 * Insert static element containing prediction how many step (pages) user must   
+	 * Insert static element containing prediction how many step (pages) user must fill in  
 	 *
 	 * @param HTML_QuickForm_Page $aform Form on which element should be added
 	 * @param int $current

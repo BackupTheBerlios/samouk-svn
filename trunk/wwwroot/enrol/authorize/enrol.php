@@ -1,4 +1,4 @@
-<?php // $Id: enrol.php,v 1.135.2.1 2007/11/07 15:55:09 ethem Exp $
+<?php // $Id: enrol.php,v 1.135.3 2008/02/04 15:55:09 kowy Exp $
 
 require_once($CFG->dirroot.'/enrol/enrol.class.php');
 require_once($CFG->dirroot.'/enrol/authorize/const.php');
@@ -59,8 +59,9 @@ class enrolment_plugin_authorize
         $navlinks[] = array('name' => $strloginto, 'link' => null, 'type' => 'misc');
         $navigation = build_navigation($navlinks);
 
-        print_header($strloginto, $course->fullname, $navigation);
-        print_course($course, '80%');
+        // 2008/02/04 - kowy - do not show header here
+        //print_header($strloginto, $course->fullname, $navigation);
+        //print_course($course, '80%');
 
         if ($course->password) {
             print_heading(get_string('choosemethod', 'enrol_authorize'), 'center');
@@ -103,7 +104,8 @@ class enrolment_plugin_authorize
             include($CFG->dirroot.'/enrol/manual/enrol.html');
         }
 
-        print_footer();
+        // 2008/02/04 - kowy - do not show footer here
+        //print_footer();
     }
 
 

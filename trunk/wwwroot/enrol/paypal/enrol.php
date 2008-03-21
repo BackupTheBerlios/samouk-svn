@@ -1,4 +1,4 @@
-<?php  // $Id: enrol.php,v 1.28.2.3 2008/01/07 20:56:20 poltawski Exp $
+<?php  // $Id: enrol.php,v 1.28.3 2008/02/04 20:56:20 kowy Exp $
        // Implements all the main code for the PayPal plugin
 
 require_once("$CFG->dirroot/enrol/enrol.class.php");
@@ -12,8 +12,8 @@ function print_entry($course) {
     global $CFG, $USER;
 
 
-    $strloginto = get_string("loginto", "", $course->shortname);
-    $strcourses = get_string("courses");
+//    $strloginto = get_string("loginto", "", $course->shortname);
+//    $strcourses = get_string("courses");
 
     $teacher = get_teacher($course->id);
 
@@ -29,13 +29,14 @@ function print_entry($course) {
         $manual->print_entry($course);
 
     } else {
-        $navlinks = array();
-        $navlinks[] = array('name' => $strcourses, 'link' => "$CFG->wwwroot/course", 'type' => 'misc');
-        $navlinks[] = array('name' => $strloginto, 'link' => null, 'type' => 'misc');
-        $navigation = build_navigation($navlinks);
+//        $navlinks = array();
+//        $navlinks[] = array('name' => $strcourses, 'link' => "$CFG->wwwroot/course", 'type' => 'misc');
+//        $navlinks[] = array('name' => $strloginto, 'link' => null, 'type' => 'misc');
+//        $navigation = build_navigation($navlinks);
 
-        print_header($strloginto, $course->fullname, $navigation);
-        print_course($course, "80%");
+        // 2008/02/04 - kowy - do not show header here
+        //print_header($strloginto, $course->fullname, $navigation);
+        //print_course($course, "80%");
 
         if ($course->password) {  // Presenting two options
             print_heading(get_string('costorkey', 'enrol_paypal'), 'center');
@@ -75,8 +76,8 @@ function print_entry($course) {
             include($CFG->dirroot.'/enrol/manual/enrol.html');
         }
 
-        print_footer();
-
+        // 2008/02/04 - kowy - do not show footer here
+        //print_footer();
     }
 } // end of function print_entry()
 

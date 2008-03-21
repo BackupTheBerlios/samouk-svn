@@ -1,4 +1,4 @@
-<?php // $Id: enrol.php,v 1.50 2007/08/17 19:09:11 nicolasconnault Exp $
+<?php // $Id: enrol.php,v 1.50 2008/01/31 19:09:11 kowy Exp $
       // Depending on the current enrolment method, this page
       // presents the user with whatever they need to know when
       // they try to enrol in a course.
@@ -32,7 +32,15 @@
         print_error('loginasnoenrol', '', $CFG->wwwroot.'/course/view.php?id='.$USER->loginascontext->instanceid);
     }
 
-    $enrol = enrolment_factory::factory($course->enrol); // do not use if (!$enrol... here, it can not work in PHP4 - see MDL-7529
+    // 2008/01/31 - kowy - prepare all possible enrols selected on setup page 
+    $enrols = array(); 
+    foreach (explode(',', $CFG->enrol_plugins_enabled) as $enrolname) {
+    	$module = enrolment_factory::factory($enrolname);
+    	if (method_exists($module, 'print_entry')) {
+        	$enrols[$enrolname] = $module;
+        }
+    }
+    //$enrol = enrolment_factory::factory($course->enrol); // do not use if (!$enrol... here, it can not work in PHP4 - see MDL-7529
 
 /// Refreshing all current role assignments for the current user
 
@@ -41,7 +49,6 @@
 /// Double check just in case they are actually enrolled already and
 /// thus got to this script by mistake.  This might occur if enrolments
 /// changed during this session or something
-
     if (has_capability('moodle/course:view', $context) and !has_capability('moodle/legacy:guest', $context, NULL, false)) {
         if ($SESSION->wantsurl) {
             $destination = $SESSION->wantsurl;
@@ -79,10 +86,14 @@
     }
 
 /// Check if the course is enrollable
-    if (!method_exists($enrol, 'print_entry')) {
-        print_header_simple();
-        notice(get_string('enrolmentnointernal'), "$CFG->wwwroot/index.php");
-    }
+	// 2008/01/31 - kowy - check all enrolment possibilities
+	foreach ($enrols as $enrol) {
+    	if (!method_exists($enrol, 'print_entry')) {
+        	print_header_simple();
+        	print_r($enrol);
+	        notice(get_string('enrolmentnointernal'), "$CFG->wwwroot/index.php");
+    	}
+	}
 
     if (!$course->enrollable ||
             ($course->enrollable == 2 && $course->enrolstartdate > 0 && $course->enrolstartdate > time()) ||
@@ -94,13 +105,32 @@
 
 /// Check the submitted enrolment information if there is any (eg could be enrolment key)
 
+    // 2008/01/31 - kowy - in enrol_type property should by a type of enrol method - check entries based on chosen enrol method
     if ($form = data_submitted()) {
-        $enrol->check_entry($form, $course);   // Should terminate/redirect in here if it's all OK
+    	if (is_scalar($form['enrol_type']) && method_exists($enrols[$form['enrol_type']], 'check_entry')) {
+        	$enrols[$form['enrol_type']]->check_entry($form, $course);   // Should terminate/redirect in here if it's all OK
+    	}
     }
 
 /// Otherwise, we print the entry form.
 
-    $enrol->print_entry($course);
+    // 2008/02/04 - kowy - print header of the page
+    $strloginto = get_string('loginto', '', $course->shortname);
+    $strcourses = get_string('courses');
+    $navlinks = array();
+    $navlinks[] = array('name' => $strcourses, 'link' => ".", 'type' => 'misc');
+    $navlinks[] = array('name' => $strloginto, 'link' => null, 'type' => 'misc');
+    $navigation = build_navigation($navlinks);
+    print_header($strloginto, $course->fullname, $navigation);
+    print_course($course, "80%");
+
+    // 2008/01/31 - kowy - print all enrolment possibilities
+    foreach ($enrols as $enrol) {
+    	$enrol->print_entry($course);
+    }
+    
+    // 2008/02/04 - kowy - print footer
+    print_footer();
 
 /// Easy!
 
