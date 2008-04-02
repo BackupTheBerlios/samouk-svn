@@ -1,4 +1,4 @@
-<?php  // $Id: lib.php,v 1.538.2.13 2008/01/10 15:43:21 jmg324 Exp $
+<?php  // $Id: lib.php,v 1.538.3 2008/03/27 15:43:21 kowy Exp $
    // Library of useful functions
 
 
@@ -2455,7 +2455,8 @@ function make_editing_buttons($mod, $absolute=false, $moveselect=true, $indent=-
 
     $modcontext = get_context_instance(CONTEXT_MODULE, $mod->id);
     // no permission to edit
-    if (!has_capability('moodle/course:manageactivities', $modcontext)) {
+    // 2008-03-27 - kowy - only user with site:manageblocks capability can edit course
+    if (!has_capability('moodle/site:manageblocks', $modcontext)) {
         return false;
     }
 
