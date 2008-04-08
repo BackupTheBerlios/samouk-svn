@@ -1,4 +1,4 @@
-<?php  //$Id: editlib.php,v 1.11.2.2 2007/12/27 11:35:38 poltawski Exp $
+<?php  //$Id: editlib.php,v 1.11.3 2008/04/08 11:35:38 kowy Exp $
 
 
 function useredit_load_preferences(&$user) {
@@ -207,6 +207,15 @@ function useredit_shared_definition(&$mform) {
     $mform->addElement('htmleditor', 'description', get_string('userdescription'));
     $mform->setType('description', PARAM_CLEAN);
     $mform->setHelpButton('description', array('text', get_string('helptext')));
+    
+    // 2008-04-08 - kowy - moved to advanced 
+    if( !empty($CFG->usetags)) {
+        // $mform->addElement('header', 'moodle_interests', get_string('interests'));
+        $mform->addElement('textarea', 'interests', get_string('interestslist'), 'cols="45" rows="3"');
+        $mform->setHelpButton('interests', array(false, get_string('helpinterestslist'),
+                          false, true, false, get_string('helpinterestslist')));
+        $mform->setAdvanced('interests');
+    }
 
     if (!empty($CFG->gdversion)) {
         $mform->addElement('header', 'moodle_picture', get_string('pictureof'));//TODO: Accessibility fix fieldset legend
@@ -222,13 +231,6 @@ function useredit_shared_definition(&$mform) {
         $mform->addElement('text', 'imagealt', get_string('imagealt'), 'maxlength="100" size="30"');
         $mform->setType('imagealt', PARAM_MULTILANG);
 
-    }
-
-    if( !empty($CFG->usetags)) {
-        $mform->addElement('header', 'moodle_interests', get_string('interests'));
-        $mform->addElement('textarea', 'interests', get_string('interestslist'), 'cols="45" rows="3"');
-        $mform->setHelpButton('interests', array(false, get_string('helpinterestslist'),
-                          false, true, false, get_string('helpinterestslist')));
     }
     
     /// Moodle optional fields

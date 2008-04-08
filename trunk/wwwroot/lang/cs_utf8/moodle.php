@@ -420,7 +420,8 @@ $string['editthisactivity'] = 'Upravit tuto činnost';
 $string['editthiscategory'] = 'Upravit tuto kategorii';
 $string['edituser'] = 'Upravit uživatelské účty';
 $string['email'] = 'E-mailová adresa';
-$string['emailactive'] = 'E-mail aktivován';
+// 2008-04-08 - kowy - translation repair
+$string['emailactive'] = 'Zasílat mi e-maily?';
 $string['emailagain'] = 'E-mail (znovu)';
 $string['emailcharset'] = 'Znaková sada e-mailu';
 $string['emailconfirm'] = 'Potvrďte váš účet';
@@ -443,13 +444,14 @@ $string['emaildigest'] = 'Typ souhrnných e-mailů';
 $string['emaildigestcomplete'] = 'Kompletní (denně e-mail s plným textem příspěvků)';
 $string['emaildigestoff'] = 'Nepoužívat souhrny (jeden e-mail na každý příspěvek)';
 $string['emaildigestsubjects'] = 'Předměty (denně e-mail pouze s předměty příspěvků)';
-$string['emaildisable'] = 'E-mailová adresa zakázána';
+// 2008-04-08 - kowy - translation repair
+$string['emaildisable'] = 'Nezasílat žádné';
 $string['emaildisableclick'] = 'Chcete-li zamezit odesílání e-mailů na tuto adresu, klikněte sem';
 $string['emaildisplay'] = 'Zobrazit e-mail';
 $string['emaildisplaycourse'] = 'Zobrazovat mou e-mailovou adresu pouze dalším účastníkům kurzu';
 $string['emaildisplayno'] = 'Nezobrazovat mou e-mailovou adresu nikomu';
 $string['emaildisplayyes'] = 'Zobrazovat mou e-mailovou adresu komukoliv';
-$string['emailenable'] = 'E-mailová adresa povolena';
+$string['emailenable'] = 'Zasílat';
 $string['emailenableclick'] = 'Chcete-li znovu povolit odesílání e-mailů na tuto adresu, klikněte sem';
 $string['emailexists'] = 'Tato e-mailová adresa je již registrována.';
 $string['emailformat'] = 'Formát e-mailu';
@@ -674,6 +676,8 @@ $string['helpemoticons'] = 'Používejte emotikony';
 $string['helpformatting'] = 'O formátování textu';
 $string['helphtml'] = 'Jak psát HTML';
 $string['helpindex'] = 'Rejstřík všech souborů nápovědy';
+// 2008-04-08 - kowy - new translation added
+$string['helpinterestslist'] = 'Zadejte své koníčky oddělené čárkami';
 $string['helppicture'] = 'Jak připojit obrázek';
 $string['helpprefix'] = 'Nápověda - $a';
 $string['helpprefix2'] = 'Pomoc s  $a';
@@ -734,6 +738,9 @@ $string['includeuserfiles'] = 'Zahrnout soubory uživatelů';
 $string['info'] = 'Informace';
 $string['institution'] = 'Instituce';
 $string['instudentview'] = 'v pohledu studenta';
+// 2008-04-08 - kowy - addend new translation
+$string['interests'] = 'Koníčky';
+$string['interestslist'] = 'Seznam koníčku';
 $string['invalidemail'] = 'Neplatná e-mailová adresa';
 $string['invalidlogin'] = 'Neplatné přihlášení, zkuste znovu';
 $string['ip_address'] = 'IP adresa';
