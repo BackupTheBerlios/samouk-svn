@@ -417,6 +417,36 @@
             }
         }
     }
+    
+    // 2008-04-08 - kowy - add Edit profile capability 
+    // Can only edit profile if it belongs to user or current user is admin and not editing primary admin
+    $editprofiletype = 'none';
+    $mainadmin = get_admin();
+    if (isguestuser($user)) {
+        // guest account can not be edited
+    
+    } else if (is_mnet_remote_user($user)) {
+        // cannot edit remote users
+    
+    } else if (isguestuser() or !isloggedin()) {
+        // guests and not logged in can not edit own profile
+
+    } else if ($USER->id == $user->id) {
+        if (has_capability('moodle/user:update', $systemcontext)) {
+            $editprofiletype = 'advanced';
+        } else if (has_capability('moodle/user:editownprofile', $systemcontext, $user->id)) {
+            $editprofiletype = 'normal';
+        }
+    } else if ($user->id != $mainadmin->id) {
+        //no editing of primary admin!
+    	
+    	if (has_capability('moodle/user:update', $systemcontext)) {
+            $editprofiletype = 'advanced';
+        } else if (has_capability('moodle/user:editprofile', $personalcontext)) {
+            //teachers, parents, etc.
+            $editprofiletype = 'normal';
+        }
+    }
 
 //  Print other functions
     echo '<div class="buttons">';
@@ -451,6 +481,23 @@
         echo "</div>";
         echo "</form>";
     }
+
+    // 2008-04-08 - kowy - add Edit profile button
+    if ($editprofiletype == 'advanced') {
+    	echo '<form action="editadvanced.php" method="get">';
+        echo '<input type="hidden" name="id" value="'.$user->id.'">';
+        echo '<input type="hidden" name="course" value="'.$course->id.'">';
+       	echo '<input type="submit" value="'.get_string('editmyprofile').'">';
+       	echo '</form>';
+    } else if ($editprofiletype == 'normal') {
+       	echo '<form action="edit.php" method="get">';
+        echo '<input type="hidden" name="id" value="'.$user->id.'">';
+        echo '<input type="hidden" name="course" value="'.$course->id.'">';
+        echo '<input type="submit" value="'.get_string('editmyprofile').'">';
+        echo '</form>';
+    }
+    echo '</form>';
+        
 
     if ($course->id != SITEID && empty($course->metacourse)) {   // Mostly only useful at course level
 

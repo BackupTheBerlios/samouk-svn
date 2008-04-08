@@ -1,4 +1,4 @@
-<?php  // $Id: tabs.php,v 1.43 2007/10/02 03:37:31 toyomoyo Exp $
+<?php  // $Id: tabs.php,v 1.44 2008/04/08 03:37:31 kowy Exp $
 /// This file to be included so we can assume config.php has already been included.
 /// We also assume that $user, $course, $currenttab have been set
 
@@ -12,7 +12,7 @@
     //make sure everything is cleaned properly
     $filtertype   = clean_param($filtertype, PARAM_ALPHA);
     $filterselect = clean_param($filterselect, PARAM_INT);
-
+    
     if (empty($currenttab) or empty($user) or empty($course)) {
         //error('You cannot call this script in that way');
     }
@@ -95,48 +95,49 @@
         $coursecontext   = get_context_instance(CONTEXT_COURSE, $course->id);
         $personalcontext = get_context_instance(CONTEXT_USER, $user->id);
 
-    /// Can only edit profile if it belongs to user or current user is admin and not editing primary admin
-
-        $mainadmin = get_admin();
-
-        if(empty($CFG->loginhttps)) {
-            $wwwroot = $CFG->wwwroot;
-        } else {
-            $wwwroot = str_replace('http:','https:',$CFG->wwwroot);
-        }
-
-        $edittype = 'none';
-        if (isguestuser($user)) {
-            // guest account can not be edited
-
-        } else if (is_mnet_remote_user($user)) {
-            // cannot edit remote users
-
-        } else if (isguestuser() or !isloggedin()) {
-            // guests and not logged in can not edit own profile
-
-        } else if ($USER->id == $user->id) {
-            if (has_capability('moodle/user:update', $systemcontext)) {
-                $edittype = 'advanced';
-            } else if (has_capability('moodle/user:editownprofile', $systemcontext)) {
-                $edittype = 'normal';
-            }
-
-        } else if ($user->id != $mainadmin->id) {
-            //no editing of primary admin!
-            if (has_capability('moodle/user:update', $systemcontext)) {
-                $edittype = 'advanced';
-            } else if (has_capability('moodle/user:editprofile', $personalcontext)) {
-                //teachers, parents, etc.
-                $edittype = 'normal';
-            }
-        }
-
-        if ($edittype == 'advanced') {
-            $toprow[] = new tabobject('editprofile', $wwwroot.'/user/editadvanced.php?id='.$user->id.'&amp;course='.$course->id, get_string('editmyprofile'));
-        } else if ($edittype == 'normal') {
-            $toprow[] = new tabobject('editprofile', $wwwroot.'/user/edit.php?id='.$user->id.'&amp;course='.$course->id, get_string('editmyprofile'));
-        }
+// 2008-04-08 - kowy - Edit profile link moved to user/view.php        
+//    /// Can only edit profile if it belongs to user or current user is admin and not editing primary admin
+//
+//        $mainadmin = get_admin();
+//
+//        if(empty($CFG->loginhttps)) {
+//            $wwwroot = $CFG->wwwroot;
+//        } else {
+//            $wwwroot = str_replace('http:','https:',$CFG->wwwroot);
+//        }
+//
+//        $edittype = 'none';
+//        if (isguestuser($user)) {
+//            // guest account can not be edited
+//        
+//        } else if (is_mnet_remote_user($user)) {
+//            // cannot edit remote users
+//        
+//        } else if (isguestuser() or !isloggedin()) {
+//            // guests and not logged in can not edit own profile
+//
+//        } else if ($USER->id == $user->id) {
+//            if (has_capability('moodle/user:update', $systemcontext)) {
+//                $edittype = 'advanced';
+//            } else if (has_capability('moodle/user:editownprofile', $systemcontext)) {
+//                $edittype = 'normal';
+//            }
+//        } else if ($user->id != $mainadmin->id) {
+//            //no editing of primary admin!
+//
+//        	if (has_capability('moodle/user:update', $systemcontext)) {
+//                $edittype = 'advanced';
+//            } else if (has_capability('moodle/user:editprofile', $personalcontext)) {
+//                //teachers, parents, etc.
+//                $edittype = 'normal';
+//            }
+//        }
+//
+//        if ($edittype == 'advanced') {
+//            $toprow[] = new tabobject('editprofile', $wwwroot.'/user/editadvanced.php?id='.$user->id.'&amp;course='.$course->id, get_string('editmyprofile'));
+//        } else if ($edittype == 'normal') {
+//            $toprow[] = new tabobject('editprofile', $wwwroot.'/user/edit.php?id='.$user->id.'&amp;course='.$course->id, get_string('editmyprofile'));
+//        }
 
     /// Everyone can see posts for this user
 
